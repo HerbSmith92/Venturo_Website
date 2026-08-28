@@ -1,0 +1,4 @@
+# Source packs & design archives — not needed at runtime (site uses public/brand)
+architect
+.git
+*.tsbuildinfo
