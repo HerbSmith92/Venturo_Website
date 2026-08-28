@@ -1,0 +1,53 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg id="Layer_1" data-name="Layer 1" xmlns="http://www.w3.org/2000/svg" version="1.1" viewBox="0 0 100 100">
+  <defs>
+    <style>
+      .cls-1 {
+        fill: none;
+        stroke-width: 4px;
+      }
+
+      .cls-1, .cls-2 {
+        stroke: #0b493a;
+        stroke-miterlimit: 10;
+      }
+
+      .cls-2 {
+        stroke-width: 3px;
+      }
+
+      .cls-2, .cls-3 {
+        fill: #0b493a;
+      }
+
+      .cls-4 {
+        fill: #00b386;
+      }
+
+      .cls-4, .cls-5, .cls-3, .cls-6 {
+        stroke-width: 0px;
+      }
+
+      .cls-5 {
+        fill: #f2f2f2;
+      }
+
+      .cls-6 {
+        fill: #40396e;
+      }
+    </style>
+  </defs>
+  <circle class="cls-1" cx="50" cy="15" r="6.5"/>
+  <circle class="cls-2" cx="50" cy="58" r="33.5"/>
+  <circle class="cls-4" cx="50" cy="58" r="28"/>
+  <path class="cls-6" d="M50,26h0c-2.2,0-4-1.8-4-4h0c0-2.2,1.8-4,4-4h0c2.2,0,4,1.8,4,4h0c0,2.2-1.8,4-4,4Z"/>
+  <polygon class="cls-5" points="65.1 43.4 44.1 52.6 55.9 64.4 65.1 43.4"/>
+  <polygon class="cls-5" points="34.9 73.6 44.1 52.6 55.9 64.4 34.9 73.6"/>
+  <circle class="cls-5" cx="50" cy="58.5" r="3.7"/>
+  <polygon class="cls-3" points="50 28.5 54 28.5 52 31.8 50 35 48 31.8 46 28.5 50 28.5"/>
+  <polygon class="cls-3" points="50 87.5 54 87.5 52 84.2 50 81 48 84.2 46 87.5 50 87.5"/>
+  <g>
+    <polygon class="cls-3" points="79.5 58 79.5 62 76.2 60 73 58 76.2 56 79.5 54 79.5 58"/>
+    <polygon class="cls-3" points="20.5 58 20.5 62 23.8 60 27 58 23.8 56 20.5 54 20.5 58"/>
+  </g>
+</svg>
