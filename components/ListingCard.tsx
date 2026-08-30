@@ -9,7 +9,7 @@ import {
 
 export function ListingCard({
   listing,
-  href = "/directory",
+  href,
   showMemberPrice = false,
 }: {
   listing: Listing;
@@ -18,11 +18,12 @@ export function ListingCard({
 }) {
   const discounted = hasMemberDiscount(listing);
   const colour = categoryColour(listing.category);
+  const target = href ?? `/directory/${listing.slug}`;
 
   return (
     <Link
       className={`card${discounted ? " card-deal" : ""}`}
-      href={href}
+      href={target}
       style={{ ["--card-accent" as string]: colour }}
     >
       <div className="card-image">

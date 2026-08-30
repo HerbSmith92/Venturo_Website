@@ -4,7 +4,7 @@ import { redirect } from "next/navigation";
 
 export default async function AccountPage() {
   const user = await getCurrentUser();
-  if (!user) redirect("/login");
+  if (!user) redirect("/login?next=/account");
 
   const paid = user.plan === "paid";
 
@@ -19,17 +19,26 @@ export default async function AccountPage() {
           {paid ? (
             <p>
               RevenueCat confirmed your membership. Curated discovery & exclusive
-              discounts are on.
+              discounts — including event tickets — are on.
             </p>
           ) : (
             <p>
-              You can book event tickets. Subscribe in the app for {PAID_PRICE} a
-              month to unlock member benefits.
+              You can book event tickets & host events for approval. Subscribe in
+              the app for {PAID_PRICE} a month to unlock member ticket prices.
             </p>
           )}
           <div className="hero-actions" style={{ marginTop: 20 }}>
-            <a className="btn btn-primary" href="/directory">
-              Back To Directory
+            <a className="btn btn-primary" href="/events">
+              Browse Events
+            </a>
+            <a className="btn btn-secondary" href="/account/tickets">
+              My Tickets
+            </a>
+            <a className="btn btn-secondary" href="/account/events">
+              My Events
+            </a>
+            <a className="btn btn-secondary" href="/directory">
+              Directory
             </a>
             {!paid && (
               <a className="btn btn-secondary" href="/join#paid">

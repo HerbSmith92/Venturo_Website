@@ -1,4 +1,4 @@
-import { requireAdmin } from "@/lib/auth";
+import { requireStaff } from "@/lib/auth";
 import { AdminNav } from "@/components/admin/AdminNav";
 
 export default async function ControlRoomLayout({
@@ -6,7 +6,7 @@ export default async function ControlRoomLayout({
 }: Readonly<{
   children: React.ReactNode;
 }>) {
-  const user = await requireAdmin();
+  const user = await requireStaff();
 
   return (
     <div className="cr-shell">
