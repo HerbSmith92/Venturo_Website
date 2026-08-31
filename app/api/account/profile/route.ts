@@ -72,7 +72,8 @@ export async function POST(request: Request) {
   }
 
   const body = (await request.json()) as {
-    displayName?: string;
+    firstName?: string;
+    lastName?: string;
     homePlaceId?: string | null;
     personaIds?: string[];
     interestIds?: string[];
@@ -80,8 +81,9 @@ export async function POST(request: Request) {
     energyHigh?: number | null;
   };
 
-  const displayName = String(body.displayName ?? "").trim().slice(0, 80);
-  if (!displayName) {
+  const firstName = String(body.firstName ?? "").trim().slice(0, 80);
+  const lastName = String(body.lastName ?? "").trim().slice(0, 80);
+  if (!firstName) {
     return NextResponse.json({ error: "First name is required." }, { status: 400 });
   }
 
@@ -102,14 +104,14 @@ export async function POST(request: Request) {
   if (energyHigh != null && energyLow == null) energyLow = energyHigh;
   if (energyLow != null && energyHigh != null && energyLow > energyHigh) {
     return NextResponse.json(
-      { error: "Energy range should go from chilled to full throttle." },
+      { error: "Activity range should run from calmer to more intense." },
       { status: 400 },
     );
   }
 
   const current = await loadMemberProfile(user.id);
   const step = onboardingStepFor({
-    displayName,
+    firstName,
     homePlaceId,
     personaIds,
     interestIds,
@@ -120,7 +122,8 @@ export async function POST(request: Request) {
   const { error: profileError } = await supabase.from("profiles").upsert(
     {
       id: user.id,
-      display_name: displayName,
+      display_name: firstName,
+      last_name: lastName || null,
       home_place_id: homePlaceId,
       activity_scale_low: energyLow,
       activity_scale_high: energyHigh,
@@ -160,7 +163,12 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: interestError }, { status: 400 });
   }
 
-  await supabase.auth.updateUser({ data: { first_name: displayName } });
+  await supabase.auth.updateUser({
+    data: {
+      first_name: firstName,
+      last_name: lastName || null,
+    },
+  });
 
   return NextResponse.json({ ok: true, onboardingStep: step });
 }

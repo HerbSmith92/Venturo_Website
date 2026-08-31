@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 
-type Step = "email" | "code";
+type Step = "credentials" | "code";
 
 export function AuthForm({
   mode,
@@ -13,40 +13,51 @@ export function AuthForm({
   configured: boolean;
   next?: string;
 }) {
-  const [step, setStep] = useState<Step>("email");
+  const [step, setStep] = useState<Step>("credentials");
   const [email, setEmail] = useState("");
   const [firstName, setFirstName] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [pending, setPending] = useState(false);
 
-  async function sendCode(event?: React.FormEvent<HTMLFormElement>) {
-    event?.preventDefault();
+  async function startWithPassword(event: React.FormEvent<HTMLFormElement>) {
+    event.preventDefault();
     setError(null);
     setPending(true);
-    const form = event
-      ? new FormData(event.currentTarget)
-      : (() => {
-          const data = new FormData();
-          data.set("email", email);
-          data.set("mode", mode);
-          data.set("next", next);
-          if (firstName) data.set("firstName", firstName);
-          return data;
-        })();
-    if (!form.get("next")) form.set("next", next);
-    const response = await fetch("/auth/otp/send", {
+    const form = new FormData(event.currentTarget);
+    form.set("mode", mode);
+    form.set("next", next);
+    const response = await fetch("/auth/password/start", {
       method: "POST",
       body: form,
     });
     const payload = (await response.json()) as { error?: string; email?: string };
     setPending(false);
     if (!response.ok) {
-      setError(payload.error ?? "Could not send the code.");
+      setError(payload.error ?? "Could not start sign-in.");
       return;
     }
     setEmail(payload.email ?? String(form.get("email") ?? ""));
     setFirstName(String(form.get("firstName") ?? firstName));
     setStep("code");
+  }
+
+  async function sendCode() {
+    setError(null);
+    setPending(true);
+    const form = new FormData();
+    form.set("email", email);
+    form.set("mode", "login");
+    form.set("next", next);
+    if (firstName) form.set("firstName", firstName);
+    const response = await fetch("/auth/otp/send", {
+      method: "POST",
+      body: form,
+    });
+    const payload = (await response.json()) as { error?: string };
+    setPending(false);
+    if (!response.ok) {
+      setError(payload.error ?? "Could not resend the code.");
+    }
   }
 
   async function verifyCode(event: React.FormEvent<HTMLFormElement>) {
@@ -74,14 +85,10 @@ export function AuthForm({
     return (
       <form className="auth-card" onSubmit={verifyCode}>
         <p className="eyebrow">Check Your Email</p>
-        <h1>Enter Your Code</h1>
+        <h1>Confirm With Your Code</h1>
         <p className="lede muted">
-          We emailed <strong>{email}</strong>. Enter the <strong>6-digit code</strong>{" "}
-          from that message (not your name). Same account as the Venturo app.
-        </p>
-        <p className="notice">
-          If the email only has a link, click the link — it will sign you in. We
-          are switching the project template to send the code in the email body.
+          Password accepted for <strong>{email}</strong>. Enter the{" "}
+          <strong>6-digit code</strong> we just emailed to finish signing in.
         </p>
         {!configured && (
           <p className="notice">
@@ -108,12 +115,7 @@ export function AuthForm({
           {pending ? "Please Wait" : "Verify & Continue"}
         </button>
         <p className="muted" style={{ marginTop: 16 }}>
-          <button
-            type="button"
-            className="linkish"
-            disabled={pending}
-            onClick={() => sendCode()}
-          >
+          <button type="button" className="linkish" disabled={pending} onClick={() => sendCode()}>
             Resend code
           </button>
           {" · "}
@@ -121,11 +123,11 @@ export function AuthForm({
             type="button"
             className="linkish"
             onClick={() => {
-              setStep("email");
+              setStep("credentials");
               setError(null);
             }}
           >
-            Use a different email
+            Back
           </button>
         </p>
       </form>
@@ -133,13 +135,13 @@ export function AuthForm({
   }
 
   return (
-    <form className="auth-card" onSubmit={sendCode}>
+    <form className="auth-card" onSubmit={startWithPassword}>
       <p className="eyebrow">{mode === "login" ? "Welcome Back" : "Create A Profile"}</p>
       <h1>{mode === "login" ? "Log In" : "Sign Up Free"}</h1>
       <p className="lede muted">
         {mode === "login"
-          ? "We’ll email you a one-time code. Use the same email as the Venturo app."
-          : "Free lets you book event tickets. We’ll email a one-time code to verify you — no password on the web. Then you land on your profile."}
+          ? "Enter your email & password. We will email a one-time code to confirm it is you."
+          : "Free lets you book event tickets. Choose a password, then confirm with a one-time code. Same email as the Venturo app."}
       </p>
       {!configured && (
         <p className="notice">
@@ -171,15 +173,27 @@ export function AuthForm({
           onChange={(e) => setEmail(e.target.value)}
         />
       </label>
+      <label className="field">
+        <span>Password</span>
+        <input
+          name="password"
+          type="password"
+          autoComplete={mode === "login" ? "current-password" : "new-password"}
+          minLength={8}
+          required
+        />
+      </label>
       <input type="hidden" name="mode" value={mode} />
       <input type="hidden" name="next" value={next} />
       {error && <p className="error">{error}</p>}
       <button className="btn btn-primary" type="submit" disabled={!configured || pending}>
-        {pending ? "Please Wait" : "Email Me A Code"}
+        {pending ? "Please Wait" : mode === "login" ? "Continue" : "Create Profile"}
       </button>
       <p className="muted" style={{ marginTop: 16 }}>
         {mode === "login" ? (
           <>
+            <a href="/forgot-password">Forgot password?</a>
+            {" · "}
             Need an account? <a href={`/signup?next=${encodeURIComponent(next)}`}>Sign Up</a>
           </>
         ) : (

@@ -317,12 +317,21 @@ export async function loadMembers(query?: string): Promise<{
 
   const users = data.users;
   const ids = users.map((user) => user.id);
+  const legacyIds = users
+    .map((user) => {
+      const legacy = user.app_metadata?.legacy_wp_user_id;
+      return legacy === null || legacy === undefined ? "" : String(legacy);
+    })
+    .filter(Boolean);
+  const paidLookupIds = [...new Set([...ids, ...legacyIds])];
   const [{ data: profiles }, paidMap] = await Promise.all([
     supabase
       .from("profiles")
       .select("id, display_name, onboarding_step, created_at")
       .in("id", ids.length ? ids : ["00000000-0000-0000-0000-000000000000"]),
-    revenueCatReady ? getPaidMembershipMap(ids) : Promise.resolve(new Map<string, boolean>()),
+    revenueCatReady
+      ? getPaidMembershipMap(paidLookupIds)
+      : Promise.resolve(new Map<string, boolean>()),
   ]);
 
   const profileById = new Map(
@@ -340,12 +349,15 @@ export async function loadMembers(query?: string): Promise<{
   const members = users.map((user): MemberRow => {
     const profile = profileById.get(user.id);
     const meta = user.user_metadata as { first_name?: string } | undefined;
+    const legacyId = user.app_metadata?.legacy_wp_user_id;
+    const legacyKey = legacyId === null || legacyId === undefined ? "" : String(legacyId);
+    const paid = Boolean(paidMap.get(user.id) || (legacyKey && paidMap.get(legacyKey)));
     return {
       id: user.id,
       display_name: profile?.display_name || meta?.first_name || null,
       email: user.email ?? null,
       role: roleFromAppMetadata(user.app_metadata),
-      plan: paidMap.get(user.id) ? "paid" : "free",
+      plan: paid ? "paid" : "free",
       onboarding_step: profile?.onboarding_step ?? "identity",
       created_at: profile?.created_at ?? user.created_at,
       last_sign_in_at: user.last_sign_in_at ?? null,
