@@ -2,7 +2,7 @@ import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { getPaidMembership } from "@/lib/revenuecat";
 import type { Plan } from "@/lib/revenuecat";
-import { roleFromClaims, type AppRole } from "@/lib/roles";
+import { isStaff, roleFromClaims, type AppRole } from "@/lib/roles";
 
 export type CurrentUser = {
   id: string;
@@ -51,9 +51,21 @@ export async function getCurrentUser(): Promise<CurrentUser | null> {
   const session = await getStaffSession();
   if (!session) return null;
 
+  const supabase = await createClient();
+  let firstName = session.firstName;
+  if (supabase) {
+    const { data } = await supabase
+      .from("profiles")
+      .select("display_name")
+      .eq("id", session.id)
+      .maybeSingle();
+    if (data?.display_name) firstName = data.display_name;
+  }
+
   const paid = await getPaidMembership(session.id);
   return {
     ...session,
+    firstName,
     plan: paid ? "paid" : "free",
   };
 }
@@ -63,4 +75,11 @@ export async function requireAdmin() {
   if (!session) redirect("/admin/login");
   if (session.role !== "admin") redirect("/admin/denied");
   return { ...session, role: "admin" as const };
+}
+
+export async function requireStaff() {
+  const session = await getStaffSession();
+  if (!session) redirect("/admin/login");
+  if (!isStaff(session.role)) redirect("/admin/denied");
+  return session;
 }

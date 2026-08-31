@@ -40,6 +40,9 @@ export default async function DirectoryPage({
               </a>
             </>
           )}
+          <a className="btn btn-secondary" href="/directory/claim">
+            Claim A Listing
+          </a>
         </div>
         <CategoryChips active={category} />
         <div className="grid">
@@ -47,7 +50,7 @@ export default async function DirectoryPage({
             <ListingCard
               key={listing.id}
               listing={listing}
-              href="/directory"
+              href={`/directory/${listing.slug}`}
               showMemberPrice={paid}
             />
           ))}

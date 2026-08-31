@@ -12,14 +12,26 @@ export function SiteHeader({ user }: { user: CurrentUser | null }) {
             alt="Venturo"
           />
         </a>
-        <nav className="nav-actions" aria-label="Account">
+        <nav className="nav-actions" aria-label="Site">
+          <a className="btn btn-ghost" href="/directory">
+            Directory
+          </a>
+          <a className="btn btn-ghost" href="/events">
+            Events
+          </a>
+          <a className="btn btn-ghost" href="/communities">
+            Communities
+          </a>
           <a className="btn btn-ghost" href="/admin">
             Admin
           </a>
           {user ? (
             <>
+              <a className="btn btn-ghost" href="/events/create">
+                Create Event
+              </a>
               <a className="btn btn-ghost" href="/account">
-                {user.plan === "paid" ? "Paid Member" : "Free Profile"}
+                {user.firstName && user.firstName !== "there" ? user.firstName : "Profile"}
               </a>
               <form action="/auth/sign-out" method="post">
                 <button className="btn btn-secondary" type="submit">

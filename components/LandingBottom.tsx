@@ -1,5 +1,5 @@
 import { ContactCard } from "@/components/ContactCard";
-import { PAID_CADENCE, PAID_PRICE } from "@/lib/brand";
+import { getAppStoreLinks, PAID_CADENCE, PAID_PRICE } from "@/lib/brand";
 
 const TICKER = [
   "Activities",
@@ -58,9 +58,7 @@ const STORIES = [
 ];
 
 export function LandingBottom() {
-  const appStore = process.env.NEXT_PUBLIC_APP_STORE_URL ?? "https://apps.apple.com";
-  const playStore =
-    process.env.NEXT_PUBLIC_PLAY_STORE_URL ?? "https://play.google.com/store";
+  const stores = getAppStoreLinks();
 
   return (
     <>
@@ -141,12 +139,24 @@ export function LandingBottom() {
               RevenueCat — we do not take card payments here.
             </p>
             <div className="hero-actions">
-              <a className="btn btn-primary" href={appStore}>
-                App Store
-              </a>
-              <a className="btn btn-secondary" href={playStore}>
-                Play Store
-              </a>
+              {stores.appStoreReady ? (
+                <a className="btn btn-primary" href={stores.appStore}>
+                  App Store
+                </a>
+              ) : (
+                <a className="btn btn-primary" href="/join#paid">
+                  App Store — Link Soon
+                </a>
+              )}
+              {stores.playStoreReady ? (
+                <a className="btn btn-secondary" href={stores.playStore}>
+                  Play Store
+                </a>
+              ) : (
+                <a className="btn btn-secondary" href="/join#paid">
+                  Play Store — Link Soon
+                </a>
+              )}
             </div>
           </div>
           <article className="price-card">

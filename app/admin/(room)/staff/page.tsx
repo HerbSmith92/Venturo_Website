@@ -1,4 +1,5 @@
 import { inviteStaff } from "@/app/admin/actions";
+import { requireAdmin } from "@/lib/auth";
 import { isServiceRoleConfigured } from "@/lib/supabase/admin";
 
 export default async function StaffPage({
@@ -6,6 +7,7 @@ export default async function StaffPage({
 }: {
   searchParams: Promise<{ error?: string; done?: string }>;
 }) {
+  await requireAdmin();
   const { error, done } = await searchParams;
   const canInvite = isServiceRoleConfigured();
 

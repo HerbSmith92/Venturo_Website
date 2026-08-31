@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { provisionMember, safeNextPath } from "@/lib/member-auth";
 import { createClient } from "@/lib/supabase/server";
 
 export async function GET(request: Request) {
@@ -6,8 +7,7 @@ export async function GET(request: Request) {
   const code = url.searchParams.get("code");
   const tokenHash = url.searchParams.get("token_hash");
   const type = url.searchParams.get("type");
-  const next = url.searchParams.get("next") ?? "/admin/reset-password";
-  const safeNext = next.startsWith("/") && !next.startsWith("//") ? next : "/admin/reset-password";
+  const safeNext = safeNextPath(url.searchParams.get("next"));
   const authError = url.searchParams.get("error_description") ?? url.searchParams.get("error");
 
   const target = new URL(safeNext, url.origin);
@@ -18,17 +18,32 @@ export async function GET(request: Request) {
 
   const supabase = await createClient();
   if (supabase && code) {
-    const { error } = await supabase.auth.exchangeCodeForSession(code);
+    const { data, error } = await supabase.auth.exchangeCodeForSession(code);
     if (error) {
       target.searchParams.set("error", error.message);
       return NextResponse.redirect(target);
     }
+    const userId = data.user?.id ?? data.session?.user?.id;
+    if (userId) {
+      await provisionMember(userId);
+    }
     return NextResponse.redirect(target);
   }
 
-  if (tokenHash) {
-    target.searchParams.set("token_hash", tokenHash);
-    if (type) target.searchParams.set("type", type);
+  if (supabase && tokenHash && type) {
+    const { data, error } = await supabase.auth.verifyOtp({
+      token_hash: tokenHash,
+      type: type as "email" | "signup" | "invite" | "magiclink" | "recovery" | "email_change",
+    });
+    if (error) {
+      target.searchParams.set("error", error.message);
+      return NextResponse.redirect(target);
+    }
+    const userId = data.user?.id ?? data.session?.user?.id;
+    if (userId) {
+      await provisionMember(userId);
+    }
+    return NextResponse.redirect(target);
   }
 
   return NextResponse.redirect(target);
