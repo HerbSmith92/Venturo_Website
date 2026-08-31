@@ -17,3 +17,4 @@ coverage/
 *.local
 *.tsbuildinfo
 .env*
+tmp/

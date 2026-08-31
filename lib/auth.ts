@@ -17,6 +17,7 @@ export type StaffSession = {
   email: string | undefined;
   firstName: string;
   role: AppRole | null;
+  legacyWpUserId: string | null;
 };
 
 function claimsRecord(claims: unknown): Record<string, unknown> | null {
@@ -39,11 +40,19 @@ export async function getStaffSession(): Promise<StaffSession | null> {
   const claims = claimsRecord(data?.claims);
   if (!claims || typeof claims.sub !== "string") return null;
 
+  const appMetadata = (claims.app_metadata ?? {}) as { legacy_wp_user_id?: string | number };
+  const legacyRaw = appMetadata.legacy_wp_user_id;
+  const legacyWpUserId =
+    legacyRaw === null || legacyRaw === undefined || legacyRaw === ""
+      ? null
+      : String(legacyRaw);
+
   return {
     id: claims.sub,
     email: typeof claims.email === "string" ? claims.email : undefined,
     firstName: firstNameFromClaims(claims),
     role: roleFromClaims(claims),
+    legacyWpUserId,
   };
 }
 
@@ -62,7 +71,9 @@ export async function getCurrentUser(): Promise<CurrentUser | null> {
     if (data?.display_name) firstName = data.display_name;
   }
 
-  const paid = await getPaidMembership(session.id);
+  const paid =
+    (await getPaidMembership(session.id)) ||
+    (session.legacyWpUserId ? await getPaidMembership(session.legacyWpUserId) : false);
   return {
     ...session,
     firstName,

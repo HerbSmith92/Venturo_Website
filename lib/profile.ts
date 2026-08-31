@@ -5,12 +5,17 @@ export {
   MAX_INTERESTS,
   MIN_INTERESTS,
   onboardingStepFor,
+  profileProgress,
   type MemberProfile,
   type ProfileCatalog,
+  type ProfileProgressStep,
 } from "@/lib/profile-shared";
 
 const EMPTY_PROFILE: MemberProfile = {
-  displayName: "",
+  firstName: "",
+  lastName: "",
+  avatarPath: null,
+  avatarUrl: null,
   homePlaceId: null,
   energyLow: null,
   energyHigh: null,
@@ -35,7 +40,7 @@ export async function loadMemberProfile(userId: string): Promise<MemberProfile> 
     supabase
       .from("profiles")
       .select(
-        "display_name, home_place_id, activity_scale_low, activity_scale_high, onboarding_step, onboarding_completed_at",
+        "display_name, last_name, avatar_path, home_place_id, activity_scale_low, activity_scale_high, onboarding_step, onboarding_completed_at",
       )
       .eq("id", userId)
       .maybeSingle(),
@@ -46,8 +51,20 @@ export async function loadMemberProfile(userId: string): Promise<MemberProfile> 
   const row = profile.data;
   if (!row) return EMPTY_PROFILE;
 
+  const avatarPath = typeof row.avatar_path === "string" ? row.avatar_path : null;
+  let avatarUrl: string | null = null;
+  if (avatarPath) {
+    const { data: signed } = await supabase.storage
+      .from("avatars")
+      .createSignedUrl(avatarPath, 60 * 60);
+    avatarUrl = signed?.signedUrl ?? null;
+  }
+
   return {
-    displayName: row.display_name ?? "",
+    firstName: row.display_name ?? "",
+    lastName: row.last_name ?? "",
+    avatarPath,
+    avatarUrl,
     homePlaceId: row.home_place_id,
     energyLow: row.activity_scale_low,
     energyHigh: row.activity_scale_high,

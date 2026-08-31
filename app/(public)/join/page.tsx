@@ -13,17 +13,17 @@ export default async function JoinPage() {
         <p className="eyebrow">Join Venturo</p>
         <h1>Start Free. Go Paid In The App.</h1>
         <p className="lede muted">
-          Sign up with an email code — no password on the web. Free lets you book
-          event tickets & create events for review. Paid is {PAID_PRICE} a month
-          via the App Store or Play Store. This site asks RevenueCat whether your
-          membership is active.
+          Sign up with a password, then confirm with a one-time email code. Free
+          lets you book event tickets & create events for review. Paid is{" "}
+          {PAID_PRICE} a month via the App Store or Play Store. This site asks
+          RevenueCat whether your membership is active.
         </p>
         <PricingPlans currentPlan={user?.plan ?? "guest"} />
       </section>
       <section className="section" id="paid">
         <h2>How Paid Gets Confirmed</h2>
         <ol>
-          <li>Sign up free with an email code on the website or in the app.</li>
+          <li>Sign up free with a password & email code on the website or in the app.</li>
           <li>Subscribe in the App Store or Play Store at {PAID_PRICE} / month.</li>
           <li>
             RevenueCat looks up your user & unlocks curated discovery plus
