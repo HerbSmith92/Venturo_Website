@@ -183,7 +183,11 @@ const GUIDE_SELECT = `
   )
 `;
 
-function isCurrentlyLive(row: { status?: string; publish_at?: string | null; expire_at: string | null }) {
+function isCurrentlyLive(row: {
+  status?: string;
+  publish_at?: string | null;
+  expire_at?: string | null;
+}) {
   if (row.status && row.status !== "published") return false;
   const now = Date.now();
   if (row.publish_at && new Date(row.publish_at).getTime() > now) return false;
