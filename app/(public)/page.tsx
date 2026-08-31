@@ -1,16 +1,18 @@
 import { CategoryChips } from "@/components/CategoryChips";
 import { EventCard } from "@/components/EventCard";
+import { GuideCard } from "@/components/GuideCard";
 import { LandingBottom } from "@/components/LandingBottom";
 import { ListingCard } from "@/components/ListingCard";
 import { getCurrentUser } from "@/lib/auth";
 import { featuredEvents } from "@/lib/events";
+import { liveGuides } from "@/lib/guides";
 import { featuredListings } from "@/lib/listings";
 import { madeForYouListings } from "@/lib/recommendations";
 
 export default async function HomePage() {
   const user = await getCurrentUser();
   const paid = user?.plan === "paid";
-  const [listings, events, forYou] = await Promise.all([
+  const [listings, events, forYou, guides] = await Promise.all([
     featuredListings(),
     featuredEvents(6),
     madeForYouListings({
@@ -18,6 +20,7 @@ export default async function HomePage() {
       paid,
       limit: 4,
     }),
+    liveGuides(3),
   ]);
 
   const aroundLabel = forYou.placeName
@@ -111,6 +114,25 @@ export default async function HomePage() {
           </p>
         )}
       </section>
+
+      {guides.length > 0 && (
+        <section className="section shell">
+          <div className="section-head">
+            <div>
+              <p className="eyebrow">Lists Worth Keeping</p>
+              <h2>Guides</h2>
+            </div>
+            <a className="btn btn-secondary" href="/guides">
+              See All Guides
+            </a>
+          </div>
+          <div className="guide-grid">
+            {guides.map((guide) => (
+              <GuideCard key={guide.id} guide={guide} />
+            ))}
+          </div>
+        </section>
+      )}
 
       <section className="section shell">
         <div className="section-head">

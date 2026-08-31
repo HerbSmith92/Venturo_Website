@@ -16,6 +16,9 @@ export function SiteHeader({ user }: { user: CurrentUser | null }) {
           <a className="btn btn-ghost" href="/directory">
             Directory
           </a>
+          <a className="btn btn-ghost" href="/guides">
+            Guides
+          </a>
           <a className="btn btn-ghost" href="/events">
             Events
           </a>
