@@ -7,7 +7,7 @@ type Step = "email" | "code";
 export function AuthForm({
   mode,
   configured,
-  next = "/directory",
+  next = "/account",
 }: {
   mode: "login" | "signup";
   configured: boolean;
@@ -139,7 +139,7 @@ export function AuthForm({
       <p className="lede muted">
         {mode === "login"
           ? "We’ll email you a one-time code. Use the same email as the Venturo app."
-          : "Free lets you book event tickets. We’ll email a one-time code to verify you — no password on the web."}
+          : "Free lets you book event tickets. We’ll email a one-time code to verify you — no password on the web. Then you land on your profile."}
       </p>
       {!configured && (
         <p className="notice">

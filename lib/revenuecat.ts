@@ -45,3 +45,15 @@ export async function getPaidMembership(appUserId: string): Promise<boolean> {
 
   return entitlementIsActive(entitlement.expires_date);
 }
+
+/** Chunked paid checks for Control Room member lists. */
+export async function getPaidMembershipMap(userIds: string[]) {
+  const result = new Map<string, boolean>();
+  const chunkSize = 10;
+  for (let i = 0; i < userIds.length; i += chunkSize) {
+    const chunk = userIds.slice(i, i + chunkSize);
+    const flags = await Promise.all(chunk.map((id) => getPaidMembership(id)));
+    chunk.forEach((id, index) => result.set(id, flags[index]));
+  }
+  return result;
+}

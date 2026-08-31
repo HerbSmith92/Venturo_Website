@@ -51,9 +51,21 @@ export async function getCurrentUser(): Promise<CurrentUser | null> {
   const session = await getStaffSession();
   if (!session) return null;
 
+  const supabase = await createClient();
+  let firstName = session.firstName;
+  if (supabase) {
+    const { data } = await supabase
+      .from("profiles")
+      .select("display_name")
+      .eq("id", session.id)
+      .maybeSingle();
+    if (data?.display_name) firstName = data.display_name;
+  }
+
   const paid = await getPaidMembership(session.id);
   return {
     ...session,
+    firstName,
     plan: paid ? "paid" : "free",
   };
 }

@@ -5,6 +5,7 @@ import { useEffect } from "react";
 function isResetPath(pathname: string) {
   return (
     pathname.startsWith("/admin/reset-password") ||
+    pathname.startsWith("/account/reset-password") ||
     pathname.startsWith("/auth/callback")
   );
 }
@@ -26,7 +27,12 @@ export function AuthCatcher() {
 
     // Password-recovery links only — do not hijack member magic-link / OTP logins.
     if (isRecovery || (hasHashSession && type === "recovery")) {
-      window.location.replace(`/admin/reset-password${search}${hash}`);
+      // Staff invites still use /admin/reset-password when that is the redirect target.
+      // Default public recoveries land on the member account reset page.
+      const target = pathname.startsWith("/admin/")
+        ? `/admin/reset-password${search}${hash}`
+        : `/account/reset-password${search}${hash}`;
+      window.location.replace(target);
       return;
     }
 
@@ -34,7 +40,7 @@ export function AuthCatcher() {
     if (code && !pathname.startsWith("/admin")) {
       const next = query.get("next");
       const safeNext =
-        next && next.startsWith("/") && !next.startsWith("//") ? next : "/directory";
+        next && next.startsWith("/") && !next.startsWith("//") ? next : "/account";
       window.location.replace(
         `/auth/callback?next=${encodeURIComponent(safeNext)}&code=${encodeURIComponent(code)}`,
       );

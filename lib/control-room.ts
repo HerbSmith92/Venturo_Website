@@ -1,6 +1,10 @@
-import { createClient } from "@/lib/supabase/server";
+import { revenueCatIsConfigured } from "@/lib/brand";
 import { isListingStatus, type ListingStatus } from "@/lib/control-room-shared";
 import type { ListingDetail, QueueListing } from "@/lib/control-room-types";
+import { getPaidMembershipMap } from "@/lib/revenuecat";
+import { roleFromAppMetadata, type AppRole } from "@/lib/roles";
+import { createServiceClient } from "@/lib/supabase/admin";
+import { createClient } from "@/lib/supabase/server";
 
 export {
   LISTING_STATUSES,
@@ -218,19 +222,143 @@ export async function loadEnquiries(): Promise<EnquiryRow[]> {
 export type MemberRow = {
   id: string;
   display_name: string | null;
+  email: string | null;
+  role: AppRole | null;
+  plan: "free" | "paid";
   onboarding_step: string;
   created_at: string;
+  last_sign_in_at: string | null;
+  email_confirmed: boolean;
 };
 
-export async function loadMembers(): Promise<MemberRow[]> {
-  const supabase = await createClient();
-  if (!supabase) return [];
+function filterMembers(members: MemberRow[], query?: string) {
+  const needle = query?.trim().toLowerCase() ?? "";
+  const filtered = needle
+    ? members.filter(
+        (member) =>
+          (member.display_name ?? "").toLowerCase().includes(needle) ||
+          (member.email ?? "").toLowerCase().includes(needle) ||
+          (member.role ?? "").toLowerCase().includes(needle),
+      )
+    : members;
+  return filtered.sort(
+    (a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime(),
+  );
+}
+
+async function loadMembersFromProfiles(
+  supabase: NonNullable<Awaited<ReturnType<typeof createClient>>>,
+  query?: string,
+) {
   const { data } = await supabase
     .from("profiles")
     .select("id, display_name, onboarding_step, created_at")
     .order("created_at", { ascending: false })
     .limit(200);
-  return (data ?? []) as MemberRow[];
+
+  const ids = (data ?? []).map((row) => row.id as string);
+  const paidMap =
+    revenueCatIsConfigured() && ids.length
+      ? await getPaidMembershipMap(ids)
+      : new Map<string, boolean>();
+
+  const members = (data ?? []).map(
+    (row): MemberRow => ({
+      id: row.id,
+      display_name: row.display_name,
+      email: null,
+      role: null,
+      plan: paidMap.get(row.id) ? "paid" : "free",
+      onboarding_step: row.onboarding_step,
+      created_at: row.created_at,
+      last_sign_in_at: null,
+      email_confirmed: true,
+    }),
+  );
+
+  return filterMembers(members, query);
+}
+
+export async function loadMembers(query?: string): Promise<{
+  members: MemberRow[];
+  revenueCatReady: boolean;
+  serviceRoleReady: boolean;
+  loadError: string | null;
+}> {
+  const admin = createServiceClient();
+  const supabase = await createClient();
+  const revenueCatReady = revenueCatIsConfigured();
+  const serviceRoleReady = Boolean(admin);
+
+  if (!supabase) {
+    return { members: [], revenueCatReady, serviceRoleReady, loadError: "Supabase is not connected." };
+  }
+
+  if (!admin) {
+    const members = await loadMembersFromProfiles(supabase, query);
+    return {
+      members,
+      revenueCatReady,
+      serviceRoleReady,
+      loadError: "SUPABASE_SERVICE_ROLE_KEY is missing from the running server.",
+    };
+  }
+
+  const { data, error } = await admin.auth.admin.listUsers({ page: 1, perPage: 200 });
+  if (error || !data?.users) {
+    const members = await loadMembersFromProfiles(supabase, query);
+    return {
+      members,
+      revenueCatReady,
+      serviceRoleReady,
+      loadError: error?.message ?? "Could not list auth users.",
+    };
+  }
+
+  const users = data.users;
+  const ids = users.map((user) => user.id);
+  const [{ data: profiles }, paidMap] = await Promise.all([
+    supabase
+      .from("profiles")
+      .select("id, display_name, onboarding_step, created_at")
+      .in("id", ids.length ? ids : ["00000000-0000-0000-0000-000000000000"]),
+    revenueCatReady ? getPaidMembershipMap(ids) : Promise.resolve(new Map<string, boolean>()),
+  ]);
+
+  const profileById = new Map(
+    (profiles ?? []).map((row) => [
+      row.id as string,
+      row as {
+        id: string;
+        display_name: string | null;
+        onboarding_step: string;
+        created_at: string;
+      },
+    ]),
+  );
+
+  const members = users.map((user): MemberRow => {
+    const profile = profileById.get(user.id);
+    const meta = user.user_metadata as { first_name?: string } | undefined;
+    return {
+      id: user.id,
+      display_name: profile?.display_name || meta?.first_name || null,
+      email: user.email ?? null,
+      role: roleFromAppMetadata(user.app_metadata),
+      plan: paidMap.get(user.id) ? "paid" : "free",
+      onboarding_step: profile?.onboarding_step ?? "identity",
+      created_at: profile?.created_at ?? user.created_at,
+      last_sign_in_at: user.last_sign_in_at ?? null,
+      email_confirmed: Boolean(user.email_confirmed_at),
+    };
+  });
+
+  return {
+    members: filterMembers(members, query),
+    revenueCatReady,
+    serviceRoleReady,
+    loadError: null,
+  };
 }
 
 export function businessName(listing: ListingDetail) {

@@ -6,9 +6,9 @@ import { redirect } from "next/navigation";
 import { requireAdmin } from "@/lib/auth";
 import { isListingAction } from "@/lib/control-room-shared";
 import { draftToPayload, type ListingDraft } from "@/lib/listing-draft";
-import { createClient } from "@/lib/supabase/server";
+import { isStaff, roleFromAppMetadata, type AppRole } from "@/lib/roles";
 import { createServiceClient } from "@/lib/supabase/admin";
-import type { AppRole } from "@/lib/roles";
+import { createClient } from "@/lib/supabase/server";
 
 export async function saveListingDraft(listingId: string, draft: ListingDraft) {
   await requireAdmin();
@@ -261,4 +261,88 @@ export async function inviteStaff(formData: FormData) {
 
   revalidatePath("/admin/staff");
   redirect("/admin/staff?done=invited");
+}
+
+async function requestOrigin() {
+  const headerList = await headers();
+  const host = headerList.get("x-forwarded-host") ?? headerList.get("host");
+  const proto = headerList.get("x-forwarded-proto") ?? "http";
+  return host ? `${proto}://${host}` : "";
+}
+
+export async function resetMemberAccess(userId: string) {
+  const session = await requireAdmin();
+  const admin = createServiceClient();
+  if (!admin) {
+    return { ok: false as const, error: "Add SUPABASE_SERVICE_ROLE_KEY to manage users." };
+  }
+  if (!userId) {
+    return { ok: false as const, error: "Missing user id." };
+  }
+
+  const { data, error } = await admin.auth.admin.getUserById(userId);
+  if (error || !data.user?.email) {
+    return { ok: false as const, error: error?.message ?? "User not found." };
+  }
+
+  const role = roleFromAppMetadata(data.user.app_metadata);
+  const origin = await requestOrigin();
+  const redirectTo = origin
+    ? `${origin}${isStaff(role) ? "/admin/reset-password" : "/account/reset-password"}`
+    : undefined;
+
+  const supabase = await createClient();
+  if (!supabase) {
+    return { ok: false as const, error: "Supabase is not connected yet." };
+  }
+
+  const { error: resetError } = await supabase.auth.resetPasswordForEmail(data.user.email, {
+    redirectTo,
+  });
+  if (resetError) {
+    return { ok: false as const, error: resetError.message };
+  }
+
+  revalidatePath("/admin/members");
+  return {
+    ok: true as const,
+    message: `Reset email sent to ${data.user.email}.`,
+    actor: session.email,
+  };
+}
+
+export async function deleteMember(userId: string) {
+  const session = await requireAdmin();
+  const admin = createServiceClient();
+  if (!admin) {
+    return { ok: false as const, error: "Add SUPABASE_SERVICE_ROLE_KEY to manage users." };
+  }
+  if (!userId) {
+    return { ok: false as const, error: "Missing user id." };
+  }
+  if (userId === session.id) {
+    return { ok: false as const, error: "You cannot delete your own admin account." };
+  }
+
+  const { data, error } = await admin.auth.admin.getUserById(userId);
+  if (error || !data.user) {
+    return { ok: false as const, error: error?.message ?? "User not found." };
+  }
+
+  const role = roleFromAppMetadata(data.user.app_metadata);
+  if (role === "admin") {
+    return {
+      ok: false as const,
+      error: "Delete another admin from the Supabase dashboard if you truly need to.",
+    };
+  }
+
+  const { error: deleteError } = await admin.auth.admin.deleteUser(userId);
+  if (deleteError) {
+    return { ok: false as const, error: deleteError.message };
+  }
+
+  revalidatePath("/admin/members");
+  revalidatePath("/admin");
+  return { ok: true as const };
 }

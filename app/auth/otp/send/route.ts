@@ -1,5 +1,18 @@
 import { NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
+import { safeNextPath } from "@/lib/member-auth";
+
+function loginUnknownMessage(message: string) {
+  const lower = message.toLowerCase();
+  if (
+    lower.includes("signups not allowed") ||
+    lower.includes("user not found") ||
+    lower.includes("unable to validate email")
+  ) {
+    return "No profile for that email yet. Sign up free first.";
+  }
+  return message;
+}
 
 export async function POST(request: Request) {
   const supabase = await createClient();
@@ -16,9 +29,7 @@ export async function POST(request: Request) {
     .toLowerCase();
   const firstName = String(form.get("firstName") ?? "").trim();
   const mode = String(form.get("mode") ?? "login");
-  const nextRaw = String(form.get("next") ?? "/directory");
-  const next =
-    nextRaw.startsWith("/") && !nextRaw.startsWith("//") ? nextRaw : "/directory";
+  const next = safeNextPath(form.get("next"));
 
   if (!email || !email.includes("@")) {
     return NextResponse.json({ error: "Enter a valid email." }, { status: 400 });
@@ -29,21 +40,22 @@ export async function POST(request: Request) {
   }
 
   const origin = new URL(request.url).origin;
-  // Magic-link fallback while the project email template is switched to OTP.
-  // Once the Magic Link template uses {{ .Token }}, the email shows a 6-digit code.
   const emailRedirectTo = `${origin}/auth/callback?next=${encodeURIComponent(next)}`;
 
   const { error } = await supabase.auth.signInWithOtp({
     email,
     options: {
-      shouldCreateUser: true,
+      shouldCreateUser: mode !== "login",
       data: firstName ? { first_name: firstName } : undefined,
       emailRedirectTo,
     },
   });
 
   if (error) {
-    return NextResponse.json({ error: error.message }, { status: 400 });
+    return NextResponse.json(
+      { error: mode === "login" ? loginUnknownMessage(error.message) : error.message },
+      { status: 400 },
+    );
   }
 
   return NextResponse.json({ email });

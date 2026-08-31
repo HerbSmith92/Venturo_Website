@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { provisionMember, safeNextPath } from "@/lib/member-auth";
 import { createClient } from "@/lib/supabase/server";
 
 export async function GET(request: Request) {
@@ -6,8 +7,7 @@ export async function GET(request: Request) {
   const code = url.searchParams.get("code");
   const tokenHash = url.searchParams.get("token_hash");
   const type = url.searchParams.get("type");
-  const next = url.searchParams.get("next") ?? "/directory";
-  const safeNext = next.startsWith("/") && !next.startsWith("//") ? next : "/directory";
+  const safeNext = safeNextPath(url.searchParams.get("next"));
   const authError = url.searchParams.get("error_description") ?? url.searchParams.get("error");
 
   const target = new URL(safeNext, url.origin);
@@ -25,7 +25,7 @@ export async function GET(request: Request) {
     }
     const userId = data.user?.id ?? data.session?.user?.id;
     if (userId) {
-      await supabase.rpc("ensure_member_role", { target: userId });
+      await provisionMember(userId);
     }
     return NextResponse.redirect(target);
   }
@@ -41,7 +41,7 @@ export async function GET(request: Request) {
     }
     const userId = data.user?.id ?? data.session?.user?.id;
     if (userId) {
-      await supabase.rpc("ensure_member_role", { target: userId });
+      await provisionMember(userId);
     }
     return NextResponse.redirect(target);
   }

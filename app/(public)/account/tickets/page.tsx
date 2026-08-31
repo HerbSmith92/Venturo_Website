@@ -1,3 +1,4 @@
+import { AccountNav } from "@/components/AccountNav";
 import { getCurrentUser } from "@/lib/auth";
 import { formatEventWhen } from "@/lib/events";
 import { listBuyerTickets } from "@/lib/orders";
@@ -17,6 +18,7 @@ export default async function MyTicketsPage({
   return (
     <main className="shell">
       <section className="section">
+        <AccountNav current="tickets" />
         <p className="eyebrow">Your Wallet</p>
         <h1>My Tickets</h1>
         {params.order && (

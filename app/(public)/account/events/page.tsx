@@ -1,3 +1,4 @@
+import { AccountNav } from "@/components/AccountNav";
 import { getCurrentUser } from "@/lib/auth";
 import {
   formatCents,
@@ -26,6 +27,7 @@ export default async function MyEventsPage() {
   return (
     <main className="shell">
       <section className="section">
+        <AccountNav current="events" />
         <div className="section-head">
           <div>
             <p className="eyebrow">Organiser</p>

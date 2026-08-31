@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { provisionMember, safeNextPath } from "@/lib/member-auth";
 import { createClient } from "@/lib/supabase/server";
 
 export async function POST(request: Request) {
@@ -16,9 +17,7 @@ export async function POST(request: Request) {
     .toLowerCase();
   const token = String(form.get("token") ?? "").trim();
   const firstName = String(form.get("firstName") ?? "").trim();
-  const nextRaw = String(form.get("next") ?? "/directory");
-  const next =
-    nextRaw.startsWith("/") && !nextRaw.startsWith("//") ? nextRaw : "/directory";
+  const next = safeNextPath(form.get("next"));
 
   if (!email || !token) {
     return NextResponse.json({ error: "Email and code are required." }, { status: 400 });
@@ -36,11 +35,7 @@ export async function POST(request: Request) {
 
   const userId = data.user?.id;
   if (userId) {
-    if (firstName) {
-      await supabase.auth.updateUser({ data: { first_name: firstName } });
-      await supabase.from("profiles").update({ display_name: firstName }).eq("id", userId);
-    }
-    await supabase.rpc("ensure_member_role", { target: userId });
+    await provisionMember(userId, firstName);
   }
 
   return NextResponse.json({ redirect: next });

@@ -31,7 +31,7 @@ export function SiteHeader({ user }: { user: CurrentUser | null }) {
                 Create Event
               </a>
               <a className="btn btn-ghost" href="/account">
-                {user.plan === "paid" ? "Paid Member" : "Free Profile"}
+                {user.firstName && user.firstName !== "there" ? user.firstName : "Profile"}
               </a>
               <form action="/auth/sign-out" method="post">
                 <button className="btn btn-secondary" type="submit">

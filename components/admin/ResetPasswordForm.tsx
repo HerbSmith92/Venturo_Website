@@ -15,7 +15,13 @@ function isOtpType(value: string | null): value is EmailOtpType {
   );
 }
 
-export function ResetPasswordForm({ configured }: { configured: boolean }) {
+export function ResetPasswordForm({
+  configured,
+  mode = "staff",
+}: {
+  configured: boolean;
+  mode?: "staff" | "member";
+}) {
   const [error, setError] = useState<string | null>(null);
   const [pending, setPending] = useState(false);
   const [sessionReady, setSessionReady] = useState(false);
@@ -117,7 +123,7 @@ export function ResetPasswordForm({ configured }: { configured: boolean }) {
       setError(updateError.message);
       return;
     }
-    window.location.href = "/admin";
+    window.location.href = mode === "member" ? "/login?next=/account" : "/admin";
   }
 
   return (
@@ -128,11 +134,12 @@ export function ResetPasswordForm({ configured }: { configured: boolean }) {
         alt="Venturo"
         style={{ width: 160, marginBottom: 20 }}
       />
-      <p className="eyebrow">Staff Only</p>
+      <p className="eyebrow">{mode === "member" ? "Your Account" : "Staff Only"}</p>
       <h1>Set Your Password</h1>
       <p className="lede muted">
-        Open this page from the reset email in this tab. Localhost or
-        127.0.0.1 both work — stay on whatever the email opens.
+        {mode === "member"
+          ? "Open this page from the reset email in this tab. After you save, log in again with your email code or new password."
+          : "Open this page from the reset email in this tab. Localhost or 127.0.0.1 both work — stay on whatever the email opens."}
       </p>
       {!configured && (
         <p className="notice">Connect Supabase in `.env.local` first.</p>
