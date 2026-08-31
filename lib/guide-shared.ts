@@ -82,10 +82,17 @@ export type GuideListingPreview = {
   slug: string;
   suburb: string | null;
   city: string | null;
+  street_address_1: string | null;
+  street_address_2: string | null;
+  postal_code: string | null;
   short_description: string | null;
   price_from: number | string | null;
   status: string;
   image: string | null;
+  indoor_outdoor: "indoor" | "outdoor" | "both" | null;
+  booking_required: boolean;
+  activity_kind_key: string | null;
+  activity_kind_title: string | null;
 };
 
 export type GuideDraftItem = {

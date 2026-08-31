@@ -4,6 +4,7 @@ import { useEffect, useMemo, useRef, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { saveCuratedGuide } from "@/app/admin/guide-actions";
 import { GuideActions } from "@/components/admin/GuideActions";
+import { GuideExportModal } from "@/components/admin/guide-export/GuideExportModal";
 import { formatRand } from "@/lib/control-room-shared";
 import type { GuideEditorRecord } from "@/lib/control-room-guides";
 import {
@@ -45,6 +46,7 @@ export function GuideEditor({
   const [pickerFor, setPickerFor] = useState<"new" | string | null>(null);
   const [pickerInterestIds, setPickerInterestIds] = useState<string[]>(guide.interest_ids);
   const [pickerInterestQuery, setPickerInterestQuery] = useState("");
+  const [exportOpen, setExportOpen] = useState(false);
   const [draft, setDraft] = useState<GuideDraft>(() => ({
     title: guide.title === "Untitled Guide" ? "" : guide.title,
     intro: guide.intro ?? "",
@@ -213,7 +215,19 @@ export function GuideEditor({
       {(error || saveError) && <p className="error">{error || saveError}</p>}
       {(notice || saveNotice) && <p className="notice">{notice || saveNotice}</p>}
 
-      <GuideActions guideId={guide.id} status={guide.status} />
+      <GuideActions
+        guideId={guide.id}
+        status={guide.status}
+        onExportInstagram={() => setExportOpen(true)}
+      />
+
+      <GuideExportModal
+        open={exportOpen}
+        title={draft.title}
+        intro={draft.intro}
+        items={draft.items}
+        onClose={() => setExportOpen(false)}
+      />
 
       <div className="cr-paper cr-guide-editor">
         <section className="cr-step">

@@ -7,9 +7,11 @@ import type { GuideStatus } from "@/lib/guide-shared";
 export function GuideActions({
   guideId,
   status,
+  onExportInstagram,
 }: {
   guideId: string;
   status: GuideStatus;
+  onExportInstagram?: () => void;
 }) {
   return (
     <div className="cr-actions">
@@ -46,6 +48,11 @@ export function GuideActions({
           Duplicate Guide
         </button>
       </form>
+      {onExportInstagram && (
+        <button className="btn btn-secondary" type="button" onClick={onExportInstagram}>
+          Export For Instagram
+        </button>
+      )}
     </div>
   );
 }

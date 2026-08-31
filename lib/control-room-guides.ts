@@ -1,6 +1,7 @@
 import { createClient } from "@/lib/supabase/server";
 import {
   isGuideStatus,
+  type GuideDraftItem,
   type GuideListingPreview,
   type GuideStatus,
 } from "@/lib/guide-shared";
@@ -25,11 +26,7 @@ export type GuideEditorRecord = {
   publish_at: string | null;
   expire_at: string | null;
   interest_ids: string[];
-  items: {
-    listing_id: string;
-    editorial_note: string;
-    listing: GuideListingPreview | null;
-  }[];
+  items: GuideDraftItem[];
 };
 
 type MediaRow = {
@@ -37,6 +34,40 @@ type MediaRow = {
   is_cover: boolean | null;
   sort_order: number | null;
 };
+
+type KindRow = {
+  is_primary?: boolean | null;
+  activity_kinds?:
+    | { key: string | null; title: string | null }
+    | { key: string | null; title: string | null }[]
+    | null;
+};
+
+type ListingRow = {
+  id: string;
+  name: string;
+  slug: string;
+  suburb: string | null;
+  city: string | null;
+  street_address_1?: string | null;
+  street_address_2?: string | null;
+  postal_code?: string | null;
+  short_description: string | null;
+  price_from: number | string | null;
+  status: string;
+  indoor_outdoor?: string | null;
+  booking_required?: boolean | null;
+  listing_media?: MediaRow[];
+  listing_activity_kinds?: KindRow[];
+};
+
+const LISTING_SELECT = `
+  id, name, slug, suburb, city, street_address_1, street_address_2, postal_code,
+  short_description, price_from, status,
+  indoor_outdoor, booking_required,
+  listing_media ( public_url, is_cover, sort_order ),
+  listing_activity_kinds ( is_primary, activity_kinds ( key, title ) )
+`;
 
 function coverFromMedia(media: MediaRow[] | undefined) {
   const sorted = [...(media ?? [])].sort((a, b) => {
@@ -46,27 +77,47 @@ function coverFromMedia(media: MediaRow[] | undefined) {
   return sorted.find((item) => item.public_url)?.public_url ?? null;
 }
 
-function mapListingPreview(row: {
-  id: string;
-  name: string;
-  slug: string;
-  suburb: string | null;
-  city: string | null;
-  short_description: string | null;
-  price_from: number | string | null;
-  status: string;
-  listing_media?: MediaRow[];
-}): GuideListingPreview {
+function primaryKind(kinds: KindRow[] | undefined) {
+  const sorted = [...(kinds ?? [])].sort(
+    (a, b) => Number(Boolean(b.is_primary)) - Number(Boolean(a.is_primary)),
+  );
+  for (const entry of sorted) {
+    const kind = entry.activity_kinds;
+    const row = Array.isArray(kind) ? kind[0] : kind;
+    if (row?.key || row?.title) {
+      return {
+        key: row.key ?? null,
+        title: row.title ?? null,
+      };
+    }
+  }
+  return { key: null, title: null };
+}
+
+function asIndoorOutdoor(value: string | null | undefined): GuideListingPreview["indoor_outdoor"] {
+  if (value === "indoor" || value === "outdoor" || value === "both") return value;
+  return null;
+}
+
+function mapListingPreview(row: ListingRow): GuideListingPreview {
+  const kind = primaryKind(row.listing_activity_kinds);
   return {
     id: row.id,
     name: row.name,
     slug: row.slug,
     suburb: row.suburb,
     city: row.city,
+    street_address_1: row.street_address_1 ?? null,
+    street_address_2: row.street_address_2 ?? null,
+    postal_code: row.postal_code ?? null,
     short_description: row.short_description,
     price_from: row.price_from,
     status: row.status,
     image: coverFromMedia(row.listing_media),
+    indoor_outdoor: asIndoorOutdoor(row.indoor_outdoor),
+    booking_required: Boolean(row.booking_required),
+    activity_kind_key: kind.key,
+    activity_kind_title: kind.title,
   };
 }
 
@@ -123,10 +174,7 @@ export async function loadGuideEditor(id: string): Promise<GuideEditorRecord | n
       curated_guide_interests ( interest_id ),
       curated_guide_items (
         listing_id, sort_order, editorial_note,
-        directory_listings (
-          id, name, slug, suburb, city, short_description, price_from, status,
-          listing_media ( public_url, is_cover, sort_order )
-        )
+        directory_listings ( ${LISTING_SELECT} )
       )
     `,
     )
@@ -139,30 +187,7 @@ export async function loadGuideEditor(id: string): Promise<GuideEditorRecord | n
     listing_id: string;
     sort_order: number | null;
     editorial_note: string | null;
-    directory_listings?:
-      | {
-          id: string;
-          name: string;
-          slug: string;
-          suburb: string | null;
-          city: string | null;
-          short_description: string | null;
-          price_from: number | string | null;
-          status: string;
-          listing_media?: MediaRow[];
-        }
-      | {
-          id: string;
-          name: string;
-          slug: string;
-          suburb: string | null;
-          city: string | null;
-          short_description: string | null;
-          price_from: number | string | null;
-          status: string;
-          listing_media?: MediaRow[];
-        }[]
-      | null;
+    directory_listings?: ListingRow | ListingRow[] | null;
   };
 
   const row = data as {
@@ -203,18 +228,6 @@ export async function loadGuideEditor(id: string): Promise<GuideEditorRecord | n
   };
 }
 
-type ListingSearchRow = {
-  id: string;
-  name: string;
-  slug: string;
-  suburb: string | null;
-  city: string | null;
-  short_description: string | null;
-  price_from: number | string | null;
-  status: string;
-  listing_media?: MediaRow[];
-};
-
 export async function searchGuideListings(
   q: string,
   interestIds: string[] = [],
@@ -230,8 +243,7 @@ export async function searchGuideListings(
       .from("directory_listings")
       .select(
         `
-        id, name, slug, suburb, city, short_description, price_from, status,
-        listing_media ( public_url, is_cover, sort_order ),
+        ${LISTING_SELECT},
         listing_interests!inner ( interest_id )
       `,
       )
@@ -242,22 +254,17 @@ export async function searchGuideListings(
     if (name) query = query.ilike("name", `%${name}%`);
     const { data, error } = await query;
     if (error || !data) return [];
-    return (data as unknown as ListingSearchRow[]).map(mapListingPreview);
+    return (data as unknown as ListingRow[]).map(mapListingPreview);
   }
 
   let query = supabase
     .from("directory_listings")
-    .select(
-      `
-      id, name, slug, suburb, city, short_description, price_from, status,
-      listing_media ( public_url, is_cover, sort_order )
-    `,
-    )
+    .select(LISTING_SELECT)
     .eq("status", "approved")
     .order("updated_at", { ascending: false })
     .limit(24);
   if (name) query = query.ilike("name", `%${name}%`);
   const { data, error } = await query;
   if (error || !data) return [];
-  return (data as ListingSearchRow[]).map(mapListingPreview);
+  return (data as ListingRow[]).map(mapListingPreview);
 }
