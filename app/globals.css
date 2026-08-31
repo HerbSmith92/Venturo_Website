@@ -3085,3 +3085,248 @@ code {
     padding: 48px 0;
   }
 }
+
+.guide-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 18px;
+}
+
+.guide-card {
+  display: grid;
+  background: color-mix(in srgb, var(--currant) 35%, var(--night));
+  border-radius: var(--radius-md);
+  overflow: hidden;
+  box-shadow: var(--shadow-1);
+  border: 1px solid color-mix(in srgb, var(--snow) 8%, transparent);
+  color: inherit;
+  min-height: 100%;
+}
+
+.guide-card-image {
+  aspect-ratio: 16 / 9;
+  overflow: hidden;
+}
+
+.guide-card-image img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.guide-card-body {
+  padding: 16px 18px 18px;
+  display: grid;
+  gap: 8px;
+  align-content: start;
+}
+
+.guide-card-body h3 {
+  font-size: 22px;
+  margin: 0;
+}
+
+.guide-card-cta {
+  margin-top: 8px;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  font-size: 12px;
+  color: var(--canary);
+}
+
+.guide-recs {
+  --guide-card-w: 300px;
+  --guide-pair-gap: 20px;
+  --guide-copy-w: calc(var(--guide-card-w) * 2 + var(--guide-pair-gap));
+  display: grid;
+  gap: 22px;
+}
+
+.guide-rec {
+  display: grid;
+  grid-template-columns: minmax(0, var(--guide-card-w)) minmax(0, var(--guide-copy-w));
+  gap: var(--guide-pair-gap);
+  align-items: stretch;
+  width: fit-content;
+  max-width: 100%;
+  padding: 16px;
+  background: color-mix(in srgb, var(--currant) 32%, var(--night));
+  border-radius: var(--radius-lg);
+  border: 1px solid color-mix(in srgb, var(--snow) 8%, transparent);
+  box-shadow: var(--shadow-1);
+}
+
+.guide-rec-flip {
+  grid-template-columns: minmax(0, var(--guide-copy-w)) minmax(0, var(--guide-card-w));
+}
+
+.guide-rec-flip .guide-rec-card {
+  order: 2;
+}
+
+.guide-rec-flip .guide-rec-copy {
+  order: 1;
+}
+
+.guide-rec-card {
+  min-width: 0;
+  height: 100%;
+}
+
+.guide-rec-card .card-image {
+  position: relative;
+}
+
+.guide-rec-num {
+  position: absolute;
+  top: 14px;
+  left: 14px;
+  z-index: 2;
+  width: 36px;
+  height: 36px;
+  border-radius: 999px;
+  display: grid;
+  place-items: center;
+  background: var(--canary);
+  color: var(--night);
+  font-family: "Social Gothic Rough", "Arial Black", sans-serif;
+  font-size: 18px;
+}
+
+.guide-rec-copy {
+  display: grid;
+  gap: 8px;
+  align-content: center;
+  min-width: 0;
+  padding: 8px 12px 8px 4px;
+}
+
+.guide-rec-flip .guide-rec-copy {
+  padding: 8px 4px 8px 12px;
+}
+
+.guide-rec-copy h2 {
+  margin: 0;
+  font-size: clamp(24px, 2.6vw, 30px);
+}
+
+.guide-rec-vibe {
+  margin: 2px 0 0;
+  font-size: 1.02rem;
+  line-height: 1.55;
+}
+
+.guide-rec-note {
+  margin: 2px 0 0;
+  padding: 10px 12px;
+  border-left: 3px solid var(--canary);
+  background: color-mix(in srgb, var(--canary) 10%, transparent);
+}
+
+.guide-rec-copy .btn {
+  justify-self: start;
+  margin-top: 6px;
+}
+
+.cr-guide-editor {
+  padding: 8px 28px 28px;
+}
+
+.cr-guide-items {
+  display: grid;
+  gap: 16px;
+}
+
+.cr-guide-item {
+  display: grid;
+  grid-template-columns: 140px minmax(0, 1fr);
+  gap: 16px;
+  padding: 12px;
+  border-radius: var(--radius-md);
+  border: 1.5px dashed color-mix(in srgb, var(--night) 28%, transparent);
+  background: #fff;
+  cursor: grab;
+}
+
+.cr-guide-item img {
+  width: 100%;
+  height: 120px;
+  object-fit: cover;
+  border-radius: var(--radius-sm);
+}
+
+.cr-guide-item h3 {
+  margin: 0 0 4px;
+  color: var(--night);
+}
+
+.cr-guide-picker {
+  margin-top: 18px;
+  display: grid;
+  gap: 12px;
+}
+
+.cr-guide-search {
+  display: grid;
+  gap: 10px;
+}
+
+.cr-guide-search > .muted {
+  margin: 0;
+}
+
+.cr-guide-results {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: 8px;
+}
+
+.cr-guide-results button {
+  width: 100%;
+  text-align: left;
+  background: #fff;
+  border: 1.5px solid color-mix(in srgb, var(--night) 22%, transparent);
+  border-radius: var(--radius-sm);
+  padding: 10px 12px;
+  cursor: pointer;
+  display: grid;
+  gap: 2px;
+}
+
+.cr-guide-results button:hover {
+  border-color: var(--night);
+}
+
+@media (max-width: 900px) {
+  .guide-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .guide-rec,
+  .guide-rec-flip {
+    grid-template-columns: 1fr;
+    gap: 14px;
+    padding: 12px;
+    width: 100%;
+  }
+
+  .guide-rec-flip .guide-rec-card,
+  .guide-rec-flip .guide-rec-copy {
+    order: unset;
+  }
+
+  .guide-rec-copy,
+  .guide-rec-flip .guide-rec-copy {
+    padding: 4px 6px 8px;
+  }
+}
+
+@media (max-width: 560px) {
+  .guide-grid,
+  .cr-guide-item {
+    grid-template-columns: 1fr;
+  }
+}

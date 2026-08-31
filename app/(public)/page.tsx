@@ -1,17 +1,31 @@
 import { CategoryChips } from "@/components/CategoryChips";
 import { EventCard } from "@/components/EventCard";
+import { GuideCard } from "@/components/GuideCard";
 import { LandingBottom } from "@/components/LandingBottom";
 import { ListingCard } from "@/components/ListingCard";
 import { getCurrentUser } from "@/lib/auth";
 import { featuredEvents } from "@/lib/events";
+import { liveGuides } from "@/lib/guides";
 import { featuredListings } from "@/lib/listings";
+import { madeForYouListings } from "@/lib/recommendations";
 
 export default async function HomePage() {
   const user = await getCurrentUser();
-  const [listings, events] = await Promise.all([
+  const paid = user?.plan === "paid";
+  const [listings, events, forYou, guides] = await Promise.all([
     featuredListings(),
     featuredEvents(6),
+    madeForYouListings({
+      userId: user?.id ?? null,
+      paid,
+      limit: 4,
+    }),
+    liveGuides(3),
   ]);
+
+  const aroundLabel = forYou.placeName
+    ? `Around ${forYou.placeName}`
+    : "Around South Africa";
 
   return (
     <main>
@@ -36,7 +50,7 @@ export default async function HomePage() {
       <section className="section shell">
         <div className="section-head">
           <div>
-            <p className="eyebrow">Around Johannesburg</p>
+            <p className="eyebrow">{aroundLabel}</p>
             <h2>A Taste Of The Directory</h2>
           </div>
           <a className="btn btn-secondary" href="/directory">
@@ -50,7 +64,7 @@ export default async function HomePage() {
               key={listing.id}
               listing={listing}
               href={`/directory/${listing.slug}`}
-              showMemberPrice={user?.plan === "paid"}
+              showMemberPrice={paid}
             />
           ))}
         </div>
@@ -61,34 +75,64 @@ export default async function HomePage() {
           <div>
             <p className="eyebrow">Made For You</p>
             <h2>
-              {user?.plan === "paid"
-                ? `Hey ${user.firstName} — Your Next Thrill`
+              {paid
+                ? `Hey ${user?.firstName} — Your Next Thrill`
                 : "Curated Discovery"}
             </h2>
             <p className="muted">
-              {user?.plan === "paid"
-                ? "Paid unlocks personal picks from your interests, persona, & energy in the app — this strip grows with you."
-                : "Taste the directory free. Paid members get Made For You recommendations via the app & RevenueCat."}
+              {paid && forYou.mode === "personalised"
+                ? forYou.placeName
+                  ? `Picked from your interests, how you go out, activity level, & spots near ${forYou.placeName}.`
+                  : "Picked from your interests, how you go out, & activity level."
+                : paid
+                  ? "Finish a few more profile bits to unlock sharper picks — or browse the directory now."
+                  : "Taste the directory free. Paid members get Made For You picks from their profile."}
             </p>
           </div>
           <a
             className="btn btn-secondary"
-            href={user?.plan === "paid" ? "/directory" : "/join#paid"}
+            href={paid ? "/directory" : "/join#paid"}
           >
-            {user?.plan === "paid" ? "Open Directory" : "See Paid Membership"}
+            {paid ? "Open Directory" : "Upgrade Your Experience"}
           </a>
         </div>
         <div className="grid" style={{ marginBottom: 36 }}>
-          {listings.slice(0, 4).map((listing) => (
+          {forYou.listings.map((listing) => (
             <ListingCard
               key={`foryou-${listing.id}`}
               listing={listing}
               href={`/directory/${listing.slug}`}
-              showMemberPrice={user?.plan === "paid"}
+              showMemberPrice={paid}
             />
           ))}
         </div>
+        {!paid && (
+          <p className="notice">
+            These are Top Picks for a taste.{" "}
+            <a href="/join#paid">Upgrade Your Experience</a> in the app for
+            personal recommendations.
+          </p>
+        )}
       </section>
+
+      {guides.length > 0 && (
+        <section className="section shell">
+          <div className="section-head">
+            <div>
+              <p className="eyebrow">Lists Worth Keeping</p>
+              <h2>Guides</h2>
+            </div>
+            <a className="btn btn-secondary" href="/guides">
+              See All Guides
+            </a>
+          </div>
+          <div className="guide-grid">
+            {guides.map((guide) => (
+              <GuideCard key={guide.id} guide={guide} />
+            ))}
+          </div>
+        </section>
+      )}
 
       <section className="section shell">
         <div className="section-head">
@@ -114,7 +158,7 @@ export default async function HomePage() {
               <EventCard
                 key={event.id}
                 event={event}
-                showMemberPrice={user?.plan === "paid"}
+                showMemberPrice={paid}
               />
             ))}
           </div>
