@@ -165,6 +165,12 @@ select {
   transform: translateY(-1px);
 }
 
+.btn:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+  transform: none;
+}
+
 .btn-primary {
   background: var(--canary);
   color: var(--night);
@@ -3240,13 +3246,32 @@ code {
 
 .cr-guide-item {
   display: grid;
-  grid-template-columns: 140px minmax(0, 1fr);
+  grid-template-columns: 36px 140px minmax(0, 1fr);
   gap: 16px;
   padding: 12px;
   border-radius: var(--radius-md);
   border: 1.5px dashed color-mix(in srgb, var(--night) 28%, transparent);
   background: #fff;
+}
+
+.cr-guide-drag {
+  align-self: start;
+  width: 36px;
+  min-height: 48px;
+  margin: 0;
+  padding: 8px 0;
+  border: 1.5px solid color-mix(in srgb, var(--night) 18%, transparent);
+  border-radius: var(--radius-sm);
+  background: color-mix(in srgb, var(--snow) 70%, #fff);
+  color: color-mix(in srgb, var(--night) 55%, transparent);
+  font-size: 14px;
+  letter-spacing: -0.08em;
+  line-height: 1;
   cursor: grab;
+}
+
+.cr-guide-drag:active {
+  cursor: grabbing;
 }
 
 .cr-guide-item img {
@@ -3254,6 +3279,11 @@ code {
   height: 120px;
   object-fit: cover;
   border-radius: var(--radius-sm);
+}
+
+.cr-queue-actions {
+  margin: 0;
+  justify-content: flex-end;
 }
 
 .cr-guide-item h3 {
@@ -3328,5 +3358,14 @@ code {
   .guide-grid,
   .cr-guide-item {
     grid-template-columns: 1fr;
+  }
+
+  .cr-guide-item {
+    grid-template-columns: 36px minmax(0, 1fr);
+  }
+
+  .cr-guide-item img {
+    grid-column: 1 / -1;
+    height: 160px;
   }
 }

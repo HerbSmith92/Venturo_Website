@@ -84,12 +84,17 @@ export default async function GuidesQueuePage({
                 <td>{guide.item_count}</td>
                 <td>{formatClock(guide.updated_at)}</td>
                 <td>
-                  <form action={duplicateCuratedGuide}>
-                    <input type="hidden" name="id" value={guide.id} />
-                    <button className="btn btn-secondary" type="submit">
-                      Duplicate
-                    </button>
-                  </form>
+                  <div className="cr-actions cr-queue-actions">
+                    <a className="btn btn-secondary" href={`/admin/guides/${guide.id}`}>
+                      Edit
+                    </a>
+                    <form action={duplicateCuratedGuide}>
+                      <input type="hidden" name="id" value={guide.id} />
+                      <button className="btn btn-secondary" type="submit">
+                        Duplicate
+                      </button>
+                    </form>
+                  </div>
                 </td>
               </tr>
             ))}

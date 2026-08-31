@@ -163,6 +163,13 @@ export function GuideEditor({
     patch({ items: next });
   }
 
+  function moveItem(listingId: string, direction: -1 | 1) {
+    const fromIndex = draft.items.findIndex((item) => item.listing_id === listingId);
+    const toIndex = fromIndex + direction;
+    if (fromIndex < 0 || toIndex < 0 || toIndex >= draft.items.length) return;
+    reorder(listingId, draft.items[toIndex].listing_id);
+  }
+
   function onSave() {
     setSaveError(null);
     startTransition(async () => {
@@ -320,7 +327,8 @@ export function GuideEditor({
             <span>4</span> Recommendations
           </h2>
           <p className="muted cr-step-help">
-            Drag to reorder. Replace or remove any row. See More on the public page opens the listing.
+            Move spots up or down, or drag the handle. Save Guide to keep the order. See More on
+            the public page opens the listing.
           </p>
           <div className="cr-guide-items">
             {draft.items.length === 0 && (
@@ -330,10 +338,6 @@ export function GuideEditor({
               <article
                 key={item.listing_id}
                 className="cr-guide-item"
-                draggable
-                onDragStart={() => {
-                  dragId.current = item.listing_id;
-                }}
                 onDragOver={(e) => e.preventDefault()}
                 onDrop={(e) => {
                   e.preventDefault();
@@ -341,6 +345,20 @@ export function GuideEditor({
                   dragId.current = null;
                 }}
               >
+                <button
+                  type="button"
+                  className="cr-guide-drag"
+                  draggable
+                  aria-label={`Drag to reorder ${item.listing?.name ?? "listing"}`}
+                  onDragStart={() => {
+                    dragId.current = item.listing_id;
+                  }}
+                  onDragEnd={() => {
+                    dragId.current = null;
+                  }}
+                >
+                  ⋮⋮
+                </button>
                 <img
                   src={item.listing?.image ?? FALLBACK_IMAGE}
                   alt=""
@@ -377,6 +395,22 @@ export function GuideEditor({
                     />
                   </label>
                   <div className="cr-actions" style={{ marginBottom: 0 }}>
+                    <button
+                      className="btn btn-secondary"
+                      type="button"
+                      disabled={index === 0}
+                      onClick={() => moveItem(item.listing_id, -1)}
+                    >
+                      Move Up
+                    </button>
+                    <button
+                      className="btn btn-secondary"
+                      type="button"
+                      disabled={index === draft.items.length - 1}
+                      onClick={() => moveItem(item.listing_id, 1)}
+                    >
+                      Move Down
+                    </button>
                     <button
                       className="btn btn-secondary"
                       type="button"
