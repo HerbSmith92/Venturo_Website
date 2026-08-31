@@ -33,52 +33,19 @@ export default async function AccountPage() {
     <main className="shell">
       <section className="section">
         <AccountNav current="profile" />
-        <div className="profile-hero">
-          <div className="profile-hero-avatar" aria-hidden>
-            {profile.avatarUrl ? (
-              // eslint-disable-next-line @next/next/no-img-element
-              <img src={profile.avatarUrl} alt="" />
-            ) : (
-              <span>{firstName.slice(0, 1).toUpperCase()}</span>
-            )}
-          </div>
-          <div>
-            <p className="eyebrow">Your Profile</p>
-            <h1>Hey {firstName}</h1>
-            <p className="lede muted">{user.email}</p>
-            <p className={`profile-status${progress.complete ? " complete" : ""}`}>
-              {progress.complete
-                ? "Profile complete. Ready for Made For You"
-                : `${progress.doneCount} of ${progress.steps.length} profile bits filled in`}
-            </p>
-          </div>
+        <div className="profile-greeting">
+          <p className="eyebrow">Your Profile</p>
+          <h1>Hey {firstName}</h1>
+          <p className="lede muted">{user.email}</p>
+          <p className={`profile-status${progress.complete ? " complete" : ""}`}>
+            {progress.complete
+              ? "Profile complete. Ready for Made For You"
+              : `${progress.doneCount} of ${progress.steps.length} profile bits filled in`}
+          </p>
         </div>
-
-        <aside className={`plan-strip${paid ? " featured" : ""}`}>
-          <div>
-            <p className="eyebrow">Membership</p>
-            <h2>{paid ? "Paid Member" : "Free Profile"}</h2>
-            <p>
-              {paid
-                ? "RevenueCat confirmed your membership. Curated discovery & member ticket prices are on."
-                : `Book tickets & host events for approval. Subscribe in the app for ${PAID_PRICE} a month for member prices.`}
-            </p>
-          </div>
-          <div className="hero-actions">
-            <a className="btn btn-secondary" href="/events">
-              Browse Events
-            </a>
-            {!paid && (
-              <a className="btn btn-secondary" href="/join#paid">
-                Get Paid In The App
-              </a>
-            )}
-          </div>
-        </aside>
-      </section>
-
-      <section className="section">
-        <p className="eyebrow">Same As The App</p>
+        <p className="eyebrow" style={{ marginTop: 28 }}>
+          Same As The App
+        </p>
         <h2>Shape Your Profile</h2>
         <p className="lede muted">
           {progress.complete
@@ -89,6 +56,8 @@ export default async function AccountPage() {
           profile={formProfile}
           catalog={catalog}
           email={user.email ?? ""}
+          paid={paid}
+          paidPrice={PAID_PRICE}
         />
       </section>
     </main>

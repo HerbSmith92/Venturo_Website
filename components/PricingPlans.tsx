@@ -44,7 +44,7 @@ export function PricingPlans({
           to unlock paid benefits.
         </p>
         <a className="btn btn-primary" href="/join#paid">
-          {currentPlan === "paid" ? "You Are a Paid Member" : "Get Paid In The App"}
+          {currentPlan === "paid" ? "You Are a Paid Member" : "Upgrade Your Experience"}
         </a>
       </article>
     </div>

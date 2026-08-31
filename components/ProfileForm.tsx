@@ -104,10 +104,14 @@ export function ProfileForm({
   profile,
   catalog,
   email,
+  paid,
+  paidPrice,
 }: {
   profile: MemberProfile;
   catalog: ProfileCatalog;
   email: string;
+  paid: boolean;
+  paidPrice: string;
 }) {
   const router = useRouter();
   const fileRef = useRef<HTMLInputElement>(null);
@@ -328,350 +332,378 @@ export function ProfileForm({
   }
 
   return (
-    <form className="profile-form" onSubmit={onSubmit}>
-      <div className="profile-progress" aria-label="Profile progress">
-        <div className="profile-progress-top">
-          <p className="eyebrow">Profile Progress</p>
-          <p className="profile-progress-count">
-            {progress.doneCount} / {progress.steps.length}
-          </p>
-        </div>
-        <div
-          className="profile-progress-bar"
-          role="progressbar"
-          aria-valuemin={0}
-          aria-valuemax={progress.steps.length}
-          aria-valuenow={progress.doneCount}
-        >
-          <span style={{ width: `${(progress.doneCount / progress.steps.length) * 100}%` }} />
-        </div>
-        <ul className="profile-progress-steps">
-          {progress.steps.map((step) => (
-            <li key={step.id} className={step.done ? "done" : undefined}>
-              {step.label}
-            </li>
-          ))}
-        </ul>
-        {progress.complete ? (
-          <p className="notice">Profile complete. Made For You can use this here & in the app.</p>
-        ) : (
-          <p className="muted">
-            Fill in what you can. Skip is fine—come back anytime.
-          </p>
-        )}
-      </div>
-
-      <section className="profile-section">
-        <p className="eyebrow">Photo</p>
-        <h3>Profile Photo</h3>
-        <p className="muted" style={{ marginTop: 0 }}>
-          A clear headshot helps hosts & fellow members recognise you.
-        </p>
-        <div className="profile-avatar-row">
-          <div className="profile-avatar" aria-hidden={!avatarUrl}>
-            {avatarUrl ? (
-              // eslint-disable-next-line @next/next/no-img-element
-              <img src={avatarUrl} alt="" />
-            ) : (
-              <span>{initials(firstName, lastName)}</span>
+    <form className="profile-form profile-layout" onSubmit={onSubmit}>
+      <aside className="profile-sidebar">
+        <div className={`plan-strip${paid ? " featured" : ""}`}>
+          <div>
+            <p className="eyebrow">Membership</p>
+            <h2>{paid ? "Paid Member" : "Free Profile"}</h2>
+            <p>
+              {paid
+                ? "RevenueCat confirmed your membership. Curated discovery & member ticket prices are on."
+                : `Book tickets & host events for approval. Subscribe in the app for ${paidPrice} a month for member prices.`}
+            </p>
+          </div>
+          <div className="hero-actions">
+            <a className="btn btn-secondary" href="/events">
+              Browse Events
+            </a>
+            {!paid && (
+              <a className="btn btn-secondary" href="/join#paid">
+                Upgrade Your Experience
+              </a>
             )}
           </div>
-          <div className="profile-avatar-actions">
-            <input
-              ref={fileRef}
-              type="file"
-              accept="image/jpeg,image/png,image/webp"
-              hidden
-              onChange={onAvatarChange}
-            />
-            <button
-              type="button"
-              className="btn btn-secondary"
-              disabled={uploading}
-              onClick={() => fileRef.current?.click()}
-            >
-              {uploading ? "Please Wait" : avatarUrl ? "Change Photo" : "Add Photo"}
-            </button>
-            {avatarUrl && (
-              <button
-                type="button"
-                className="btn btn-ghost"
-                disabled={uploading}
-                onClick={() => void removeAvatar()}
-              >
-                Remove
-              </button>
-            )}
-            <p className="muted">JPG, PNG or WebP. Keep it under 5 MB.</p>
-          </div>
         </div>
-      </section>
 
-      <section className="profile-section">
-        <p className="eyebrow">Account</p>
-        <h3>Your Details</h3>
-        <p className="muted" style={{ marginTop: 0 }}>
-          Name & home area are shared with the app. Email is used to sign in.
-        </p>
-
-        {!editingDetails ? (
-          <div className="profile-details-locked">
-            <dl>
-              <div>
-                <dt>First Name</dt>
-                <dd>{firstName || "Not set yet"}</dd>
-              </div>
-              <div>
-                <dt>Surname</dt>
-                <dd>{lastName || "Not set yet"}</dd>
-              </div>
-              <div>
-                <dt>Email Address</dt>
-                <dd>{email || "Not set yet"}</dd>
-              </div>
-              <div>
-                <dt>Home Area</dt>
-                <dd>{homePlaceLabel}</dd>
-              </div>
-            </dl>
+        <div className="profile-progress" aria-label="Profile progress">
+          <div className="profile-progress-top">
+            <p className="eyebrow">Profile Progress</p>
+            <p className="profile-progress-count">
+              {progress.doneCount} / {progress.steps.length}
+            </p>
           </div>
-        ) : (
-          <>
-            <div className="field-row">
-              <label className="field">
-                <span>First Name</span>
-                <input
-                  name="firstName"
-                  type="text"
-                  autoComplete="given-name"
-                  required
-                  maxLength={80}
-                  value={firstName}
-                  onChange={(e) => setFirstName(e.target.value)}
-                />
-              </label>
-              <label className="field">
-                <span>Surname</span>
-                <input
-                  name="lastName"
-                  type="text"
-                  autoComplete="family-name"
-                  maxLength={80}
-                  value={lastName}
-                  onChange={(e) => setLastName(e.target.value)}
-                />
-              </label>
-            </div>
-
-            <label className="field">
-              <span>Email Address</span>
-              <input type="email" value={email} readOnly disabled />
-            </label>
-
-            <label className="field">
-              <span>Home Area</span>
-              <select value={homePlaceId} onChange={(e) => setHomePlaceId(e.target.value)}>
-                <option value="">Pick a place</option>
-                {regions.map(([region, places]) => (
-                  <optgroup key={region} label={region}>
-                    {places.map((place) => (
-                      <option key={place.id} value={place.id}>
-                        {place.name}
-                      </option>
-                    ))}
-                  </optgroup>
-                ))}
-              </select>
-            </label>
-          </>
-        )}
-
-        <div className="profile-details-actions">
-          {!editingDetails ? (
-            <button
-              type="button"
-              className="btn btn-secondary"
-              onClick={() => {
-                setEditingDetails(true);
-                setDetailsSaved(false);
-                setError(null);
-              }}
-            >
-              Edit Details
-            </button>
-          ) : (
-            <>
-              <button
-                type="button"
-                className="btn btn-primary"
-                disabled={detailsPending || !firstName.trim()}
-                onClick={() => void saveProfile({ detailsOnly: true })}
-              >
-                {detailsPending ? "Please Wait" : "Save Details"}
-              </button>
-              <button
-                type="button"
-                className="btn btn-ghost"
-                disabled={detailsPending}
-                onClick={cancelDetailsEdit}
-              >
-                Cancel
-              </button>
-            </>
-          )}
-          <button
-            type="button"
-            className="btn btn-secondary"
-            onClick={() => {
-              setShowPassword((open) => !open);
-              setPasswordNotice(null);
-              setError(null);
-            }}
+          <div
+            className="profile-progress-bar"
+            role="progressbar"
+            aria-valuemin={0}
+            aria-valuemax={progress.steps.length}
+            aria-valuenow={progress.doneCount}
           >
-            {showPassword ? "Cancel Password Change" : "Change Password"}
-          </button>
+            <span style={{ width: `${(progress.doneCount / progress.steps.length) * 100}%` }} />
+          </div>
+          <ul className="profile-progress-steps">
+            {progress.steps.map((step) => (
+              <li key={step.id} className={step.done ? "done" : undefined}>
+                {step.label}
+              </li>
+            ))}
+          </ul>
+          {progress.complete ? (
+            <p className="notice">Profile complete. Made For You can use this here & in the app.</p>
+          ) : (
+            <p className="muted">
+              Fill in what you can. Skip is fine—come back anytime.
+            </p>
+          )}
         </div>
-        {detailsSaved && <p className="notice">Details saved.</p>}
+      </aside>
 
-        <div className="profile-password">
-          {passwordNotice && <p className="notice">{passwordNotice}</p>}
-          {showPassword && (
-            <div className="profile-password-fields">
-              <label className="field">
-                <span>New Password</span>
+      <div className="profile-main">
+        <div className="profile-identity">
+          <section className="profile-section profile-section-photo">
+            <p className="eyebrow">Photo</p>
+            <h3>Profile Photo</h3>
+            <p className="muted" style={{ marginTop: 0 }}>
+              A clear headshot helps hosts & fellow members recognise you.
+            </p>
+            <div className="profile-avatar-stack">
+              <div className="profile-avatar profile-avatar-lg" aria-hidden={!avatarUrl}>
+                {avatarUrl ? (
+                  // eslint-disable-next-line @next/next/no-img-element
+                  <img src={avatarUrl} alt="" />
+                ) : (
+                  <span>{initials(firstName, lastName)}</span>
+                )}
+              </div>
+              <div className="profile-avatar-actions">
                 <input
-                  type="password"
-                  autoComplete="new-password"
-                  minLength={8}
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
+                  ref={fileRef}
+                  type="file"
+                  accept="image/jpeg,image/png,image/webp"
+                  hidden
+                  onChange={onAvatarChange}
                 />
-              </label>
-              <label className="field">
-                <span>Confirm New Password</span>
-                <input
-                  type="password"
-                  autoComplete="new-password"
-                  minLength={8}
-                  value={passwordConfirm}
-                  onChange={(e) => setPasswordConfirm(e.target.value)}
-                />
-              </label>
+                <button
+                  type="button"
+                  className="btn btn-secondary"
+                  disabled={uploading}
+                  onClick={() => fileRef.current?.click()}
+                >
+                  {uploading ? "Please Wait" : avatarUrl ? "Change Photo" : "Add Photo"}
+                </button>
+                {avatarUrl && (
+                  <button
+                    type="button"
+                    className="btn btn-ghost"
+                    disabled={uploading}
+                    onClick={() => void removeAvatar()}
+                  >
+                    Remove
+                  </button>
+                )}
+                <p className="muted">JPG, PNG or WebP. Keep it under 5 MB.</p>
+              </div>
+            </div>
+          </section>
+
+          <section className="profile-section profile-section-details">
+            <p className="eyebrow">Account</p>
+            <h3>Your Details</h3>
+            <p className="muted" style={{ marginTop: 0 }}>
+              Name & home area are shared with the app. Email is used to sign in.
+            </p>
+
+            {!editingDetails ? (
+              <div className="profile-details-locked">
+                <dl>
+                  <div>
+                    <dt>First Name</dt>
+                    <dd>{firstName || "Not set yet"}</dd>
+                  </div>
+                  <div>
+                    <dt>Surname</dt>
+                    <dd>{lastName || "Not set yet"}</dd>
+                  </div>
+                  <div>
+                    <dt>Email Address</dt>
+                    <dd>{email || "Not set yet"}</dd>
+                  </div>
+                  <div>
+                    <dt>Home Area</dt>
+                    <dd>{homePlaceLabel}</dd>
+                  </div>
+                </dl>
+              </div>
+            ) : (
+              <>
+                <div className="field-row">
+                  <label className="field">
+                    <span>First Name</span>
+                    <input
+                      name="firstName"
+                      type="text"
+                      autoComplete="given-name"
+                      required
+                      maxLength={80}
+                      value={firstName}
+                      onChange={(e) => setFirstName(e.target.value)}
+                    />
+                  </label>
+                  <label className="field">
+                    <span>Surname</span>
+                    <input
+                      name="lastName"
+                      type="text"
+                      autoComplete="family-name"
+                      maxLength={80}
+                      value={lastName}
+                      onChange={(e) => setLastName(e.target.value)}
+                    />
+                  </label>
+                </div>
+
+                <label className="field">
+                  <span>Email Address</span>
+                  <input type="email" value={email} readOnly disabled />
+                </label>
+
+                <label className="field">
+                  <span>Home Area</span>
+                  <select value={homePlaceId} onChange={(e) => setHomePlaceId(e.target.value)}>
+                    <option value="">Pick a place</option>
+                    {regions.map(([region, places]) => (
+                      <optgroup key={region} label={region}>
+                        {places.map((place) => (
+                          <option key={place.id} value={place.id}>
+                            {place.name}
+                          </option>
+                        ))}
+                      </optgroup>
+                    ))}
+                  </select>
+                </label>
+              </>
+            )}
+
+            <div className="profile-details-actions">
+              {!editingDetails ? (
+                <button
+                  type="button"
+                  className="btn btn-secondary"
+                  onClick={() => {
+                    setEditingDetails(true);
+                    setDetailsSaved(false);
+                    setError(null);
+                  }}
+                >
+                  Edit Details
+                </button>
+              ) : (
+                <>
+                  <button
+                    type="button"
+                    className="btn btn-primary"
+                    disabled={detailsPending || !firstName.trim()}
+                    onClick={() => void saveProfile({ detailsOnly: true })}
+                  >
+                    {detailsPending ? "Please Wait" : "Save Details"}
+                  </button>
+                  <button
+                    type="button"
+                    className="btn btn-ghost"
+                    disabled={detailsPending}
+                    onClick={cancelDetailsEdit}
+                  >
+                    Cancel
+                  </button>
+                </>
+              )}
               <button
                 type="button"
                 className="btn btn-secondary"
-                disabled={passwordPending}
-                onClick={() => void onChangePassword()}
+                onClick={() => {
+                  setShowPassword((open) => !open);
+                  setPasswordNotice(null);
+                  setError(null);
+                }}
               >
-                {passwordPending ? "Please Wait" : "Update Password"}
+                {showPassword ? "Cancel Password Change" : "Change Password"}
               </button>
             </div>
-          )}
-        </div>
-      </section>
+            {detailsSaved && <p className="notice">Details saved.</p>}
 
-      <section className="profile-section">
-        <p className="eyebrow">Going Out</p>
-        <h3>How You Usually Go Out</h3>
-        <p className="muted" style={{ marginTop: 0 }}>
-          Choose the situations that fit you—solo, with a partner, family, friends, or work.
-          Up to 8.
-        </p>
-        <div className="tag-picker">
-          {catalog.personas.map((persona) => {
-            const on = personaIds.includes(persona.id);
-            return (
-              <button
-                key={persona.id}
-                type="button"
-                className={`chip${on ? " on" : ""}`}
-                onClick={() => setPersonaIds(toggleId(personaIds, persona.id, 8))}
-              >
-                {persona.title}
-              </button>
-            );
-          })}
-        </div>
-      </section>
-
-      <section className="profile-section">
-        <p className="eyebrow">Interests</p>
-        <h3>Activities You Enjoy</h3>
-        <p className="muted">
-          Pick at least {MIN_INTERESTS} so Made For You has enough to work with. Max{" "}
-          {MAX_INTERESTS}.
-        </p>
-        <label className="field">
-          <span>Search</span>
-          <input
-            type="search"
-            value={query}
-            onChange={(e) => setQuery(e.target.value)}
-            placeholder="Search interests"
-            aria-label="Search interests"
-          />
-        </label>
-        {visibleInterests.map((group) => (
-          <div key={group.key} className="profile-kind" data-kind={group.key}>
-            <p className="eyebrow profile-kind-title">
-              <span className="profile-kind-swatch" aria-hidden />
-              {group.title}
-            </p>
-            <div className="tag-picker">
-              {group.items.map((item) => {
-                const on = interestIds.includes(item.id);
-                return (
+            <div className="profile-password">
+              {passwordNotice && <p className="notice">{passwordNotice}</p>}
+              {showPassword && (
+                <div className="profile-password-fields">
+                  <label className="field">
+                    <span>New Password</span>
+                    <input
+                      type="password"
+                      autoComplete="new-password"
+                      minLength={8}
+                      value={password}
+                      onChange={(e) => setPassword(e.target.value)}
+                    />
+                  </label>
+                  <label className="field">
+                    <span>Confirm New Password</span>
+                    <input
+                      type="password"
+                      autoComplete="new-password"
+                      minLength={8}
+                      value={passwordConfirm}
+                      onChange={(e) => setPasswordConfirm(e.target.value)}
+                    />
+                  </label>
                   <button
-                    key={item.id}
                     type="button"
-                    className={`chip ${kindClass(item.kind_key)}${on ? " on" : ""}`}
-                    onClick={() => setInterestIds(toggleId(interestIds, item.id, MAX_INTERESTS))}
+                    className="btn btn-secondary"
+                    disabled={passwordPending}
+                    onClick={() => void onChangePassword()}
                   >
-                    {item.title}
+                    {passwordPending ? "Please Wait" : "Update Password"}
                   </button>
-                );
-              })}
+                </div>
+              )}
             </div>
+          </section>
+        </div>
+
+        <section className="profile-section">
+          <p className="eyebrow">Going Out</p>
+          <h3>How You Usually Go Out</h3>
+          <p className="muted" style={{ marginTop: 0 }}>
+            Choose the situations that fit you—solo, with a partner, family, friends, or work.
+            Up to 8.
+          </p>
+          <div className="tag-picker">
+            {catalog.personas.map((persona) => {
+              const on = personaIds.includes(persona.id);
+              return (
+                <button
+                  key={persona.id}
+                  type="button"
+                  className={`chip${on ? " on" : ""}`}
+                  onClick={() => setPersonaIds(toggleId(personaIds, persona.id, 8))}
+                >
+                  {persona.title}
+                </button>
+              );
+            })}
           </div>
-        ))}
-      </section>
+        </section>
 
-      <section className="profile-section">
-        <p className="eyebrow">Activity Level</p>
-        <h3>How Active You Feel</h3>
-        <p className="muted" style={{ marginTop: 0 }}>
-          Set a range on the scale—from chilled to full throttle. This is your current mood,
-          not a permanent setting.
-        </p>
-        <EnergySpectrum
-          scales={catalog.scales}
-          energyLow={energyLow}
-          energyHigh={energyHigh}
-          onPick={pickEnergy}
-        />
-        {(energyLow || energyHigh) && (
-          <button
-            type="button"
-            className="btn btn-ghost"
-            onClick={() => {
-              setEnergyLow("");
-              setEnergyHigh("");
-            }}
-          >
-            Clear Activity Level
-          </button>
-        )}
-      </section>
+        <section className="profile-section">
+          <p className="eyebrow">Interests</p>
+          <h3>Activities You Enjoy</h3>
+          <p className="muted">
+            Pick at least {MIN_INTERESTS} so Made For You has enough to work with. Max{" "}
+            {MAX_INTERESTS}.
+          </p>
+          <label className="field">
+            <span>Search</span>
+            <input
+              type="search"
+              value={query}
+              onChange={(e) => setQuery(e.target.value)}
+              placeholder="Search interests"
+              aria-label="Search interests"
+            />
+          </label>
+          {visibleInterests.map((group) => (
+            <div key={group.key} className="profile-kind" data-kind={group.key}>
+              <p className="eyebrow profile-kind-title">
+                <span className="profile-kind-swatch" aria-hidden />
+                {group.title}
+              </p>
+              <div className="tag-picker">
+                {group.items.map((item) => {
+                  const on = interestIds.includes(item.id);
+                  return (
+                    <button
+                      key={item.id}
+                      type="button"
+                      className={`chip ${kindClass(item.kind_key)}${on ? " on" : ""}`}
+                      onClick={() => setInterestIds(toggleId(interestIds, item.id, MAX_INTERESTS))}
+                    >
+                      {item.title}
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+          ))}
+        </section>
 
-      {error && <p className="error">{error}</p>}
-      {saved && <p className="notice">Saved. The app sees the same profile.</p>}
-      <button
-        className="btn btn-primary"
-        type="submit"
-        disabled={pending || uploading || editingDetails}
-      >
-        {pending ? "Please Wait" : "Save Profile"}
-      </button>
+        <section className="profile-section">
+          <p className="eyebrow">Activity Level</p>
+          <h3>How Active You Feel</h3>
+          <p className="muted" style={{ marginTop: 0 }}>
+            Set a range on the scale—from chilled to full throttle. This is your current mood,
+            not a permanent setting.
+          </p>
+          <EnergySpectrum
+            scales={catalog.scales}
+            energyLow={energyLow}
+            energyHigh={energyHigh}
+            onPick={pickEnergy}
+          />
+          {(energyLow || energyHigh) && (
+            <button
+              type="button"
+              className="btn btn-ghost"
+              onClick={() => {
+                setEnergyLow("");
+                setEnergyHigh("");
+              }}
+            >
+              Clear Activity Level
+            </button>
+          )}
+        </section>
+
+        {error && <p className="error">{error}</p>}
+        {saved && <p className="notice">Saved. The app sees the same profile.</p>}
+        <button
+          className="btn btn-primary"
+          type="submit"
+          disabled={pending || uploading || editingDetails}
+        >
+          {pending ? "Please Wait" : "Save Profile"}
+        </button>
+      </div>
     </form>
   );
 }

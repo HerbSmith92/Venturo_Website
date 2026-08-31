@@ -169,7 +169,7 @@ export function LandingBottom() {
               <li>Confirmed after App Store or Play Store payment</li>
             </ul>
             <a className="btn btn-primary" href="/join#paid">
-              Get Paid In The App
+              Upgrade Your Experience
             </a>
           </article>
         </div>
