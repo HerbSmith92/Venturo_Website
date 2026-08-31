@@ -203,6 +203,18 @@ export async function loadGuideEditor(id: string): Promise<GuideEditorRecord | n
   };
 }
 
+type ListingSearchRow = {
+  id: string;
+  name: string;
+  slug: string;
+  suburb: string | null;
+  city: string | null;
+  short_description: string | null;
+  price_from: number | string | null;
+  status: string;
+  listing_media?: MediaRow[];
+};
+
 export async function searchGuideListings(
   q: string,
   interestIds: string[] = [],
@@ -211,27 +223,41 @@ export async function searchGuideListings(
   if (!supabase) return [];
 
   const interests = interestIds.slice(0, 12);
-  const listingFields = `
-      id, name, slug, suburb, city, short_description, price_from, status,
-      listing_media ( public_url, is_cover, sort_order )
-    `;
-  const select = interests.length
-    ? `${listingFields}, listing_interests!inner ( interest_id )`
-    : listingFields;
+  const name = q.trim();
+
+  if (interests.length) {
+    let query = supabase
+      .from("directory_listings")
+      .select(
+        `
+        id, name, slug, suburb, city, short_description, price_from, status,
+        listing_media ( public_url, is_cover, sort_order ),
+        listing_interests!inner ( interest_id )
+      `,
+      )
+      .eq("status", "approved")
+      .in("listing_interests.interest_id", interests)
+      .order("updated_at", { ascending: false })
+      .limit(24);
+    if (name) query = query.ilike("name", `%${name}%`);
+    const { data, error } = await query;
+    if (error || !data) return [];
+    return (data as unknown as ListingSearchRow[]).map(mapListingPreview);
+  }
 
   let query = supabase
     .from("directory_listings")
-    .select(select)
+    .select(
+      `
+      id, name, slug, suburb, city, short_description, price_from, status,
+      listing_media ( public_url, is_cover, sort_order )
+    `,
+    )
     .eq("status", "approved")
     .order("updated_at", { ascending: false })
     .limit(24);
-
-  if (q.trim()) query = query.ilike("name", `%${q.trim()}%`);
-  if (interests.length) {
-    query = query.in("listing_interests.interest_id", interests);
-  }
-
+  if (name) query = query.ilike("name", `%${name}%`);
   const { data, error } = await query;
   if (error || !data) return [];
-  return (data as Parameters<typeof mapListingPreview>[0][]).map(mapListingPreview);
+  return (data as ListingSearchRow[]).map(mapListingPreview);
 }
