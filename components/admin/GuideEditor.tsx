@@ -4,6 +4,7 @@ import { useEffect, useMemo, useRef, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { saveCuratedGuide } from "@/app/admin/guide-actions";
 import { GuideActions } from "@/components/admin/GuideActions";
+import { GuideExportModal } from "@/components/admin/guide-export/GuideExportModal";
 import { formatRand } from "@/lib/control-room-shared";
 import type { GuideEditorRecord } from "@/lib/control-room-guides";
 import {
@@ -45,6 +46,7 @@ export function GuideEditor({
   const [pickerFor, setPickerFor] = useState<"new" | string | null>(null);
   const [pickerInterestIds, setPickerInterestIds] = useState<string[]>(guide.interest_ids);
   const [pickerInterestQuery, setPickerInterestQuery] = useState("");
+  const [exportOpen, setExportOpen] = useState(false);
   const [draft, setDraft] = useState<GuideDraft>(() => ({
     title: guide.title === "Untitled Guide" ? "" : guide.title,
     intro: guide.intro ?? "",
@@ -163,6 +165,13 @@ export function GuideEditor({
     patch({ items: next });
   }
 
+  function moveItem(listingId: string, direction: -1 | 1) {
+    const fromIndex = draft.items.findIndex((item) => item.listing_id === listingId);
+    const toIndex = fromIndex + direction;
+    if (fromIndex < 0 || toIndex < 0 || toIndex >= draft.items.length) return;
+    reorder(listingId, draft.items[toIndex].listing_id);
+  }
+
   function onSave() {
     setSaveError(null);
     startTransition(async () => {
@@ -206,7 +215,19 @@ export function GuideEditor({
       {(error || saveError) && <p className="error">{error || saveError}</p>}
       {(notice || saveNotice) && <p className="notice">{notice || saveNotice}</p>}
 
-      <GuideActions guideId={guide.id} status={guide.status} />
+      <GuideActions
+        guideId={guide.id}
+        status={guide.status}
+        onExportInstagram={() => setExportOpen(true)}
+      />
+
+      <GuideExportModal
+        open={exportOpen}
+        title={draft.title}
+        intro={draft.intro}
+        items={draft.items}
+        onClose={() => setExportOpen(false)}
+      />
 
       <div className="cr-paper cr-guide-editor">
         <section className="cr-step">
@@ -320,7 +341,8 @@ export function GuideEditor({
             <span>4</span> Recommendations
           </h2>
           <p className="muted cr-step-help">
-            Drag to reorder. Replace or remove any row. See More on the public page opens the listing.
+            Move spots up or down, or drag the handle. Save Guide to keep the order. See More on
+            the public page opens the listing.
           </p>
           <div className="cr-guide-items">
             {draft.items.length === 0 && (
@@ -330,10 +352,6 @@ export function GuideEditor({
               <article
                 key={item.listing_id}
                 className="cr-guide-item"
-                draggable
-                onDragStart={() => {
-                  dragId.current = item.listing_id;
-                }}
                 onDragOver={(e) => e.preventDefault()}
                 onDrop={(e) => {
                   e.preventDefault();
@@ -341,6 +359,20 @@ export function GuideEditor({
                   dragId.current = null;
                 }}
               >
+                <button
+                  type="button"
+                  className="cr-guide-drag"
+                  draggable
+                  aria-label={`Drag to reorder ${item.listing?.name ?? "listing"}`}
+                  onDragStart={() => {
+                    dragId.current = item.listing_id;
+                  }}
+                  onDragEnd={() => {
+                    dragId.current = null;
+                  }}
+                >
+                  ⋮⋮
+                </button>
                 <img
                   src={item.listing?.image ?? FALLBACK_IMAGE}
                   alt=""
@@ -377,6 +409,22 @@ export function GuideEditor({
                     />
                   </label>
                   <div className="cr-actions" style={{ marginBottom: 0 }}>
+                    <button
+                      className="btn btn-secondary"
+                      type="button"
+                      disabled={index === 0}
+                      onClick={() => moveItem(item.listing_id, -1)}
+                    >
+                      Move Up
+                    </button>
+                    <button
+                      className="btn btn-secondary"
+                      type="button"
+                      disabled={index === draft.items.length - 1}
+                      onClick={() => moveItem(item.listing_id, 1)}
+                    >
+                      Move Down
+                    </button>
                     <button
                       className="btn btn-secondary"
                       type="button"

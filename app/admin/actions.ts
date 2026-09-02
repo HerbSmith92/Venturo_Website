@@ -10,6 +10,26 @@ import { isStaff, roleFromAppMetadata, type AppRole } from "@/lib/roles";
 import { createServiceClient } from "@/lib/supabase/admin";
 import { createClient } from "@/lib/supabase/server";
 
+export async function createListing() {
+  await requireAdmin();
+  const supabase = await createClient();
+  if (!supabase) {
+    redirect("/admin/listings?error=Could+not+create+that+listing.");
+  }
+
+  const { data, error } = await supabase.rpc("admin_create_listing");
+  const row = (Array.isArray(data) ? data[0] : data) as { id?: string } | null;
+  if (error || !row?.id) {
+    redirect(
+      `/admin/listings?error=${encodeURIComponent(error?.message ?? "Could not create that listing.")}`,
+    );
+  }
+
+  revalidatePath("/admin");
+  revalidatePath("/admin/listings");
+  redirect(`/admin/listings/${row.id}`);
+}
+
 export async function saveListingDraft(listingId: string, draft: ListingDraft) {
   await requireAdmin();
   const supabase = await createClient();

@@ -1,3 +1,5 @@
+import { createListing } from "@/app/admin/actions";
+import { getStaffSession } from "@/lib/auth";
 import {
   formatClock,
   formatRand,
@@ -5,6 +7,7 @@ import {
   loadQueue,
   type ListingStatus,
 } from "@/lib/control-room";
+import { isAdmin } from "@/lib/roles";
 
 const TABS: { id: "" | ListingStatus; label: string }[] = [
   { id: "", label: "All" },
@@ -20,7 +23,8 @@ export default async function ListingsQueuePage({
   searchParams: Promise<{ status?: string; q?: string; error?: string }>;
 }) {
   const { status = "", q = "", error } = await searchParams;
-  const listings = await loadQueue(status, q);
+  const [listings, session] = await Promise.all([loadQueue(status, q), getStaffSession()]);
+  const admin = isAdmin(session?.role);
 
   return (
     <section>
@@ -31,6 +35,15 @@ export default async function ListingsQueuePage({
         always wins.
       </p>
       {error && <p className="error">{error}</p>}
+      {admin && (
+        <div className="cr-actions directory-add">
+          <form action={createListing}>
+            <button className="btn btn-primary btn-xl" type="submit">
+              Add New Listing
+            </button>
+          </form>
+        </div>
+      )}
       <form className="cr-filters" action="/admin/listings">
         <input type="hidden" name="status" value={status} />
         <input
