@@ -3792,3 +3792,35 @@ code {
     min-height: 280px;
   }
 }
+
+/* Control Room — Add New Listing CTA */
+.btn-xl {
+  min-height: 72px;
+  min-width: min(100%, 280px);
+  padding: 18px 36px;
+  font-family: "Social Gothic Rough", "Arial Black", sans-serif;
+  font-size: 1.4rem;
+  letter-spacing: 0.04em;
+  border-radius: var(--radius-md);
+  box-shadow: 0 12px 32px color-mix(in srgb, var(--canary) 48%, transparent);
+}
+
+.directory-add {
+  margin: 8px 0 20px;
+}
+
+.directory-add form {
+  display: inline-flex;
+  width: 100%;
+  max-width: 360px;
+}
+
+.directory-add .btn-xl {
+  width: 100%;
+}
+
+@media (max-width: 720px) {
+  .btn-xl {
+    width: 100%;
+  }
+}
