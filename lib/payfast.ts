@@ -67,6 +67,12 @@ export function buildPayFastCheckout(input: {
   notifyUrl: string;
   email?: string;
   firstName?: string;
+  /** Monthly recurring membership (PayFast Subscriptions). */
+  subscription?: {
+    frequency?: 1 | 2 | 3 | 4 | 5 | 6;
+    cycles?: number;
+    recurringAmountRands?: string;
+  };
 }) {
   const params: Record<string, string> = {
     merchant_id: input.config.merchantId,
@@ -80,6 +86,16 @@ export function buildPayFastCheckout(input: {
   };
   if (input.email) params.email_address = input.email;
   if (input.firstName) params.name_first = input.firstName;
+
+  if (input.subscription) {
+    // 1 = subscription, frequency 3 = monthly, cycles 0 = ongoing.
+    params.subscription_type = "1";
+    params.frequency = String(input.subscription.frequency ?? 3);
+    params.cycles = String(input.subscription.cycles ?? 0);
+    params.recurring_amount =
+      input.subscription.recurringAmountRands ?? input.amountRands;
+    params.subscription_notify_webhook = "true";
+  }
 
   const signature = payFastSignature(params, input.config.passphrase);
   return {

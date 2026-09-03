@@ -138,7 +138,7 @@ export function ResetPasswordForm({
       <h1>Set Your Password</h1>
       <p className="lede muted">
         {mode === "member"
-          ? "Open this page from the reset email in this tab. After you save, log in with your new password — we will email a one-time code to confirm."
+          ? "Open this page from the reset email in this tab. After you save, staff can log in with the new password on the admin login page."
           : "Open this page from the reset email in this tab. Localhost or 127.0.0.1 both work — stay on whatever the email opens."}
       </p>
       {!configured && (

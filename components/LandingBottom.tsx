@@ -135,8 +135,8 @@ export function LandingBottom() {
             </h2>
             <p className="lede">
               Free creates a profile so you can book event tickets. Paid is{" "}
-              {PAID_PRICE} a month in the Venturo app. This website checks
-              RevenueCat — we do not take card payments here.
+              {PAID_PRICE} a month on the website via PayFast. App Store & Play
+              Store stay for the mobile app once those listings are live.
             </p>
             <div className="hero-actions">
               {stores.appStoreReady ? (
@@ -144,7 +144,7 @@ export function LandingBottom() {
                   App Store
                 </a>
               ) : (
-                <a className="btn btn-primary" href="/join#paid">
+                <a className="btn btn-primary" href="/join">
                   App Store — Link Soon
                 </a>
               )}
@@ -153,7 +153,7 @@ export function LandingBottom() {
                   Play Store
                 </a>
               ) : (
-                <a className="btn btn-secondary" href="/join#paid">
+                <a className="btn btn-secondary" href="/join">
                   Play Store — Link Soon
                 </a>
               )}
@@ -163,13 +163,16 @@ export function LandingBottom() {
             <p className="eyebrow">Paid Membership</p>
             <p className="price-amount">{PAID_PRICE}</p>
             <p className="price-cadence">{PAID_CADENCE}</p>
+            <p className="price-pitch">
+              From as little as {PAID_PRICE} per month — explore more.
+            </p>
             <ul>
               <li>Curated discovery & personal recommendations</li>
               <li>Exclusive member discounts</li>
-              <li>Confirmed after App Store or Play Store payment</li>
+              <li>Pay on the website with PayFast</li>
             </ul>
-            <a className="btn btn-primary" href="/join#paid">
-              Upgrade Your Experience
+            <a className="btn btn-primary" href="/join/subscribe">
+              Subscribe With PayFast
             </a>
           </article>
         </div>

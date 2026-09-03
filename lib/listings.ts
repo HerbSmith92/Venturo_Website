@@ -32,7 +32,7 @@ export const CATEGORIES: {
   label: string;
   colour: string;
 }[] = [
-  { id: "all", label: "All", colour: "#EBEBF3" },
+  { id: "all", label: "All", colour: "#7CC3E9" }, // Sky Blue — readable on Night Sky, distinct from Team
   { id: "team", label: "Team", colour: "#F3BF4A" },
   { id: "thrills", label: "Thrills", colour: "#FF9E6B" },
   { id: "adventure", label: "Adventure", colour: "#45A67F" },
@@ -162,6 +162,42 @@ export async function featuredListings() {
   const marked = listings.filter((listing) => listing.featured);
   if (marked.length) return marked.slice(0, 8);
   return listings.filter((listing) => listing.image !== FALLBACK_IMAGE).slice(0, 8);
+}
+
+export type HomeTasteRow = {
+  id: CategoryId;
+  label: string;
+  colour: string;
+  listings: Listing[];
+};
+
+/** Short Home taste rows: a few interests, ~10 cards each for sideways scroll. */
+export async function homeTasteRows(
+  limitPerCategory = 10,
+  maxRows = 3,
+): Promise<HomeTasteRow[]> {
+  const listings = (await loadLiveListings()) ?? [];
+  const pool = [...listings].sort((a, b) => {
+    if (a.featured !== b.featured) return a.featured ? -1 : 1;
+    return a.name.localeCompare(b.name);
+  });
+
+  const rows: HomeTasteRow[] = [];
+  for (const category of CATEGORIES) {
+    if (category.id === "all" || category.id === "third-party") continue;
+    const items = pool
+      .filter((listing) => listing.category === category.id)
+      .slice(0, limitPerCategory);
+    if (items.length < 2) continue;
+    rows.push({
+      id: category.id as CategoryId,
+      label: category.label,
+      colour: category.colour,
+      listings: items,
+    });
+    if (rows.length >= maxRows) break;
+  }
+  return rows;
 }
 
 export async function listingsByCategory(category?: string) {

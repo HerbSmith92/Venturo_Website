@@ -1,10 +1,25 @@
 import { revenueCatIsConfigured } from "@/lib/brand";
 import { isListingStatus, type ListingStatus } from "@/lib/control-room-shared";
 import type { ListingDetail, QueueListing } from "@/lib/control-room-types";
+import { getPayFastMembershipMap } from "@/lib/memberships";
 import { getPaidMembershipMap } from "@/lib/revenuecat";
 import { roleFromAppMetadata, type AppRole } from "@/lib/roles";
 import { createServiceClient } from "@/lib/supabase/admin";
 import { createClient } from "@/lib/supabase/server";
+
+async function mergePaidMaps(userIds: string[]) {
+  const [payfastMap, revenueCatMap] = await Promise.all([
+    getPayFastMembershipMap(userIds),
+    revenueCatIsConfigured() && userIds.length
+      ? getPaidMembershipMap(userIds)
+      : Promise.resolve(new Map<string, boolean>()),
+  ]);
+  const merged = new Map<string, boolean>();
+  for (const id of userIds) {
+    if (payfastMap.get(id) || revenueCatMap.get(id)) merged.set(id, true);
+  }
+  return merged;
+}
 
 export {
   LISTING_STATUSES,
@@ -257,10 +272,7 @@ async function loadMembersFromProfiles(
     .limit(200);
 
   const ids = (data ?? []).map((row) => row.id as string);
-  const paidMap =
-    revenueCatIsConfigured() && ids.length
-      ? await getPaidMembershipMap(ids)
-      : new Map<string, boolean>();
+  const paidMap = ids.length ? await mergePaidMaps(ids) : new Map<string, boolean>();
 
   const members = (data ?? []).map(
     (row): MemberRow => ({
@@ -329,9 +341,7 @@ export async function loadMembers(query?: string): Promise<{
       .from("profiles")
       .select("id, display_name, onboarding_step, created_at")
       .in("id", ids.length ? ids : ["00000000-0000-0000-0000-000000000000"]),
-    revenueCatReady
-      ? getPaidMembershipMap(paidLookupIds)
-      : Promise.resolve(new Map<string, boolean>()),
+    mergePaidMaps(paidLookupIds),
   ]);
 
   const profileById = new Map(
