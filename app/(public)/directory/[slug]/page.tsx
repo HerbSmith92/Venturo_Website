@@ -127,7 +127,8 @@ export default async function ListingDetailPage({
             <h2>What It Costs</h2>
             {!paid && listing.memberFromPrice !== null && (
               <p className="notice">
-                Paid members unlock lower prices. Subscribe in the app, then come
+                Paid members unlock lower prices.{" "}
+                <a href="/join/subscribe">Subscribe with PayFast</a>, then come
                 back.
               </p>
             )}
@@ -196,7 +197,7 @@ export default async function ListingDetailPage({
                 </a>
               ) : null}
               {!paid && (
-                <a className="btn btn-secondary" href="/join#paid">
+                <a className="btn btn-secondary" href="/join/subscribe">
                   Get Member Prices
                 </a>
               )}

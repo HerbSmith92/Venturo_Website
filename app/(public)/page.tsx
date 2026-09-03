@@ -1,19 +1,21 @@
 import { CategoryChips } from "@/components/CategoryChips";
 import { EventCard } from "@/components/EventCard";
 import { GuideCard } from "@/components/GuideCard";
+import { HomeDirectoryTaste } from "@/components/HomeDirectoryTaste";
 import { LandingBottom } from "@/components/LandingBottom";
 import { ListingCard } from "@/components/ListingCard";
 import { getCurrentUser } from "@/lib/auth";
+import { PAID_PRICE } from "@/lib/brand";
 import { featuredEvents } from "@/lib/events";
 import { liveGuides } from "@/lib/guides";
-import { featuredListings } from "@/lib/listings";
+import { homeTasteRows } from "@/lib/listings";
 import { madeForYouListings } from "@/lib/recommendations";
 
 export default async function HomePage() {
   const user = await getCurrentUser();
   const paid = user?.plan === "paid";
-  const [listings, events, forYou, guides] = await Promise.all([
-    featuredListings(),
+  const [tasteRows, events, forYou, guides] = await Promise.all([
+    homeTasteRows(10, 3),
     featuredEvents(6),
     madeForYouListings({
       userId: user?.id ?? null,
@@ -58,16 +60,7 @@ export default async function HomePage() {
           </a>
         </div>
         <CategoryChips />
-        <div className="grid">
-          {listings.map((listing) => (
-            <ListingCard
-              key={listing.id}
-              listing={listing}
-              href={`/directory/${listing.slug}`}
-              showMemberPrice={paid}
-            />
-          ))}
-        </div>
+        <HomeDirectoryTaste rows={tasteRows} showMemberPrice={paid} />
       </section>
 
       <section className="section shell">
@@ -91,7 +84,7 @@ export default async function HomePage() {
           </div>
           <a
             className="btn btn-secondary"
-            href={paid ? "/directory" : "/join#paid"}
+            href={paid ? "/directory" : user ? "/join/subscribe" : "/join"}
           >
             {paid ? "Open Directory" : "Upgrade Your Experience"}
           </a>
@@ -108,9 +101,9 @@ export default async function HomePage() {
         </div>
         {!paid && (
           <p className="notice">
-            These are Top Picks for a taste.{" "}
-            <a href="/join#paid">Upgrade Your Experience</a> in the app for
-            personal recommendations.
+            These are Top Picks for a taste. From as little as {PAID_PRICE} per
+            month, explore more —{" "}
+            <a href={user ? "/join/subscribe" : "/join"}>Upgrade Your Experience</a>.
           </p>
         )}
       </section>

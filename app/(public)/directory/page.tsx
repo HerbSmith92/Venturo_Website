@@ -75,11 +75,12 @@ export default async function DirectoryPage({
             <div>
               <h2>Curated Discovery Is For Paid Members</h2>
               <p className="lede">
-                Personal recommendations & exclusive discounts unlock when
-                RevenueCat confirms your App Store or Play Store subscription.
+                Personal recommendations & exclusive discounts unlock with a
+                PayFast membership — or an app-store subscription once the apps
+                are live.
               </p>
-              <a className="btn btn-primary" href="/join#paid">
-                See Paid Membership
+              <a className="btn btn-primary" href="/join/subscribe">
+                Subscribe With PayFast
               </a>
             </div>
           </div>

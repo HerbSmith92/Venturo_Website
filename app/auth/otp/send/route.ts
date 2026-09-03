@@ -11,6 +11,9 @@ function loginUnknownMessage(message: string) {
   ) {
     return "No profile for that email yet. Sign up free first.";
   }
+  if (lower.includes("rate limit") || lower.includes("security purposes")) {
+    return "Hang tight — wait a moment before requesting another code.";
+  }
   return message;
 }
 
@@ -29,7 +32,8 @@ export async function POST(request: Request) {
     .toLowerCase();
   const firstName = String(form.get("firstName") ?? "").trim();
   const mode = String(form.get("mode") ?? "login");
-  const next = safeNextPath(form.get("next"));
+  // Kept for API compatibility; member flow is OTP code only (no magic-link UX).
+  void safeNextPath(form.get("next"));
 
   if (!email || !email.includes("@")) {
     return NextResponse.json({ error: "Enter a valid email." }, { status: 400 });
@@ -39,15 +43,12 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "First name is required." }, { status: 400 });
   }
 
-  const origin = new URL(request.url).origin;
-  const emailRedirectTo = `${origin}/auth/callback?next=${encodeURIComponent(next)}`;
-
   const { error } = await supabase.auth.signInWithOtp({
     email,
     options: {
       shouldCreateUser: mode !== "login",
       data: firstName ? { first_name: firstName } : undefined,
-      emailRedirectTo,
+      // Prefer the email OTP code path — do not send users down a magic-link redirect.
     },
   });
 

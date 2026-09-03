@@ -149,8 +149,8 @@ export function TicketCheckoutForm({
       {!paidMember &&
         tickets.some((t) => t.memberPriceCents !== null || t.membersOnly) && (
         <p className="notice">
-          Give yourself the member price — subscribe in the app, then come back
-          to checkout.
+          Give yourself the member price —{" "}
+          <a href="/join/subscribe">subscribe with PayFast</a>, then come back to checkout.
         </p>
       )}
       {error && <p className="error">{error}</p>}

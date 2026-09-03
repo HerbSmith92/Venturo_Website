@@ -37,14 +37,22 @@ export function PricingPlans({
         <ul>
           <li>Curated discovery & personal recommendations</li>
           <li>Exclusive member discounts</li>
-          <li>Confirmed by RevenueCat after App Store or Play Store payment</li>
+          <li>Pay on the website with PayFast, or in the app stores when live</li>
         </ul>
         <p className="muted">
-          Membership is billed in the Venturo app. This website checks RevenueCat
-          to unlock paid benefits.
+          Website memberships use PayFast. App purchases use RevenueCat. Either unlocks Paid here.
         </p>
-        <a className="btn btn-primary" href="/join#paid">
-          {currentPlan === "paid" ? "You Are a Paid Member" : "Upgrade Your Experience"}
+        <a
+          className="btn btn-primary"
+          href={
+            currentPlan === "paid"
+              ? "/account"
+              : currentPlan === "guest"
+                ? "/signup?next=/join/subscribe"
+                : "/join/subscribe"
+          }
+        >
+          {currentPlan === "paid" ? "You Are a Paid Member" : "Subscribe With PayFast"}
         </a>
       </article>
     </div>

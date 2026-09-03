@@ -15,6 +15,9 @@ export const COLORS = {
 
 export const PAID_PRICE = "R 19.99";
 export const PAID_CADENCE = "per month";
+/** PayFast amount string (ZAR, 2 decimals). Keep in sync with PAID_PRICE. */
+export const PAID_AMOUNT_RANDS = "19.99";
+export const PAID_AMOUNT_CENTS = 1999;
 export const ENTITLEMENT_ID =
   process.env.REVENUECAT_ENTITLEMENT_ID ?? "subscription_monthly_1";
 

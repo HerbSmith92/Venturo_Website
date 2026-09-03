@@ -1,5 +1,6 @@
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
+import { isPayFastMembershipActive } from "@/lib/memberships";
 import { getPaidMembership } from "@/lib/revenuecat";
 import type { Plan } from "@/lib/revenuecat";
 import { isStaff, roleFromClaims, type AppRole } from "@/lib/roles";
@@ -72,6 +73,7 @@ export async function getCurrentUser(): Promise<CurrentUser | null> {
   }
 
   const paid =
+    (await isPayFastMembershipActive(session.id)) ||
     (await getPaidMembership(session.id)) ||
     (session.legacyWpUserId ? await getPaidMembership(session.legacyWpUserId) : false);
   return {
