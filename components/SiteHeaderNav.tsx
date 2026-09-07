@@ -77,7 +77,7 @@ export function SiteHeaderNav({ user }: { user: CurrentUser | null }) {
               <a href="/communities">Communities</a>
             </div>
             <a href="/admin">Admin</a>
-            <a href={EVENT_HOST}>Create Event</a>
+            <a href={EVENT_HOST}>Event Host</a>
             {user ? (
               <>
                 <a href="/account">{profileLabel}</a>

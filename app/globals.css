@@ -5254,8 +5254,19 @@ label.check {
 }
 
 @media (max-width: 720px) {
+  .portal-top {
+    gap: 10px;
+    padding: 12px 0;
+  }
+
+  .portal-top-actions {
+    gap: 6px;
+  }
+
   .portal-top-actions .btn {
-    padding: 10px 14px;
+    padding: 8px 12px;
+    min-height: 36px;
+    font-size: 14px;
   }
 
   .portal-main {
@@ -5263,17 +5274,85 @@ label.check {
   }
 
   .portal-body {
-    grid-template-columns: 156px minmax(0, 1fr);
-    gap: 16px;
-    padding-top: 28px;
+    grid-template-columns: 1fr;
+    gap: 18px;
+    padding-top: 20px;
+    padding-bottom: 64px;
   }
 
   .portal-body .portal-main {
     padding-top: 0;
+    min-width: 0;
   }
 
   .portal-rail {
-    top: 88px;
+    position: static;
+    top: auto;
+  }
+
+  .portal-rail-links {
+    display: flex;
+    flex-wrap: nowrap;
+    gap: 4px;
+    overflow-x: auto;
+    padding: 10px 12px;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  .portal-rail-link {
+    flex: 0 0 auto;
+    white-space: nowrap;
+  }
+
+  .portal-home h1 {
+    font-size: clamp(28px, 8.5vw, 40px);
+    overflow-wrap: anywhere;
+  }
+
+  .portal-create-body {
+    padding: 18px;
+  }
+
+  .portal-stat {
+    padding: 16px;
+  }
+
+  .portal-stat strong {
+    font-size: clamp(1.35rem, 6vw, 1.85rem);
+  }
+
+  .portal-event {
+    grid-template-columns: minmax(0, 1fr) auto;
+    align-items: start;
+    gap: 8px 10px;
+    padding: 14px 12px 0 14px;
+  }
+
+  .portal-event-copy {
+    grid-column: 1 / -1;
+    padding: 0 0 2px;
+  }
+
+  .portal-event-copy h3 {
+    font-size: 18px;
+  }
+
+  .portal-event > .status-pill {
+    align-self: center;
+    margin-bottom: 10px;
+  }
+
+  .portal-event-toggle {
+    margin: 0 0 10px;
+    justify-self: end;
+  }
+
+  .portal-chart {
+    padding: 14px 12px 10px;
+  }
+
+  .portal-chart figcaption strong {
+    font-size: 18px;
   }
 }
 
@@ -5531,8 +5610,20 @@ label.check {
 }
 
 @media (max-width: 900px) {
-  .portal-stat-grid,
-  .portal-event-graphs {
+  .portal-stat-grid {
     grid-template-columns: 1fr;
+  }
+
+  .portal-event-graphs {
+    grid-template-columns: repeat(3, minmax(210px, 78vw));
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    scroll-snap-type: x proximity;
+    padding-bottom: 16px;
+  }
+
+  .portal-event-graphs > * {
+    scroll-snap-align: start;
+    min-width: 0;
   }
 }
