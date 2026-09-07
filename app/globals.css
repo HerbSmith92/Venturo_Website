@@ -61,6 +61,7 @@ body {
   padding: 0;
   background: var(--night);
   color: var(--snow);
+  overflow-x: clip;
 }
 
 body {
@@ -115,6 +116,8 @@ select {
 
 .shell {
   width: min(var(--max), calc(100% - 32px));
+  max-width: 100%;
+  min-width: 0;
   margin: 0 auto;
 }
 
@@ -244,6 +247,12 @@ select {
   background: color-mix(in srgb, var(--snow) 8%, transparent);
 }
 
+.taste-stack,
+.taste-row {
+  min-width: 0;
+  max-width: 100%;
+}
+
 .taste-stack {
   display: grid;
   gap: 28px;
@@ -278,6 +287,9 @@ select {
   grid-auto-flow: column;
   grid-auto-columns: minmax(240px, 280px);
   gap: 12px;
+  width: 100%;
+  max-width: 100%;
+  min-width: 0;
   overflow-x: auto;
   padding-bottom: 8px;
   scroll-snap-type: x mandatory;
@@ -436,6 +448,9 @@ select {
 .chips {
   display: flex;
   gap: 10px;
+  width: 100%;
+  max-width: 100%;
+  min-width: 0;
   overflow-x: auto;
   padding-bottom: 8px;
   margin-bottom: 20px;
