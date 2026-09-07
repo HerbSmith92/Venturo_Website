@@ -98,9 +98,10 @@ export function buildPayFastCheckout(input: {
   }
 
   const signature = payFastSignature(params, input.config.passphrase);
+  const fields: Record<string, string> = { ...params, signature };
   return {
     action: payFastProcessUrl(input.config.sandbox),
-    fields: { ...params, signature },
+    fields,
   };
 }
 

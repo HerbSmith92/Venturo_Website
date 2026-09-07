@@ -102,6 +102,10 @@ export async function createMembershipCheckout(input: {
     mPaymentId = data.m_payment_id;
   }
 
+  if (!membershipId || !mPaymentId) {
+    throw new Error("Could not create membership checkout.");
+  }
+
   const publicOrigin = getPublicSiteUrl(input.origin);
   return {
     membershipId,
