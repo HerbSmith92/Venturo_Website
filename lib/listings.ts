@@ -226,8 +226,6 @@ export function categoryColour(id: CategoryId) {
 export type PublicListingDetail = Listing & {
   description: string;
   shortDescription: string;
-  phone: string | null;
-  email: string | null;
   websiteUrl: string | null;
   bookingUrl: string | null;
   streetAddress1: string | null;
@@ -263,8 +261,6 @@ export type PublicListingDetail = Listing & {
 
 type DetailRow = LiveRow & {
   description: string | null;
-  phone: string | null;
-  email: string | null;
   website_url: string | null;
   booking_url: string | null;
   street_address_1: string | null;
@@ -320,8 +316,6 @@ export async function getPublicListingBySlug(
       price_from,
       is_featured,
       google_rating,
-      phone,
-      email,
       website_url,
       booking_url,
       street_address_1,
@@ -396,8 +390,6 @@ export async function getPublicListingBySlug(
     ...base,
     description: (row.description ?? row.short_description ?? "").trim(),
     shortDescription: (row.short_description ?? "").trim(),
-    phone: row.phone,
-    email: row.email,
     websiteUrl: row.website_url,
     bookingUrl: row.booking_url,
     streetAddress1: row.street_address_1,

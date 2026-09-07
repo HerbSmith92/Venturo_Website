@@ -140,10 +140,8 @@ export default async function HomePage() {
         {events.length === 0 ? (
           <p className="notice">
             The calendar is warming up.{" "}
-            <a href={user ? "/events/create" : "/login?next=/events/create"}>
-              Host an adventure
-            </a>{" "}
-            — member hosts get a quick Control Room yes first.
+            <a href="/event-host">Host on Venturo</a>
+            —people are already hunting a plan.
           </p>
         ) : (
           <div className="grid">

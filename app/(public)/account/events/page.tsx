@@ -1,19 +1,41 @@
 import { AccountNav } from "@/components/AccountNav";
+import { HostEventsHeader } from "@/components/events/HostEventsHeader";
 import { getCurrentUser } from "@/lib/auth";
 import {
+  eventFeedImage,
   formatCents,
-  formatEventWhen,
+  formatEventWindow,
   getOrganiserSalesSummary,
   listOrganiserEvents,
 } from "@/lib/events";
 import { createClient } from "@/lib/supabase/server";
 import { redirect } from "next/navigation";
 
-export default async function MyEventsPage() {
+export default async function MyEventsPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ when?: string; new?: string }>;
+}) {
+  const params = await searchParams;
   const user = await getCurrentUser();
-  if (!user) redirect("/login?next=/account/events");
-
+  if (!user) {
+    const next =
+      params.new === "1" ? "/account/events%3Fnew%3D1" : "/account/events";
+    redirect(`/login?next=${next}`);
+  }
+  const when = params.when === "past" ? "past" : "current";
   const events = await listOrganiserEvents(user.id);
+  const now = Date.now();
+  const filtered = events.filter((event) => {
+    const end = event.endsAt ? new Date(event.endsAt).getTime() : null;
+    const isPast = end !== null && end < now;
+    return when === "past" ? isPast : !isPast;
+  });
+  const currentCount = events.filter((event) => {
+    const end = event.endsAt ? new Date(event.endsAt).getTime() : null;
+    return !(end !== null && end < now);
+  }).length;
+  const pastCount = events.length - currentCount;
   const sales = await getOrganiserSalesSummary(user.id);
   const supabase = await createClient();
   const { data: payout } = supabase
@@ -28,14 +50,28 @@ export default async function MyEventsPage() {
     <main className="shell">
       <section className="section">
         <AccountNav current="events" />
-        <div className="section-head">
+        <div className="studio-top host-events-head">
           <div>
             <p className="eyebrow">Organiser</p>
-            <h1>My Events</h1>
+            <h1>Events</h1>
           </div>
-          <a className="btn btn-primary" href="/events/create">
-            Create Event
-          </a>
+          <div className="host-events-tools">
+            <div className="chips">
+              <a
+                className={`chip${when === "current" ? " active" : ""}`}
+                href="/account/events?when=current"
+              >
+                Current ({currentCount})
+              </a>
+              <a
+                className={`chip${when === "past" ? " active" : ""}`}
+                href="/account/events?when=past"
+              >
+                Past ({pastCount})
+              </a>
+            </div>
+            <HostEventsHeader startOpen={params.new === "1"} />
+          </div>
         </div>
 
         <div className="grid" style={{ marginBottom: 32 }}>
@@ -59,36 +95,34 @@ export default async function MyEventsPage() {
 
         {payout && (
           <p className="notice">
-            Payout profile: {payout.account_holder} · {payout.bank_name} · ****
-            {payout.account_number_last4}
+            Payout bank: {payout.account_holder} · {payout.bank_name} · ****
+            {payout.account_number_last4}. Change it in{" "}
+            <a href="/portal/settings?tab=bank">Host Settings</a>.
           </p>
         )}
 
-        {events.length === 0 ? (
-          <p className="muted">You haven&apos;t created an event yet.</p>
+        {filtered.length === 0 ? (
+          <p className="muted">
+            {when === "past"
+              ? "No past events yet."
+              : "No current events. Tap New Event to start with a name."}
+          </p>
         ) : (
-          <div className="stack-list">
-            {events.map((event) => (
-              <article key={event.id}>
-                <div className="section-head" style={{ marginBottom: 0 }}>
-                  <div>
-                    <span className={`status-pill ${event.status}`}>{event.status}</span>
-                    <h2 style={{ marginTop: 10 }}>{event.title}</h2>
-                    <p className="muted">
-                      {formatEventWhen(event.startsAt, event.timezone)}
-                      {event.city ? ` · ${event.city}` : ""}
-                    </p>
-                  </div>
-                  <a className="btn btn-secondary" href={`/events/${event.slug}`}>
-                    Open
-                  </a>
-                </div>
-                {event.reviewNote && (
-                  <p className="notice" style={{ marginTop: 12 }}>
-                    Staff note: {event.reviewNote}
+          <div className="host-event-list">
+            {filtered.map((event) => (
+              <a className="host-event-row" key={event.id} href={`/account/events/${event.id}`}>
+                <img src={eventFeedImage(event)} alt="" />
+                <div>
+                  <h2>{event.title}</h2>
+                  <p className="muted">
+                    {formatEventWindow(event.startsAt, event.endsAt, event.timezone)}
+                    {event.venueName ? ` · ${event.venueName}` : ""}
                   </p>
-                )}
-              </article>
+                </div>
+                <span className={`status-pill ${event.status}`}>
+                  {event.status === "approved" ? "live" : event.status}
+                </span>
+              </a>
             ))}
           </div>
         )}

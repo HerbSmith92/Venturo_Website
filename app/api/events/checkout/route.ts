@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { getCurrentUser } from "@/lib/auth";
+import { createMembershipCheckout } from "@/lib/memberships";
 import { createTicketOrder } from "@/lib/orders";
 import {
   buildPayFastCheckout,
@@ -47,6 +48,48 @@ export async function POST(request: Request) {
         },
         { status: 503 },
       );
+    }
+
+    if (order.joinAndBuy) {
+      if (!config.passphrase) {
+        return NextResponse.json(
+          {
+            error:
+              "PayFast recurring billing needs PAYFAST_PASSPHRASE set on the merchant & in env.",
+          },
+          { status: 503 },
+        );
+      }
+
+      const membership = await createMembershipCheckout({
+        userId: user.id,
+        email: user.email,
+        firstName: user.firstName,
+        origin,
+        bundledOrderId: order.orderId,
+        returnUrl: order.returnUrl,
+        cancelUrl: order.cancelUrl,
+        itemName: `Venturo Membership + ${order.eventTitle}`,
+      });
+
+      const payfast = buildPayFastCheckout({
+        config,
+        amountRands: centsToPayFastAmount(membership.amountCents + order.totalCents),
+        itemName: membership.itemName,
+        mPaymentId: membership.mPaymentId,
+        returnUrl: membership.returnUrl,
+        cancelUrl: membership.cancelUrl,
+        notifyUrl: membership.notifyUrl,
+        email: user.email,
+        firstName: user.firstName,
+        subscription: {
+          frequency: 3,
+          cycles: 0,
+          recurringAmountRands: membership.amountRands,
+        },
+      });
+
+      return NextResponse.json({ payfast });
     }
 
     const payfast = buildPayFastCheckout({

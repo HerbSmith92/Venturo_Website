@@ -2,6 +2,7 @@ import { randomUUID } from "crypto";
 import { createClient } from "@/lib/supabase/server";
 import { createServiceClient } from "@/lib/supabase/admin";
 import { getEventBySlug, getPlatformFees } from "@/lib/events";
+import { checkoutBuyerShare } from "@/lib/event-fees";
 import {
   remainingTickets,
   unitPriceCents,
@@ -14,6 +15,18 @@ export type CheckoutLine = {
   quantity: number;
 };
 
+export type TicketOrderResult = {
+  orderId: string;
+  mPaymentId: string;
+  totalCents: number;
+  eventTitle: string;
+  eventSlug: string;
+  joinAndBuy: boolean;
+  returnUrl: string;
+  cancelUrl: string;
+  notifyUrl: string;
+} & ({ free: true; redirect: string } | { free: false });
+
 export async function createTicketOrder(input: {
   userId: string;
   email?: string;
@@ -22,7 +35,7 @@ export async function createTicketOrder(input: {
   lines: CheckoutLine[];
   paidMember: boolean;
   origin: string;
-}) {
+}): Promise<TicketOrderResult> {
   const supabase = await createClient();
   if (!supabase) throw new Error("Supabase is not connected.");
 
@@ -34,15 +47,7 @@ export async function createTicketOrder(input: {
   const fees = await getPlatformFees();
   const ticketMap = new Map(event.ticketTypes.map((t) => [t.id, t]));
 
-  let subtotal = 0;
-  let listSubtotal = 0;
-  const resolved: {
-    ticket: EventTicketType;
-    quantity: number;
-    unit: number;
-    lineTotal: number;
-  }[] = [];
-
+  const picked: { ticket: EventTicketType; quantity: number }[] = [];
   for (const line of input.lines) {
     if (line.quantity <= 0) continue;
     const ticket = ticketMap.get(line.ticketTypeId);
@@ -50,29 +55,42 @@ export async function createTicketOrder(input: {
     if (remainingTickets(ticket) < line.quantity) {
       throw new Error(`Not enough ${ticket.name} tickets left.`);
     }
-    if (ticket.membersOnly && !input.paidMember) {
-      throw new Error(`${ticket.name} is for paid Venturo members.`);
-    }
-    const unit = unitPriceCents(ticket, input.paidMember);
-    const listUnit = ticket.priceCents;
-    subtotal += unit * line.quantity;
-    listSubtotal += listUnit * line.quantity;
-    resolved.push({
-      ticket,
-      quantity: line.quantity,
-      unit,
-      lineTotal: unit * line.quantity,
-    });
+    picked.push({ ticket, quantity: line.quantity });
   }
 
-  if (!resolved.length) throw new Error("Choose at least one ticket.");
+  if (!picked.length) throw new Error("Choose at least one ticket.");
+
+  const joinAndBuy =
+    !input.paidMember && picked.some((line) => line.ticket.membersOnly);
+  const priceAsMember = input.paidMember || joinAndBuy;
+
+  let subtotal = 0;
+  let listSubtotal = 0;
+  const resolved = picked.map((line) => {
+    const unit = unitPriceCents(line.ticket, priceAsMember);
+    const lineTotal = unit * line.quantity;
+    subtotal += lineTotal;
+    listSubtotal += line.ticket.priceCents * line.quantity;
+    return {
+      ticket: line.ticket,
+      quantity: line.quantity,
+      unit,
+      lineTotal,
+    };
+  });
 
   const memberDiscount = Math.max(0, listSubtotal - subtotal);
-  const commission =
-    subtotal > 0 ? Math.round((subtotal * fees.commissionPct) / 100) : 0;
-  const bookingFee = subtotal > 0 ? fees.bookingFeeCents : 0;
-  // Buyer pays ticket total; platform fees are deducted from organiser payout.
-  const total = subtotal;
+  const share = checkoutBuyerShare(
+    resolved.map((line) => ({
+      ticket: line.ticket,
+      quantity: line.quantity,
+      unitCents: line.unit,
+    })),
+    fees,
+  );
+  const commission = share.commission;
+  const bookingFee = share.booking;
+  const total = share.total;
   const mPaymentId = `evt_${randomUUID().replace(/-/g, "").slice(0, 24)}`;
 
   const { data: order, error } = await supabase
@@ -86,7 +104,7 @@ export async function createTicketOrder(input: {
       commission_cents: commission,
       booking_fee_cents: bookingFee,
       total_cents: total,
-      used_member_pricing: input.paidMember,
+      used_member_pricing: priceAsMember,
       m_payment_id: mPaymentId,
       payout_status: total > 0 ? "pending" : "waived",
     })
@@ -106,7 +124,21 @@ export async function createTicketOrder(input: {
   );
   if (itemsError) throw new Error(itemsError.message);
 
-  if (total === 0) {
+  const publicOrigin = getPublicSiteUrl(input.origin);
+  const urls = {
+    orderId: order.id as string,
+    mPaymentId: order.m_payment_id as string,
+    totalCents: total,
+    eventTitle: event.title,
+    eventSlug: event.slug,
+    joinAndBuy,
+    returnUrl: `${input.origin}/events/${event.slug}/checkout/return?order=${order.id}`,
+    cancelUrl: `${input.origin}/events/${event.slug}?cancelled=1`,
+    notifyUrl: `${publicOrigin}/api/payfast/itn`,
+  };
+
+  // Join & buy waits on the membership ITN, even when tickets themselves are free.
+  if (total === 0 && !joinAndBuy) {
     const service = createServiceClient();
     if (!service) throw new Error("Service role is required to issue free tickets.");
     const { error: fulfillError } = await service.rpc("fulfill_event_order", {
@@ -115,26 +147,15 @@ export async function createTicketOrder(input: {
     });
     if (fulfillError) throw new Error(fulfillError.message);
     return {
-      orderId: order.id as string,
-      mPaymentId: order.m_payment_id as string,
-      totalCents: 0,
-      free: true as const,
+      ...urls,
+      free: true,
       redirect: `/account/tickets?order=${order.id}`,
-      eventTitle: event.title,
     };
   }
 
-  const publicOrigin = getPublicSiteUrl(input.origin);
   return {
-    orderId: order.id as string,
-    mPaymentId: order.m_payment_id as string,
-    totalCents: total,
-    free: false as const,
-    eventTitle: event.title,
-    returnUrl: `${input.origin}/events/${event.slug}/checkout/return?order=${order.id}`,
-    cancelUrl: `${input.origin}/events/${event.slug}?cancelled=1`,
-    // ITN must hit production — PayFast cannot notify localhost / preview URLs.
-    notifyUrl: `${publicOrigin}/api/payfast/itn`,
+    ...urls,
+    free: false,
   };
 }
 

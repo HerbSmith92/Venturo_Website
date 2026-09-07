@@ -21,6 +21,8 @@ export type EventTicketType = {
   memberDiscountKind: MemberDiscountKind;
   memberDiscountValue: number | null;
   membersOnly: boolean;
+  passFeesToBuyer: boolean;
+  passCommissionToBuyer: boolean;
   quantity: number;
   soldCount: number;
   sortOrder: number;
@@ -55,6 +57,8 @@ export type VenturoEvent = {
   status: EventStatus;
   organiserId: string;
   reviewNote: string | null;
+  parking: string | null;
+  prohibitedItems: string | null;
   fromPriceCents: number | null;
   memberFromPriceCents: number | null;
   membersOnly: boolean;
@@ -66,20 +70,130 @@ export type PlatformFees = {
   bookingFeeCents: number;
 };
 
-export const EVENT_CATEGORIES = [
-  "Adventure",
-  "Music",
-  "Social Gathering",
-  "Workshop",
-  "Markets",
+export const EVENT_INTERESTS = [
+  "Adventure & Thrills",
   "Nightlife",
-  "Family",
-  "Sports",
-  "Food & Drink",
-  "Other",
+  "Amusement Parks",
+  "Workshops & Education",
+  "Arts & Culture",
+  "Parks & Nature",
+  "Sports & Wellness",
+  "Markets",
+  "Sightseeing & Tours",
+  "Social Gatherings",
+  "Kids Play & Edutainment",
 ] as const;
 
-export const EVENT_GENDERS = ["Everyone", "Women", "Men", "Mixed"] as const;
+/** @deprecated Use EVENT_INTERESTS — kept for public What’s On filters. */
+export const EVENT_CATEGORIES = EVENT_INTERESTS;
+
+export const EVENT_PERSONAS = [
+  "Everyone",
+  "Families",
+  "Kids 0–6",
+  "Kids 7–12",
+  "Teens 14–18",
+  "Couples",
+  "Solo",
+  "Groups",
+  "Pet Parents",
+  "Bargain Hunters",
+] as const;
+
+/** Same five stops members pick in the app (`activity_scales`). */
+export const EVENT_ENERGY_SCALES = [
+  { rank: 1, title: "Chilled Hang", subtitle: "Slow mornings, long lunches, nowhere to be." },
+  { rank: 2, title: "Low Key Adventure", subtitle: "A wander with a pulse." },
+  { rank: 3, title: "Up & Active", subtitle: "Move, sweat, grin." },
+  { rank: 4, title: "Adrenaline Tease", subtitle: "Heart up. Feet almost off the ground." },
+  { rank: 5, title: "Full Throttle", subtitle: "All in. Tell the story later." },
+] as const;
+
+export const EVENT_GENDERS = EVENT_PERSONAS;
+
+const ENERGY_MIN = 1;
+const ENERGY_MAX = 5;
+
+function clampEnergy(value: number) {
+  return Math.min(ENERGY_MAX, Math.max(ENERGY_MIN, value));
+}
+
+function energyScale(rank: number) {
+  return EVENT_ENERGY_SCALES.find((item) => item.rank === rank);
+}
+
+/** Stored on `events.format` as `2-5`. Legacy Low / Medium / High still parse. */
+export function parseEventEnergy(format: string | null | undefined): { low: number; high: number } {
+  if (!format?.trim()) return { low: 3, high: 3 };
+  const range = format.trim().match(/^(\d+)\s*[-–]\s*(\d+)$/);
+  if (range) {
+    const a = clampEnergy(Number(range[1]));
+    const b = clampEnergy(Number(range[2]));
+    return a <= b ? { low: a, high: b } : { low: b, high: a };
+  }
+  if (/^\d+$/.test(format.trim())) {
+    const n = clampEnergy(Number(format.trim()));
+    return { low: n, high: n };
+  }
+  const key = format.toLowerCase();
+  if (key.includes("low") || key.includes("chill")) return { low: 1, high: 2 };
+  if (key.includes("high") || key.includes("throttle") || key.includes("thrill")) {
+    return { low: 4, high: 5 };
+  }
+  if (key.includes("medium") || key.includes("active")) return { low: 3, high: 3 };
+  return { low: 2, high: 3 };
+}
+
+export function serializeEventEnergy(low: number, high: number) {
+  return `${clampEnergy(low)}-${clampEnergy(high)}`;
+}
+
+export function pickEnergyRange(
+  low: number | null,
+  high: number | null,
+  rank: number,
+): { low: number; high: number } {
+  if (low == null || high == null) return { low: rank, high: rank };
+  if (rank < low) return { low: rank, high };
+  if (rank > high) return { low, high: rank };
+  return { low: rank, high: rank };
+}
+
+export function formatEventEnergy(format: string | null | undefined) {
+  const { low, high } = parseEventEnergy(format);
+  const lowTitle = energyScale(low)?.title ?? `Level ${low}`;
+  const highTitle = energyScale(high)?.title ?? `Level ${high}`;
+  return low === high ? lowTitle : `${lowTitle} – ${highTitle}`;
+}
+
+export function parseEventPersonas(value: string | null | undefined): string[] {
+  const parts = (value ?? "")
+    .split(",")
+    .map((item) => item.trim())
+    .filter(Boolean);
+  return parts.length ? parts : ["Everyone"];
+}
+
+export function serializeEventPersonas(items: string[]) {
+  const unique = [...new Set(items.map((item) => item.trim()).filter(Boolean))];
+  return unique.length ? unique.join(", ") : "Everyone";
+}
+
+export function toggleEventPersona(selected: string[], persona: string, max = 4) {
+  if (persona === "Everyone") return ["Everyone"];
+  const withoutEveryone = selected.filter((item) => item !== "Everyone");
+  if (withoutEveryone.includes(persona)) {
+    const next = withoutEveryone.filter((item) => item !== persona);
+    return next.length ? next : ["Everyone"];
+  }
+  if (withoutEveryone.length >= max) return withoutEveryone;
+  return [...withoutEveryone, persona];
+}
+
+export function withCurrentOption(options: readonly string[], value: string) {
+  if (!value || options.includes(value)) return [...options];
+  return [value, ...options];
+}
 
 export const SUGGESTED_EVENT_TAGS = [
   "Hiking",
@@ -121,12 +235,15 @@ export const EVENT_IMAGE_SPECS = {
   },
   banner: {
     kind: "banner" as const,
-    label: "Hero Banner",
+    label: "Event Page",
     ratio: "16:9",
     size: "1920 × 1080",
-    hint: "Wide event-page header. Falls back to the Feed Post if you skip it.",
+    hint: "Wide header on the event page & this studio.",
   },
 } as const;
+
+export const EVENT_IMAGE_MAX_MB = 10;
+export const EVENT_IMAGE_MAX_BYTES = EVENT_IMAGE_MAX_MB * 1024 * 1024;
 
 export type EventImageKind = keyof typeof EVENT_IMAGE_SPECS;
 
@@ -136,6 +253,12 @@ const FALLBACK_IMAGE = "/brand/images/climbing.jpg";
 export function formatCents(cents: number) {
   const rands = cents / 100;
   return `R ${rands.toFixed(2)}`;
+}
+
+export function formatEventFromPrice(cents: number | null) {
+  if (cents === null) return null;
+  if (cents === 0) return "Free";
+  return `From ${formatCents(cents)}`;
 }
 
 export function parseRandsToCents(value: string) {
@@ -158,6 +281,7 @@ export function memberPriceCentsFromDiscount(
 }
 
 export function formatEventWhen(startsAt: string, timezone = "Africa/Johannesburg") {
+  if (!startsAt) return "Date coming";
   try {
     return new Intl.DateTimeFormat("en-ZA", {
       timeZone: timezone,
@@ -172,6 +296,73 @@ export function formatEventWhen(startsAt: string, timezone = "Africa/Johannesbur
   } catch {
     return startsAt;
   }
+}
+
+function eventParts(iso: string, timezone: string) {
+  return new Intl.DateTimeFormat("en-ZA", {
+    timeZone: timezone,
+    weekday: "short",
+    day: "numeric",
+    month: "short",
+    year: "numeric",
+    hour: "2-digit",
+    minute: "2-digit",
+    hourCycle: "h23",
+  }).formatToParts(new Date(iso));
+}
+
+function part(parts: Intl.DateTimeFormatPart[], type: Intl.DateTimeFormatPartTypes) {
+  return parts.find((item) => item.type === type)?.value ?? "";
+}
+
+/** Howler-style window: `26 Sep 2026 · 10:00–12:00` (or spanning days). */
+export function formatEventWindow(
+  startsAt: string,
+  endsAt: string,
+  timezone = "Africa/Johannesburg",
+) {
+  if (!startsAt) return "Add date & time";
+  try {
+    const start = eventParts(startsAt, timezone);
+    const end = endsAt ? eventParts(endsAt, timezone) : null;
+    const startDay = `${part(start, "day")} ${part(start, "month")} ${part(start, "year")}`;
+    const startTime = `${part(start, "hour")}:${part(start, "minute")}`;
+    if (!end) return `${startDay} · ${startTime}`;
+    const endDay = `${part(end, "day")} ${part(end, "month")} ${part(end, "year")}`;
+    const endTime = `${part(end, "hour")}:${part(end, "minute")}`;
+    if (startDay === endDay) return `${startDay} · ${startTime}–${endTime}`;
+    return `${startDay} ${startTime} – ${endDay} ${endTime}`;
+  } catch {
+    return formatEventWhen(startsAt, timezone);
+  }
+}
+
+/** datetime-local value in Africa/Johannesburg wall time. */
+export function isoToDatetimeLocal(iso: string | null | undefined) {
+  if (!iso) return "";
+  const date = new Date(iso);
+  if (Number.isNaN(date.getTime())) return "";
+  const parts = new Intl.DateTimeFormat("en-CA", {
+    timeZone: "Africa/Johannesburg",
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+    hour: "2-digit",
+    minute: "2-digit",
+    hourCycle: "h23",
+  }).formatToParts(date);
+  const get = (type: Intl.DateTimeFormatPartTypes) =>
+    parts.find((item) => item.type === type)?.value ?? "";
+  return `${get("year")}-${get("month")}-${get("day")}T${get("hour")}:${get("minute")}`;
+}
+
+/** Interpret a datetime-local string as SAST (UTC+2, no DST). */
+export function datetimeLocalToIso(value: string) {
+  if (!value) return "";
+  const [date, time] = value.split("T");
+  if (!date || !time) return "";
+  const iso = new Date(`${date}T${time}:00+02:00`);
+  return Number.isNaN(iso.getTime()) ? "" : iso.toISOString();
 }
 
 export function remainingTickets(ticket: EventTicketType) {

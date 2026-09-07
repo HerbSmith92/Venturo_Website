@@ -5,13 +5,23 @@ export function EventMap({
 }: {
   event: Pick<
     VenturoEvent,
-    "venueName" | "addressLine1" | "addressLine2" | "city" | "postalCode" | "country"
+    | "venueName"
+    | "addressLine1"
+    | "addressLine2"
+    | "city"
+    | "postalCode"
+    | "country"
+    | "latitude"
+    | "longitude"
   >;
 }) {
-  const query = mapsQuery(event);
-  if (!query.trim()) return null;
+  const pin =
+    event.latitude != null && event.longitude != null
+      ? `${event.latitude},${event.longitude}`
+      : mapsQuery(event);
+  if (!pin.trim()) return null;
 
-  const encoded = encodeURIComponent(query);
+  const encoded = encodeURIComponent(pin);
   return (
     <div className="event-map">
       <iframe

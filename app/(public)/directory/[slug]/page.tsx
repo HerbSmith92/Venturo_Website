@@ -202,12 +202,6 @@ export default async function ListingDetailPage({
                 </a>
               )}
             </div>
-
-            {(listing.phone || listing.email) && (
-              <p className="muted" style={{ marginTop: 16 }}>
-                {[listing.phone, listing.email].filter(Boolean).join(" · ")}
-              </p>
-            )}
           </aside>
         </div>
       </section>
