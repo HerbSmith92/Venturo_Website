@@ -1,12 +1,11 @@
 import { PricingPlans } from "@/components/PricingPlans";
 import { getCurrentUser } from "@/lib/auth";
-import { getAppStoreLinks, PAID_PRICE, revenueCatIsConfigured } from "@/lib/brand";
+import { getAppStoreLinks, PAID_PRICE } from "@/lib/brand";
 import { getPayFastStatus } from "@/lib/payfast";
 
 export default async function JoinPage() {
   const user = await getCurrentUser();
   const stores = getAppStoreLinks();
-  const rcReady = revenueCatIsConfigured();
   const payfast = getPayFastStatus();
 
   return (
@@ -30,8 +29,9 @@ export default async function JoinPage() {
             when the Venturo app is published.
           </li>
           <li>
-            We unlock curated discovery & exclusive discounts when PayFast or RevenueCat says your
-            membership is active.
+            We unlock curated discovery & exclusive discounts when your membership row
+            shows subscribed — PayFast on the website or the App Store / Play Store in
+            the app.
           </li>
         </ol>
         <div className="hero-actions" style={{ marginTop: 24 }}>
@@ -73,11 +73,6 @@ export default async function JoinPage() {
           <p className="notice" style={{ marginTop: 16 }}>
             PayFast is not configured in this environment yet — website subscribe stays off until
             merchant keys are set.
-          </p>
-        )}
-        {!rcReady && (
-          <p className="muted" style={{ marginTop: 12 }}>
-            RevenueCat secret is not set here — app-store paid status will not show until it is.
           </p>
         )}
         {(!stores.appStoreReady || !stores.playStoreReady) && (

@@ -1,25 +1,9 @@
-import { revenueCatIsConfigured } from "@/lib/brand";
 import { isListingStatus, type ListingStatus } from "@/lib/control-room-shared";
 import type { ListingDetail, QueueListing } from "@/lib/control-room-types";
-import { getPayFastMembershipMap } from "@/lib/memberships";
-import { getPaidMembershipMap } from "@/lib/revenuecat";
+import { getMemberAccessMap } from "@/lib/member-access";
 import { roleFromAppMetadata, type AppRole } from "@/lib/roles";
 import { createServiceClient } from "@/lib/supabase/admin";
 import { createClient } from "@/lib/supabase/server";
-
-async function mergePaidMaps(userIds: string[]) {
-  const [payfastMap, revenueCatMap] = await Promise.all([
-    getPayFastMembershipMap(userIds),
-    revenueCatIsConfigured() && userIds.length
-      ? getPaidMembershipMap(userIds)
-      : Promise.resolve(new Map<string, boolean>()),
-  ]);
-  const merged = new Map<string, boolean>();
-  for (const id of userIds) {
-    if (payfastMap.get(id) || revenueCatMap.get(id)) merged.set(id, true);
-  }
-  return merged;
-}
 
 export {
   LISTING_STATUSES,
@@ -272,7 +256,7 @@ async function loadMembersFromProfiles(
     .limit(200);
 
   const ids = (data ?? []).map((row) => row.id as string);
-  const paidMap = ids.length ? await mergePaidMaps(ids) : new Map<string, boolean>();
+  const paidMap = ids.length ? await getMemberAccessMap(ids) : new Map<string, boolean>();
 
   const members = (data ?? []).map(
     (row): MemberRow => ({
@@ -293,24 +277,21 @@ async function loadMembersFromProfiles(
 
 export async function loadMembers(query?: string): Promise<{
   members: MemberRow[];
-  revenueCatReady: boolean;
   serviceRoleReady: boolean;
   loadError: string | null;
 }> {
   const admin = createServiceClient();
   const supabase = await createClient();
-  const revenueCatReady = revenueCatIsConfigured();
   const serviceRoleReady = Boolean(admin);
 
   if (!supabase) {
-    return { members: [], revenueCatReady, serviceRoleReady, loadError: "Supabase is not connected." };
+    return { members: [], serviceRoleReady, loadError: "Supabase is not connected." };
   }
 
   if (!admin) {
     const members = await loadMembersFromProfiles(supabase, query);
     return {
       members,
-      revenueCatReady,
       serviceRoleReady,
       loadError: "SUPABASE_SERVICE_ROLE_KEY is missing from the running server.",
     };
@@ -321,7 +302,6 @@ export async function loadMembers(query?: string): Promise<{
     const members = await loadMembersFromProfiles(supabase, query);
     return {
       members,
-      revenueCatReady,
       serviceRoleReady,
       loadError: error?.message ?? "Could not list auth users.",
     };
@@ -329,19 +309,12 @@ export async function loadMembers(query?: string): Promise<{
 
   const users = data.users;
   const ids = users.map((user) => user.id);
-  const legacyIds = users
-    .map((user) => {
-      const legacy = user.app_metadata?.legacy_wp_user_id;
-      return legacy === null || legacy === undefined ? "" : String(legacy);
-    })
-    .filter(Boolean);
-  const paidLookupIds = [...new Set([...ids, ...legacyIds])];
   const [{ data: profiles }, paidMap] = await Promise.all([
     supabase
       .from("profiles")
       .select("id, display_name, onboarding_step, created_at")
       .in("id", ids.length ? ids : ["00000000-0000-0000-0000-000000000000"]),
-    mergePaidMaps(paidLookupIds),
+    getMemberAccessMap(ids),
   ]);
 
   const profileById = new Map(
@@ -359,9 +332,7 @@ export async function loadMembers(query?: string): Promise<{
   const members = users.map((user): MemberRow => {
     const profile = profileById.get(user.id);
     const meta = user.user_metadata as { first_name?: string } | undefined;
-    const legacyId = user.app_metadata?.legacy_wp_user_id;
-    const legacyKey = legacyId === null || legacyId === undefined ? "" : String(legacyId);
-    const paid = Boolean(paidMap.get(user.id) || (legacyKey && paidMap.get(legacyKey)));
+    const paid = Boolean(paidMap.get(user.id));
     return {
       id: user.id,
       display_name: profile?.display_name || meta?.first_name || null,
@@ -377,7 +348,6 @@ export async function loadMembers(query?: string): Promise<{
 
   return {
     members: filterMembers(members, query),
-    revenueCatReady,
     serviceRoleReady,
     loadError: null,
   };

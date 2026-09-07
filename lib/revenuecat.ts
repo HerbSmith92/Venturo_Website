@@ -2,6 +2,11 @@ import { ENTITLEMENT_ID } from "@/lib/brand";
 
 export type Plan = "guest" | "free" | "paid";
 
+export type PaidMembershipDetail = {
+  active: boolean;
+  expiresAt: string | null;
+};
+
 type RevenueCatSubscriber = {
   subscriber?: {
     entitlements?: Record<
@@ -19,9 +24,19 @@ function entitlementIsActive(expiresDate?: string | null) {
   return new Date(expiresDate).getTime() > Date.now();
 }
 
-export async function getPaidMembership(appUserId: string): Promise<boolean> {
+function pickEntitlement(data: RevenueCatSubscriber) {
+  const entitlements = data.subscriber?.entitlements ?? {};
+  const named = entitlements[ENTITLEMENT_ID];
+  if (named) return named;
+  return Object.values(entitlements).find((item) => entitlementIsActive(item.expires_date));
+}
+
+/** Live RevenueCat API — writers/backfill only. Privileges read `member_access`. */
+export async function getPaidMembershipDetail(
+  appUserId: string,
+): Promise<PaidMembershipDetail> {
   const secret = process.env.REVENUECAT_SECRET_API_KEY;
-  if (!secret || !appUserId) return false;
+  if (!secret || !appUserId) return { active: false, expiresAt: null };
 
   const url = `https://api.revenuecat.com/v1/subscribers/${encodeURIComponent(appUserId)}`;
   const response = await fetch(url, {
@@ -32,21 +47,22 @@ export async function getPaidMembership(appUserId: string): Promise<boolean> {
     cache: "no-store",
   });
 
-  if (!response.ok) return false;
+  if (!response.ok) return { active: false, expiresAt: null };
 
   const data = (await response.json()) as RevenueCatSubscriber;
-  const entitlement = data.subscriber?.entitlements?.[ENTITLEMENT_ID];
-  if (!entitlement) {
-    const anyActive = Object.values(data.subscriber?.entitlements ?? {}).some((item) =>
-      entitlementIsActive(item.expires_date),
-    );
-    return anyActive;
-  }
+  const entitlement = pickEntitlement(data);
+  if (!entitlement) return { active: false, expiresAt: null };
 
-  return entitlementIsActive(entitlement.expires_date);
+  const expiresAt = entitlement.expires_date ?? null;
+  return { active: entitlementIsActive(expiresAt), expiresAt };
 }
 
-/** Chunked paid checks for Control Room member lists. */
+export async function getPaidMembership(appUserId: string): Promise<boolean> {
+  const detail = await getPaidMembershipDetail(appUserId);
+  return detail.active;
+}
+
+/** Chunked paid checks for one-shot backfill. */
 export async function getPaidMembershipMap(userIds: string[]) {
   const result = new Map<string, boolean>();
   const chunkSize = 10;

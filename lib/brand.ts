@@ -54,3 +54,7 @@ export function getAppStoreLinks() {
 export function revenueCatIsConfigured() {
   return Boolean(process.env.REVENUECAT_SECRET_API_KEY?.trim());
 }
+
+export function revenueCatWebhookIsConfigured() {
+  return Boolean(process.env.REVENUECAT_WEBHOOK_AUTH?.trim());
+}

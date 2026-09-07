@@ -4,7 +4,11 @@ import { getStaffSession } from "@/lib/auth";
 import { loadCatalogAdmin } from "@/lib/catalog-admin";
 import { getPlatformFees } from "@/lib/events";
 import { getPayFastStatus } from "@/lib/payfast";
-import { getAppStoreLinks, revenueCatIsConfigured } from "@/lib/brand";
+import {
+  getAppStoreLinks,
+  revenueCatIsConfigured,
+  revenueCatWebhookIsConfigured,
+} from "@/lib/brand";
 import { isAdmin } from "@/lib/roles";
 import { getPublicSiteUrl } from "@/lib/site-url";
 
@@ -19,13 +23,14 @@ export default async function AdminSettingsPage() {
   const siteUrl = getPublicSiteUrl();
   const stores = getAppStoreLinks();
   const rcReady = revenueCatIsConfigured();
+  const rcWebhookReady = revenueCatWebhookIsConfigured();
 
   return (
     <section className="cr-paper">
       <p className="eyebrow">Ops</p>
       <h1>Settings</h1>
       <p className="muted">
-        Payments, membership checks, & ticket platform fees. Keep fees at R 0.00
+        Payments, membership access, & ticket platform fees. Keep fees at R 0.00
         until rates are locked.
       </p>
 
@@ -63,10 +68,25 @@ export default async function AdminSettingsPage() {
 
       <article className="plan" style={{ marginTop: 20 }}>
         <p className="eyebrow">Membership</p>
-        <h2>RevenueCat & Stores</h2>
+        <h2>Access Table, RevenueCat & Stores</h2>
         <ul>
           <li>
-            RevenueCat API: <strong>{rcReady ? "Configured" : "Missing secret key"}</strong>
+            Website Paid check: <strong>member_access.subscribed</strong> (not a live store call)
+          </li>
+          <li>
+            RevenueCat webhook auth:{" "}
+            <strong>{rcWebhookReady ? "Configured" : "Missing REVENUECAT_WEBHOOK_AUTH"}</strong>
+          </li>
+          <li>
+            Webhook URL (paste in RevenueCat):{" "}
+            <code>
+              {siteUrl}
+              /api/revenuecat/webhook
+            </code>
+          </li>
+          <li>
+            RevenueCat API (backfill only):{" "}
+            <strong>{rcReady ? "Configured" : "Missing secret key"}</strong>
           </li>
           <li>
             App Store link:{" "}
@@ -80,8 +100,9 @@ export default async function AdminSettingsPage() {
           </li>
         </ul>
         <p className="muted" style={{ marginTop: 12 }}>
-          Paid is confirmed only via RevenueCat. Join page store buttons stay soft
-          until real listing URLs are in Vercel env.
+          PayFast ITNs & RevenueCat webhooks write <code>member_access</code>. The website & app
+          only read <code>subscribed</code>. Store buttons stay soft until real listing URLs are
+          in Vercel env.
         </p>
       </article>
 

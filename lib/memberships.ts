@@ -1,4 +1,5 @@
 import { PAID_AMOUNT_CENTS, PAID_AMOUNT_RANDS } from "@/lib/brand";
+import { setPayFastAccess } from "@/lib/member-access";
 import { createServiceClient } from "@/lib/supabase/admin";
 import { createClient } from "@/lib/supabase/server";
 import { getPublicSiteUrl } from "@/lib/site-url";
@@ -208,6 +209,25 @@ async function failBundledOrder(
     .eq("status", "pending");
 }
 
+async function syncPayFastAccessFromMemberships(
+  service: NonNullable<ReturnType<typeof createServiceClient>>,
+  userId: string,
+) {
+  const { data } = await service
+    .from("memberships")
+    .select("id, current_period_end")
+    .eq("user_id", userId)
+    .eq("status", "active")
+    .order("current_period_end", { ascending: false })
+    .limit(1)
+    .maybeSingle();
+  return setPayFastAccess(
+    userId,
+    Boolean(data?.id),
+    typeof data?.current_period_end === "string" ? data.current_period_end : null,
+  );
+}
+
 async function fulfillBundledOrder(
   service: NonNullable<ReturnType<typeof createServiceClient>>,
   orderId: string,
@@ -266,6 +286,13 @@ async function fulfillMembershipRow(
       if (fulfillError) return { ok: false as const, error: fulfillError.message };
     }
 
+    const accessOk = await setPayFastAccess(
+      membership.user_id,
+      true,
+      typeof patch.current_period_end === "string" ? patch.current_period_end : periodEndFrom(now),
+    );
+    if (!accessOk) return { ok: false as const, error: "Could not update member access" };
+
     return { ok: true as const, membershipId: membership.id, userId: membership.user_id };
   }
 
@@ -279,6 +306,8 @@ async function fulfillMembershipRow(
       })
       .eq("id", membership.id);
     await failBundledOrder(service, membership.bundled_order_id);
+    const accessOk = await syncPayFastAccessFromMemberships(service, membership.user_id);
+    if (!accessOk) return { ok: false as const, error: "Could not update member access" };
     return { ok: true as const, membershipId: membership.id, userId: membership.user_id };
   }
 
@@ -288,6 +317,8 @@ async function fulfillMembershipRow(
       .update({ status: "failed", updated_at: now.toISOString() })
       .eq("id", membership.id);
     await failBundledOrder(service, membership.bundled_order_id);
+    const accessOk = await syncPayFastAccessFromMemberships(service, membership.user_id);
+    if (!accessOk) return { ok: false as const, error: "Could not update member access" };
     return { ok: true as const, membershipId: membership.id, userId: membership.user_id };
   }
 
