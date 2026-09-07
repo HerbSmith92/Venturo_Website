@@ -2,6 +2,7 @@
 
 import { useEffect, useId, useRef, useState } from "react";
 import type { CurrentUser } from "@/lib/auth";
+import { EVENT_HOST } from "@/lib/portal";
 
 export function SiteHeaderNav({ user }: { user: CurrentUser | null }) {
   const [open, setOpen] = useState(false);
@@ -76,7 +77,7 @@ export function SiteHeaderNav({ user }: { user: CurrentUser | null }) {
               <a href="/communities">Communities</a>
             </div>
             <a href="/admin">Admin</a>
-            <a href="/events/create">Create Event</a>
+            <a href={EVENT_HOST}>Create Event</a>
             {user ? (
               <>
                 <a href="/account">{profileLabel}</a>

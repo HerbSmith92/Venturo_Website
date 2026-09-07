@@ -1,89 +1,89 @@
 import { EventCard } from "@/components/EventCard";
 import { EventMap } from "@/components/EventMap";
+import { EventPageHero } from "@/components/events/EventPageHero";
 import {
-  eventHeroImage,
   eventStoryImage,
   formatCents,
+  formatEventFromPrice,
   formatEventWhen,
   type EventTicketType,
   type VenturoEvent,
 } from "@/lib/event-types";
 
 export function EventPreview({ event }: { event: VenturoEvent }) {
-  const hero = eventHeroImage(event);
-  const story = eventStoryImage(event);
+  const story = event.storyImageUrl;
   const when = event.startsAt ? formatEventWhen(event.startsAt, event.timezone) : "Set a start time";
+  const place = [event.venueName, event.city].filter(Boolean).join(" · ");
 
   return (
     <div className="event-preview">
       <div className="event-preview-surfaces">
-        <figure className="story-frame">
-          <img src={story} alt="" />
-          <figcaption>
-            <span className="eyebrow">Story</span>
-            <strong>{event.title || "Your adventure"}</strong>
-            <span>{when}</span>
-          </figcaption>
-        </figure>
+        <div className="preview-tile">
+          <p className="eyebrow">Story · 9:16</p>
+          <figure className="story-frame">
+            {story ? <img src={eventStoryImage(event)} alt="" /> : <div className="preview-empty" />}
+            <figcaption>
+              <strong>{event.title || "Your adventure"}</strong>
+              <span>{when}</span>
+            </figcaption>
+          </figure>
+        </div>
 
-        <div className="event-preview-card">
-          <p className="eyebrow">Feed Card</p>
-          <EventCard event={event} showMemberPrice preview />
+        <div className="preview-tile">
+          <p className="eyebrow">Feed Post · 4:5</p>
+          {event.listingImageUrl || event.bannerUrl ? (
+            <div className="event-preview-card">
+              <EventCard event={event} showMemberPrice preview />
+            </div>
+          ) : (
+            <div className="preview-empty preview-empty-card" />
+          )}
         </div>
       </div>
 
-      <div className="event-preview-page">
-        <p className="eyebrow">Event Page</p>
-        <div className="event-detail-hero event-preview-hero">
-          <img src={hero} alt="" />
-          <div className="event-detail-hero-copy">
-            <p className="eyebrow">
-              {event.category || "Adventure"}
-              {event.audienceGender && event.audienceGender !== "Everyone"
-                ? ` · ${event.audienceGender}`
-                : ""}
-              {event.ageRestriction ? ` · ${event.ageRestriction}` : ""}
-            </p>
-            <h2>{event.title || "Your adventure name"}</h2>
-            <p className="lede">{when}</p>
-            <p className="muted">
-              {event.venueName || "Venue"}
-              {event.city ? ` · ${event.city}` : ""}
-            </p>
-          </div>
-        </div>
+      <div className="preview-tile preview-tile-page">
+        <p className="eyebrow">Event Page · 16:9</p>
+        <EventPageHero
+          headingAs="h2"
+          className="event-preview-hero"
+          imageUrl={event.bannerUrl}
+          category={event.category || "Adventure & Thrills"}
+          title={event.title || "Your adventure name"}
+          place={place}
+          priceLabel={event.ticketTypes.length ? formatEventFromPrice(event.fromPriceCents) : null}
+        />
+      </div>
 
-        {event.tags.length > 0 && (
-          <div className="chips tag-list">
-            {event.tags.map((tag) => (
-              <span className="chip chip-light" key={tag}>
-                {tag}
-              </span>
-            ))}
-          </div>
-        )}
-
-        {event.description ? (
-          <p className="muted" style={{ whiteSpace: "pre-wrap" }}>
-            {event.description}
-          </p>
-        ) : (
-          <p className="muted">Your story lands here.</p>
-        )}
-
-        {event.showMap && (event.addressLine1 || event.venueName) ? (
-          <EventMap event={event} />
-        ) : null}
-
-        <ul className="preview-ticket-list">
-          {event.ticketTypes.map((ticket) => (
-            <li key={ticket.id}>
-              <strong>{ticket.name || "Ticket"}</strong>
-              <span>{ticketPriceLine(ticket)}</span>
-            </li>
+      {event.tags.length > 0 && (
+        <div className="chips tag-list">
+          {event.tags.map((tag) => (
+            <span className="chip chip-light" key={tag}>
+              {tag}
+            </span>
           ))}
-        </ul>
-      </div>
+        </div>
+      )}
+
+      {event.description ? (
+        <p className="muted" style={{ whiteSpace: "pre-wrap" }}>
+          {event.description}
+        </p>
+      ) : (
+        <p className="muted">Your story lands here.</p>
+      )}
+
+      {event.showMap && (event.addressLine1 || event.venueName || event.latitude != null) ? (
+        <EventMap event={event} />
+      ) : null}
+
+      <ul className="preview-ticket-list">
+        {event.ticketTypes.map((ticket) => (
+          <li key={ticket.id}>
+            <strong>{ticket.name || "Ticket"}</strong>
+            <span>{ticketPriceLine(ticket)}</span>
+          </li>
+        ))}
+      </ul>
     </div>
   );
 }

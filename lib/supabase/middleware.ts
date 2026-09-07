@@ -1,10 +1,16 @@
 import { createServerClient } from "@supabase/ssr";
 import { NextResponse, type NextRequest } from "next/server";
 import { isSupabaseConfigured } from "@/lib/env";
+import { isPortalPath, EVENT_HOST, PORTAL_HOME, PORTAL_LOGIN } from "@/lib/portal";
 import { roleFromClaims } from "@/lib/roles";
 
 export async function updateSession(request: NextRequest) {
   let response = NextResponse.next({ request });
+  const path = request.nextUrl.pathname;
+
+  if (path === "/events/create") {
+    return NextResponse.redirect(new URL(EVENT_HOST, request.url));
+  }
 
   if (!isSupabaseConfigured()) return response;
 
@@ -33,7 +39,6 @@ export async function updateSession(request: NextRequest) {
   const claims = (data?.claims ?? null) as Record<string, unknown> | null;
   const signedIn = Boolean(claims && typeof claims.sub === "string");
   const role = roleFromClaims(claims);
-  const path = request.nextUrl.pathname;
 
   const isAdminPath = path.startsWith("/admin");
   const isAdminOpen =
@@ -53,6 +58,14 @@ export async function updateSession(request: NextRequest) {
 
   if (path === "/admin/login" && signedIn && role === "admin") {
     return NextResponse.redirect(new URL("/admin", request.url));
+  }
+
+  const isPortalLogin = path === PORTAL_LOGIN;
+  if (isPortalPath(path) && !isPortalLogin && !signedIn) {
+    return NextResponse.redirect(new URL(PORTAL_LOGIN, request.url));
+  }
+  if (isPortalLogin && signedIn) {
+    return NextResponse.redirect(new URL(PORTAL_HOME, request.url));
   }
 
   return response;

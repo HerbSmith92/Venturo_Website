@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { provisionMember, safeNextPath } from "@/lib/member-auth";
 import { postAuthPathAfterProvision } from "@/lib/onboarding";
+import { isPortalPath } from "@/lib/portal";
 import { createClient } from "@/lib/supabase/server";
 
 export async function GET(request: Request) {
@@ -11,7 +12,11 @@ export async function GET(request: Request) {
   const safeNext = safeNextPath(url.searchParams.get("next"));
   const authError = url.searchParams.get("error_description") ?? url.searchParams.get("error");
 
-  const failPath = safeNext.startsWith("/signup") ? "/signup" : "/login";
+  const failPath = isPortalPath(safeNext)
+    ? "/portal/login"
+    : safeNext.startsWith("/signup")
+      ? "/signup"
+      : "/login";
   const failTarget = new URL(failPath, url.origin);
   failTarget.searchParams.set("next", safeNext);
 

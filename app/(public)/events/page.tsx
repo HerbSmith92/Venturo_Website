@@ -1,6 +1,13 @@
+import type { Metadata } from "next";
 import { EventCard } from "@/components/EventCard";
 import { getCurrentUser } from "@/lib/auth";
 import { EVENT_CATEGORIES, listPublicEvents } from "@/lib/events";
+import { EVENT_HOST } from "@/lib/portal";
+
+export const metadata: Metadata = {
+  title: "What's On · Venturo",
+  description: "Upcoming Venturo adventures near you.",
+};
 
 export default async function EventsPage({
   searchParams,
@@ -23,21 +30,12 @@ export default async function EventsPage({
             <p className="eyebrow">Find Your Next Thrill</p>
             <h1>What&apos;s On Near You</h1>
             <p className="lede">
-              Real plans with real people — markets, nights out, workshops, & the
-              kind of quality time worth keeping. Book a ticket or host your own.
+              Real plans with real people—markets, nights out, workshops, &amp;
+              the kind of quality time worth keeping.
             </p>
             <div className="hero-actions">
-              {user ? (
-                <a className="btn btn-primary" href="/events/create">
-                  Host An Adventure
-                </a>
-              ) : (
-                <a className="btn btn-primary" href="/login?next=/events/create">
-                  Log In To Host
-                </a>
-              )}
-              <a className="btn btn-secondary" href="/directory">
-                Taste The Directory
+              <a className="btn btn-secondary" href={EVENT_HOST}>
+                Event Host
               </a>
             </div>
           </div>
@@ -53,10 +51,7 @@ export default async function EventsPage({
         </div>
 
         <div className="chips" style={{ marginBottom: 28 }}>
-          <a
-            className={`chip${category === "all" ? " active" : ""}`}
-            href="/events"
-          >
+          <a className={`chip${category === "all" ? " active" : ""}`} href="/events">
             All
           </a>
           {EVENT_CATEGORIES.map((item) => (
@@ -71,18 +66,15 @@ export default async function EventsPage({
         </div>
 
         {events.length === 0 ? (
-          <div className="plan featured">
+          <div className="plan">
             <h3>The Calendar Is Warming Up</h3>
             <p className="muted">
-              Be the curious local who posts the first plan. Member hosts go through
-              a quick Control Room check — then you&apos;re live.
+              Be the curious local who posts the first plan. Hosting lives in
+              Event Host.
             </p>
             <div className="hero-actions" style={{ marginTop: 16 }}>
-              <a
-                className="btn btn-primary"
-                href={user ? "/events/create" : "/login?next=/events/create"}
-              >
-                Host An Adventure
+              <a className="btn btn-primary" href={EVENT_HOST}>
+                Event Host
               </a>
             </div>
           </div>

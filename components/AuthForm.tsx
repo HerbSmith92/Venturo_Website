@@ -24,11 +24,13 @@ export function AuthForm({
   configured,
   next = "/onboarding",
   initialError = null,
+  surface = "site",
 }: {
   mode: "login" | "signup";
   configured: boolean;
   next?: string;
   initialError?: string | null;
+  surface?: "site" | "portal";
 }) {
   const [step, setStep] = useState<Step>("methods");
   const [email, setEmail] = useState("");
@@ -37,10 +39,33 @@ export function AuthForm({
   const [pending, setPending] = useState(false);
   const [oauthPending, setOauthPending] = useState<OAuthProvider | null>(null);
 
-  const heading = useMemo(
-    () => (mode === "login" ? "Log In" : "Sign Up Free"),
-    [mode],
-  );
+  const heading = useMemo(() => {
+    if (surface === "portal") return mode === "login" ? "Log In To Event Host" : "Join As A Host";
+    return mode === "login" ? "Log In" : "Sign Up Free";
+  }, [mode, surface]);
+
+  const eyebrow =
+    surface === "portal"
+      ? "Event Host"
+      : mode === "login"
+        ? "Welcome Back"
+        : "Create A Profile";
+
+  const lede =
+    surface === "portal"
+      ? mode === "login"
+        ? "Same Venturo account. Event Host is just for hosting & tickets."
+        : "Use the same email as the Venturo site & app. Then you land in Event Host—not the public site."
+      : mode === "login"
+        ? "Pick how you want to get in. Same account across the website & the Venturo app."
+        : "Pick how you want to join. Free lets you book event tickets — same email as the Venturo app.";
+
+  const loginHref =
+    surface === "portal" ? "/portal/login" : `/login?next=${encodeURIComponent(next)}`;
+  const signupHref =
+    surface === "portal"
+      ? "/portal/login?join=1"
+      : `/signup?next=${encodeURIComponent(next)}`;
 
   async function sendOtp(formMode: "login" | "signup" = mode) {
     setError(null);
@@ -187,7 +212,7 @@ export function AuthForm({
   if (step === "email") {
     return (
       <form key="auth-email" className="auth-card" onSubmit={startWithEmail}>
-        <p className="eyebrow">{mode === "login" ? "Welcome Back" : "Create A Profile"}</p>
+        <p className="eyebrow">{eyebrow}</p>
         <h1>{heading}</h1>
         <p className="lede muted">
           {mode === "login"
@@ -232,7 +257,7 @@ export function AuthForm({
               setError(null);
             }}
           >
-            Other ways to {mode === "login" ? "log in" : "sign up"}
+            Other ways to {mode === "login" ? "log in" : surface === "portal" ? "join" : "sign up"}
           </button>
         </p>
       </form>
@@ -241,13 +266,9 @@ export function AuthForm({
 
   return (
     <div key="auth-methods" className="auth-card">
-      <p className="eyebrow">{mode === "login" ? "Welcome Back" : "Create A Profile"}</p>
+      <p className="eyebrow">{eyebrow}</p>
       <h1>{heading}</h1>
-      <p className="lede muted">
-        {mode === "login"
-          ? "Pick how you want to get in. Same account across the website & the Venturo app."
-          : "Pick how you want to join. Free lets you book event tickets — same email as the Venturo app."}
-      </p>
+      <p className="lede muted">{lede}</p>
       {!configured && (
         <p className="notice">
           Connect Supabase in `.env.local` to turn this form on.
@@ -279,12 +300,12 @@ export function AuthForm({
       <p className="muted" style={{ marginTop: 16 }}>
         {mode === "login" ? (
           <>
-            Need an account? <a href={`/signup?next=${encodeURIComponent(next)}`}>Sign Up</a>
+            Need an account?{" "}
+            <a href={signupHref}>{surface === "portal" ? "Join As A Host" : "Sign Up"}</a>
           </>
         ) : (
           <>
-            Already have an account?{" "}
-            <a href={`/login?next=${encodeURIComponent(next)}`}>Log In</a>
+            Already have an account? <a href={loginHref}>Log In</a>
           </>
         )}
       </p>

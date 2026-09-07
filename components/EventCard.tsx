@@ -35,7 +35,7 @@ export function EventCard({
       </div>
       <div className="card-body">
         <p className="card-kicker" style={{ color: colour }}>
-          {event.category || "Adventure"}
+          {event.category || "Adventure & Thrills"}
           {event.audienceGender && event.audienceGender !== "Everyone"
             ? ` · ${event.audienceGender}`
             : ""}

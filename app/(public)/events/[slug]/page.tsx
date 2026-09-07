@@ -1,13 +1,15 @@
 import { EventMap } from "@/components/EventMap";
+import { EventPageHero } from "@/components/events/EventPageHero";
+import { EventViewBeacon } from "@/components/events/EventViewBeacon";
 import { TicketCheckoutForm } from "@/components/TicketCheckoutForm";
 import { getCurrentUser } from "@/lib/auth";
 import {
   eventAddressText,
-  eventHeroImage,
-  formatEventWhen,
+  formatEventFromPrice,
+  formatEventWindow,
   getEventBySlug,
+  getPlatformFees,
 } from "@/lib/events";
-import { eventCategoryColour } from "@/lib/event-style";
 import { notFound } from "next/navigation";
 
 export default async function EventDetailPage({
@@ -23,6 +25,7 @@ export default async function EventDetailPage({
   if (!event) notFound();
 
   const user = await getCurrentUser();
+  const fees = await getPlatformFees();
   const canView =
     event.status === "approved" ||
     event.organiserId === user?.id ||
@@ -30,43 +33,59 @@ export default async function EventDetailPage({
     user?.role === "editor";
   if (!canView) notFound();
 
-  const colour = eventCategoryColour(event.category);
-  const heroSrc = eventHeroImage(event);
   const address = eventAddressText(event);
+  const ticketsReady = event.status === "approved" && event.ticketTypes.length > 0;
+  const windowLabel = formatEventWindow(event.startsAt, event.endsAt, event.timezone);
+  const place = [event.venueName, event.city].filter(Boolean).join(" · ");
 
   return (
     <main>
       <section className="shell">
-        <div className="event-detail-hero">
-          <img src={heroSrc} alt="" />
-          <div className="event-detail-hero-copy">
-            <p className="eyebrow" style={{ color: colour }}>
-              {event.category || "Adventure"}
-              {event.audienceGender && event.audienceGender !== "Everyone"
-                ? ` · ${event.audienceGender}`
-                : ""}
-              {event.ageRestriction ? ` · ${event.ageRestriction}` : ""}
-            </p>
-            <h1>{event.title}</h1>
-            <p className="lede">
-              {formatEventWhen(event.startsAt, event.timezone)}
-              {event.endsAt !== event.startsAt
-                ? ` – ${formatEventWhen(event.endsAt, event.timezone)}`
-                : ""}
-            </p>
-            <p className="muted">
-              {event.venueName}
-              {event.city ? ` · ${event.city}` : ""}
-            </p>
-          </div>
-        </div>
+        <EventPageHero
+          imageUrl={event.bannerUrl}
+          category={event.category || "Adventure & Thrills"}
+          title={event.title}
+          place={place}
+          priceLabel={formatEventFromPrice(event.fromPriceCents)}
+        />
       </section>
+
+      <div className="shell">
+        <div className="event-live-bar">
+        <div className="event-live-bar-item">
+          <span className="eyebrow">When</span>
+          <strong>{windowLabel}</strong>
+        </div>
+        <div className="event-live-bar-item">
+          <span className="eyebrow">Where</span>
+          <strong>
+            {event.venueName || "Venue coming"}
+            {event.city ? ` · ${event.city}` : ""}
+          </strong>
+        </div>
+        {ticketsReady ? (
+          <a className="btn btn-primary" href="#tickets">
+            Buy Tickets
+          </a>
+        ) : (
+          <span className="btn btn-secondary" aria-disabled="true">
+            Coming Soon
+          </span>
+        )}
+      </div>
+      </div>
 
       <section className="section shell">
         {event.status !== "approved" && (
           <p className="notice">
             Status: {event.status}. Only you & staff can see this until it is
             approved.
+            {event.organiserId === user?.id ? (
+              <>
+                {" "}
+                <a href={`/account/events/${event.id}`}>Open studio</a>
+              </>
+            ) : null}
           </p>
         )}
         {query.cancelled && (
@@ -75,18 +94,36 @@ export default async function EventDetailPage({
 
         <div className="event-detail-grid">
           <article className="event-story">
-            <p className="eyebrow">The Plan</p>
-            <h2>What You&apos;re Walking Into</h2>
-            {event.tags.length > 0 && (
-              <div className="chips tag-list">
-                {event.tags.map((tag) => (
-                  <span className="chip chip-light" key={tag}>
-                    {tag}
-                  </span>
-                ))}
-              </div>
-            )}
-            <p style={{ whiteSpace: "pre-wrap" }}>{event.description}</p>
+            <div className="event-live-block">
+              <p className="eyebrow">Details</p>
+              <h2>What You&apos;re Walking Into</h2>
+              {event.tags.length > 0 && (
+                <div className="chips tag-list">
+                  {event.tags.map((tag) => (
+                    <span className="chip chip-light" key={tag}>
+                      {tag}
+                    </span>
+                  ))}
+                </div>
+              )}
+              <p style={{ whiteSpace: "pre-wrap" }}>
+                {event.description || "Details coming soon."}
+              </p>
+            </div>
+
+            <div className="event-live-block">
+              <p className="eyebrow">Information</p>
+              <dl className="event-info-list">
+                <div>
+                  <dt>Age Requirement</dt>
+                  <dd>{event.ageRestriction || "All ages"}</dd>
+                </div>
+                <div>
+                  <dt>Prohibited Items</dt>
+                  <dd>{event.prohibitedItems || "Standard venue rules apply."}</dd>
+                </div>
+              </dl>
+            </div>
 
             {(event.addressLine1 || event.venueName) && (
               <div className="event-venue-card">
@@ -104,29 +141,40 @@ export default async function EventDetailPage({
             </p>
           </article>
 
-          <aside className="event-ticket-panel">
+          <aside className="event-ticket-panel" id="tickets">
             <div className="colour-bar" aria-hidden="true" />
             <p className="eyebrow">Tickets</p>
             <h2>Claim Your Spot</h2>
             <p className="muted">
-              Free profiles can book. Paid members unlock ticket discounts when
-              hosts give our members a deal.
+              {event.membersOnly
+                ? "This event is for Venturo members. Not on Paid yet? Join at checkout—membership plus your ticket in one payment."
+                : "Public tickets are open to every profile. Exclusive member tickets: join at checkout—membership plus your ticket in one payment."}
             </p>
             {event.status !== "approved" ? (
               <p className="notice">Tickets unlock once the event is approved.</p>
             ) : event.ticketTypes.length === 0 ? (
-              <p className="muted">No ticket types yet.</p>
+              <p className="muted">Coming soon.</p>
             ) : (
               <TicketCheckoutForm
                 eventSlug={event.slug}
                 tickets={event.ticketTypes}
                 paidMember={user?.plan === "paid"}
                 loggedIn={Boolean(user)}
+                fees={fees}
               />
             )}
           </aside>
         </div>
       </section>
+      <EventViewBeacon
+        eventId={event.id}
+        skip={
+          event.status !== "approved" ||
+          event.organiserId === user?.id ||
+          user?.role === "admin" ||
+          user?.role === "editor"
+        }
+      />
     </main>
   );
 }

@@ -1,15 +1,18 @@
 import { NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
+import { isPortalPath } from "@/lib/portal";
 import { safeNextPath } from "@/lib/member-auth";
 
-function loginUnknownMessage(message: string) {
+function loginUnknownMessage(message: string, next: string) {
   const lower = message.toLowerCase();
   if (
     lower.includes("signups not allowed") ||
     lower.includes("user not found") ||
     lower.includes("unable to validate email")
   ) {
-    return "No profile for that email yet. Sign up free first.";
+    return isPortalPath(next)
+      ? "No profile for that email yet. Join as a host first."
+      : "No profile for that email yet. Sign up free first.";
   }
   if (lower.includes("rate limit") || lower.includes("security purposes")) {
     return "Hang tight — wait a moment before requesting another code.";
@@ -32,8 +35,7 @@ export async function POST(request: Request) {
     .toLowerCase();
   const firstName = String(form.get("firstName") ?? "").trim();
   const mode = String(form.get("mode") ?? "login");
-  // Kept for API compatibility; member flow is OTP code only (no magic-link UX).
-  void safeNextPath(form.get("next"));
+  const next = safeNextPath(form.get("next"));
 
   if (!email || !email.includes("@")) {
     return NextResponse.json({ error: "Enter a valid email." }, { status: 400 });
@@ -54,7 +56,7 @@ export async function POST(request: Request) {
 
   if (error) {
     return NextResponse.json(
-      { error: mode === "login" ? loginUnknownMessage(error.message) : error.message },
+      { error: mode === "login" ? loginUnknownMessage(error.message, next) : error.message },
       { status: 400 },
     );
   }

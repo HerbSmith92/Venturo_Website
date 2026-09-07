@@ -64,8 +64,8 @@ export default async function ActivityManagerPage() {
               <a className="btn btn-primary" href="/directory/claim">
                 Claim Your Listing
               </a>
-              <a className="btn btn-secondary" href="/events/create">
-                Host An Event Instead
+              <a className="btn btn-secondary" href="/event-host">
+                Event Host Instead
               </a>
             </div>
           </div>

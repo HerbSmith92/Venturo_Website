@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { getCurrentUser } from "@/lib/auth";
+import { EVENT_IMAGE_MAX_BYTES } from "@/lib/event-types";
 import { createClient } from "@/lib/supabase/server";
 
 function mediaExt(file: File) {
@@ -34,7 +35,7 @@ export async function POST(request: Request) {
   if (!file.type.startsWith("image/")) {
     return NextResponse.json({ error: "Photos must be an image file." }, { status: 400 });
   }
-  if (file.size > 10 * 1024 * 1024) {
+  if (file.size > EVENT_IMAGE_MAX_BYTES) {
     return NextResponse.json({ error: "Keep photos under 10 MB." }, { status: 400 });
   }
 

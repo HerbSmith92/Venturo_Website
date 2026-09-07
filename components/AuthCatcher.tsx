@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect } from "react";
+import { isPortalPath } from "@/lib/portal";
 
 function isResetPath(pathname: string) {
   return (
@@ -39,8 +40,9 @@ export function AuthCatcher() {
     // Member email login / signup magic link (PKCE code on any public page).
     if (code && !pathname.startsWith("/admin")) {
       const next = query.get("next");
+      const fallback = isPortalPath(pathname) ? "/portal" : "/account";
       const safeNext =
-        next && next.startsWith("/") && !next.startsWith("//") ? next : "/account";
+        next && next.startsWith("/") && !next.startsWith("//") ? next : fallback;
       window.location.replace(
         `/auth/callback?next=${encodeURIComponent(safeNext)}&code=${encodeURIComponent(code)}`,
       );

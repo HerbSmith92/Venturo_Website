@@ -16,6 +16,14 @@ export type MembershipRow = {
   last_payment_at: string | null;
 };
 
+type MembershipRecord = {
+  id: string;
+  user_id: string;
+  status: string;
+  amount_cents: number;
+  bundled_order_id: string | null;
+};
+
 function newMembershipPaymentId() {
   return `mem_${randomBytes(12).toString("hex")}`;
 }
@@ -24,6 +32,12 @@ function periodEndFrom(now = new Date()) {
   const end = new Date(now);
   end.setMonth(end.getMonth() + 1);
   return end.toISOString();
+}
+
+function amountMatches(amountGross: string | null | undefined, expectedCents: number) {
+  const amount = Number(amountGross);
+  if (!Number.isFinite(amount)) return true;
+  return Math.abs(amount - expectedCents / 100) <= 0.01;
 }
 
 export async function isPayFastMembershipActive(userId: string) {
@@ -63,24 +77,35 @@ export async function createMembershipCheckout(input: {
   email?: string;
   firstName?: string;
   origin: string;
+  /** Join & buy: always a new pending row, linked to the ticket order. */
+  bundledOrderId?: string;
+  returnUrl?: string;
+  cancelUrl?: string;
+  itemName?: string;
 }) {
   const service = createServiceClient();
   if (!service) {
     throw new Error("SUPABASE_SERVICE_ROLE_KEY is required for membership checkout.");
   }
 
-  // Reuse a pending row if the buyer bounced before paying.
-  const { data: existing } = await service
-    .from("memberships")
-    .select("id, m_payment_id, amount_cents, status")
-    .eq("user_id", input.userId)
-    .eq("status", "pending")
-    .order("created_at", { ascending: false })
-    .limit(1)
-    .maybeSingle();
+  let membershipId: string | undefined;
+  let mPaymentId: string | undefined;
 
-  let membershipId = existing?.id as string | undefined;
-  let mPaymentId = existing?.m_payment_id as string | undefined;
+  // Standalone subscribe may reuse a bounced pending row. Join & buy must not
+  // steal that row or inherit a previous bundled order.
+  if (!input.bundledOrderId) {
+    const { data: existing } = await service
+      .from("memberships")
+      .select("id, m_payment_id, amount_cents, status")
+      .eq("user_id", input.userId)
+      .eq("status", "pending")
+      .is("bundled_order_id", null)
+      .order("created_at", { ascending: false })
+      .limit(1)
+      .maybeSingle();
+    membershipId = existing?.id as string | undefined;
+    mPaymentId = existing?.m_payment_id as string | undefined;
+  }
 
   if (!membershipId || !mPaymentId) {
     mPaymentId = newMembershipPaymentId();
@@ -92,6 +117,7 @@ export async function createMembershipCheckout(input: {
         provider: "payfast",
         amount_cents: PAID_AMOUNT_CENTS,
         m_payment_id: mPaymentId,
+        bundled_order_id: input.bundledOrderId ?? null,
       })
       .select("id, m_payment_id")
       .single();
@@ -112,10 +138,11 @@ export async function createMembershipCheckout(input: {
     mPaymentId,
     amountCents: PAID_AMOUNT_CENTS,
     amountRands: PAID_AMOUNT_RANDS,
-    returnUrl: `${publicOrigin}/join/subscribe/return?membership=${membershipId}`,
-    cancelUrl: `${publicOrigin}/join/subscribe?cancelled=1`,
+    returnUrl:
+      input.returnUrl ?? `${publicOrigin}/join/subscribe/return?membership=${membershipId}`,
+    cancelUrl: input.cancelUrl ?? `${publicOrigin}/join/subscribe?cancelled=1`,
     notifyUrl: `${publicOrigin}/api/payfast/itn`,
-    itemName: "Venturo Membership",
+    itemName: input.itemName ?? "Venturo Membership",
   };
 }
 
@@ -129,19 +156,14 @@ export async function fulfillPayFastMembership(input: {
   const service = createServiceClient();
   if (!service) return { ok: false as const, error: "Service unavailable" };
 
-  let membership:
-    | {
-        id: string;
-        user_id: string;
-        status: string;
-        amount_cents: number;
-      }
-    | null = null;
+  const membershipSelect = "id, user_id, status, amount_cents, bundled_order_id";
+
+  let membership: MembershipRecord | null = null;
 
   if (input.mPaymentId) {
     const { data } = await service
       .from("memberships")
-      .select("id, user_id, status, amount_cents, m_payment_id")
+      .select(membershipSelect)
       .eq("m_payment_id", input.mPaymentId)
       .maybeSingle();
     membership = data;
@@ -151,7 +173,7 @@ export async function fulfillPayFastMembership(input: {
   if (!membership && input.token) {
     const { data: byToken } = await service
       .from("memberships")
-      .select("id, user_id, status, amount_cents, m_payment_id")
+      .select(membershipSelect)
       .eq("payfast_token", input.token)
       .maybeSingle();
     membership = byToken;
@@ -161,14 +183,46 @@ export async function fulfillPayFastMembership(input: {
   return fulfillMembershipRow(service, membership, input);
 }
 
+async function loadBundledOrder(
+  service: NonNullable<ReturnType<typeof createServiceClient>>,
+  orderId: string | null,
+) {
+  if (!orderId) return null;
+  const { data } = await service
+    .from("event_orders")
+    .select("id, total_cents, status")
+    .eq("id", orderId)
+    .maybeSingle();
+  return data as { id: string; total_cents: number; status: string } | null;
+}
+
+async function failBundledOrder(
+  service: NonNullable<ReturnType<typeof createServiceClient>>,
+  orderId: string | null,
+) {
+  if (!orderId) return;
+  await service
+    .from("event_orders")
+    .update({ status: "failed", updated_at: new Date().toISOString() })
+    .eq("id", orderId)
+    .eq("status", "pending");
+}
+
+async function fulfillBundledOrder(
+  service: NonNullable<ReturnType<typeof createServiceClient>>,
+  orderId: string,
+  paymentId?: string | null,
+) {
+  const { error } = await service.rpc("fulfill_event_order", {
+    p_order_id: orderId,
+    p_payment_id: paymentId ?? null,
+  });
+  return error;
+}
+
 async function fulfillMembershipRow(
   service: NonNullable<ReturnType<typeof createServiceClient>>,
-  membership: {
-    id: string;
-    user_id: string;
-    status: string;
-    amount_cents: number;
-  },
+  membership: MembershipRecord,
   input: {
     paymentStatus: string;
     paymentId?: string | null;
@@ -177,10 +231,20 @@ async function fulfillMembershipRow(
   },
 ) {
   const now = new Date();
+  const bundled = await loadBundledOrder(service, membership.bundled_order_id);
+
   if (input.paymentStatus === "COMPLETE") {
-    const amount = Number(input.amountGross);
-    const expected = membership.amount_cents / 100;
-    if (Number.isFinite(amount) && Math.abs(amount - expected) > 0.01) {
+    const membershipOnly = amountMatches(input.amountGross, membership.amount_cents);
+    const combinedCents = bundled
+      ? membership.amount_cents + bundled.total_cents
+      : null;
+    const combinedOk =
+      combinedCents !== null && amountMatches(input.amountGross, combinedCents);
+    const orderUnpaid = Boolean(bundled && bundled.status !== "paid");
+    const firstBundleCharge =
+      membership.status === "pending" && orderUnpaid && (bundled?.total_cents ?? 0) > 0;
+
+    if (firstBundleCharge ? !combinedOk : !membershipOnly && !combinedOk) {
       return { ok: false as const, error: "Amount mismatch" };
     }
 
@@ -196,6 +260,12 @@ async function fulfillMembershipRow(
 
     const { error } = await service.from("memberships").update(patch).eq("id", membership.id);
     if (error) return { ok: false as const, error: error.message };
+
+    if (bundled && bundled.status !== "paid") {
+      const fulfillError = await fulfillBundledOrder(service, bundled.id, input.paymentId);
+      if (fulfillError) return { ok: false as const, error: fulfillError.message };
+    }
+
     return { ok: true as const, membershipId: membership.id, userId: membership.user_id };
   }
 
@@ -208,6 +278,7 @@ async function fulfillMembershipRow(
         updated_at: now.toISOString(),
       })
       .eq("id", membership.id);
+    await failBundledOrder(service, membership.bundled_order_id);
     return { ok: true as const, membershipId: membership.id, userId: membership.user_id };
   }
 
@@ -216,6 +287,7 @@ async function fulfillMembershipRow(
       .from("memberships")
       .update({ status: "failed", updated_at: now.toISOString() })
       .eq("id", membership.id);
+    await failBundledOrder(service, membership.bundled_order_id);
     return { ok: true as const, membershipId: membership.id, userId: membership.user_id };
   }
 
