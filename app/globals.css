@@ -5354,10 +5354,67 @@ label.check {
   .portal-chart figcaption strong {
     font-size: 18px;
   }
+
+  .portal-my-event-row {
+    grid-template-columns: 72px minmax(0, 1fr);
+    gap: 12px;
+    padding: 10px;
+  }
+
+  .portal-my-event-row img,
+  .portal-my-event-ph {
+    width: 72px;
+    height: 72px;
+  }
 }
 
 .portal-home {
   min-width: 0;
+}
+
+.portal-events {
+  min-width: 0;
+}
+
+.portal-events .host-events-head {
+  margin-bottom: 8px;
+}
+
+.portal-events .lede {
+  margin: 8px 0 0;
+  max-width: 36rem;
+}
+
+.portal-my-event-row {
+  grid-template-columns: 88px minmax(0, 1fr);
+}
+
+.portal-my-event-row .status-pill {
+  margin-bottom: 6px;
+}
+
+.portal-my-event-row h2 {
+  margin: 0 0 4px;
+  font-size: clamp(18px, 4vw, 22px);
+}
+
+.portal-my-event-row .muted {
+  margin: 0;
+}
+
+.portal-my-event-ph {
+  display: block;
+  width: 88px;
+  height: 88px;
+  border-radius: 12px;
+  background: color-mix(in srgb, var(--snow) 10%, transparent);
+  border: 1px solid color-mix(in srgb, var(--snow) 12%, transparent);
+}
+
+@media (max-width: 960px) {
+  .portal-events .host-event-row.portal-my-event-row {
+    grid-template-columns: 72px minmax(0, 1fr);
+  }
 }
 
 .portal-home h1 {
