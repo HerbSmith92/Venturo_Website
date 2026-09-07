@@ -2,9 +2,10 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
+import { OnboardingSkipStep } from "@/components/onboarding/OnboardingSkip";
 import { saveOnboardingProfile } from "@/lib/onboarding-client";
 import { onboardingHref } from "@/lib/onboarding-shared";
-import type { MemberProfile, ProfileCatalog } from "@/lib/profile-shared";
+import { MAX_PERSONAS, type MemberProfile, type ProfileCatalog } from "@/lib/profile-shared";
 
 function toggleId(ids: string[], id: string, max: number) {
   if (ids.includes(id)) return ids.filter((item) => item !== id);
@@ -28,14 +29,10 @@ export function PersonasForm({
 
   async function onSubmit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
-    if (personaIds.length === 0) {
-      setError("Pick at least one way you usually go out.");
-      return;
-    }
     setError(null);
     setPending(true);
     try {
-      await saveOnboardingProfile({ personaIds });
+      await saveOnboardingProfile({ personaIds, advanceStep: "interests" });
       router.push(onboardingHref("interests", next));
       router.refresh();
     } catch (caught) {
@@ -47,21 +44,22 @@ export function PersonasForm({
   return (
     <form onSubmit={onSubmit}>
       <p className="eyebrow">Getting To Know You</p>
-      <h1>How You Go Out</h1>
+      <h1>How You Usually Go Out</h1>
       <p className="lede muted">
-        Solo, with a partner, family, friends, or work — pick the situations that fit. Up to 8.
+        Who are you usually with? Pick every situation that fits. Skip if you’d rather say later.
       </p>
-      <div className="tag-picker">
+      <div className="tag-picker persona-picker">
         {catalog.personas.map((persona) => {
           const on = personaIds.includes(persona.id);
           return (
             <button
               key={persona.id}
               type="button"
-              className={`chip${on ? " on" : ""}`}
-              onClick={() => setPersonaIds(toggleId(personaIds, persona.id, 8))}
+              className={`chip chip-persona${on ? " on" : ""}`}
+              onClick={() => setPersonaIds(toggleId(personaIds, persona.id, MAX_PERSONAS))}
             >
-              {persona.title}
+              <span>{persona.title}</span>
+              {persona.subtitle && <small>{persona.subtitle}</small>}
             </button>
           );
         })}
@@ -71,6 +69,12 @@ export function PersonasForm({
         <a className="btn btn-ghost" href={onboardingHref("basics", next)}>
           Back
         </a>
+        <OnboardingSkipStep
+          next={next}
+          advanceStep="interests"
+          to="interests"
+          extra={{ personaIds }}
+        />
         <button className="btn btn-primary" type="submit" disabled={pending}>
           {pending ? "Please Wait" : "Continue"}
         </button>

@@ -2,14 +2,17 @@
 
 import { useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
-import { saveOnboardingProfile } from "@/lib/onboarding-client";
-import { onboardingHref, type OnboardingPlan } from "@/lib/onboarding-shared";
+import { saveOnboardingPlan, saveOnboardingProfile } from "@/lib/onboarding-client";
+import {
+  destinationAfterOnboarding,
+  onboardingHref,
+  type OnboardingPlan,
+} from "@/lib/onboarding-shared";
 import type { MemberProfile, ProfileCatalog } from "@/lib/profile-shared";
 
 export function BasicsForm({
   profile,
   catalog,
-  plan,
   next,
 }: {
   profile: MemberProfile;
@@ -35,16 +38,21 @@ export function BasicsForm({
     return [...groups.entries()];
   }, [catalog.places]);
 
-  async function onSubmit(event: React.FormEvent<HTMLFormElement>) {
-    event.preventDefault();
+  function requireBasics() {
     if (!firstName.trim()) {
       setError("First name is required.");
-      return;
+      return false;
     }
     if (!homePlaceId) {
       setError("Pick your home area so we can show what’s nearby.");
-      return;
+      return false;
     }
+    return true;
+  }
+
+  async function onSubmit(event: React.FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    if (!requireBasics()) return;
     setError(null);
     setPending(true);
     try {
@@ -53,7 +61,7 @@ export function BasicsForm({
         lastName: lastName.trim(),
         homePlaceId,
       });
-      const onward = plan === "free" ? "confirm" : "personas";
+      const onward = "personas";
       router.push(onboardingHref(onward, next));
       router.refresh();
     } catch (caught) {
@@ -67,9 +75,8 @@ export function BasicsForm({
       <p className="eyebrow">A Few Basics</p>
       <h1>Who’s Exploring?</h1>
       <p className="lede muted">
-        {plan === "free"
-          ? "Name & home area — then you’re in. You can add interests later on your profile."
-          : "Name & home area first. Next we’ll get to know how you go out."}
+        Name & home area first. Next you can tell us how you go out, or skip those screens & jump in
+        free.
       </p>
       <label className="field">
         <span>First Name</span>
@@ -117,6 +124,34 @@ export function BasicsForm({
         <a className="btn btn-ghost" href={onboardingHref("plan", next)}>
           Back
         </a>
+        <button
+          className="btn btn-ghost"
+          type="button"
+          disabled={pending}
+          onClick={() => {
+            if (!requireBasics()) return;
+            setError(null);
+            setPending(true);
+            void (async () => {
+              try {
+                await saveOnboardingPlan("free");
+                await saveOnboardingProfile({
+                  firstName: firstName.trim(),
+                  lastName: lastName.trim(),
+                  homePlaceId,
+                  plan: "free",
+                  finishOnboarding: true,
+                });
+                window.location.href = destinationAfterOnboarding(next, "free");
+              } catch (caught) {
+                setPending(false);
+                setError(caught instanceof Error ? caught.message : "Could not skip.");
+              }
+            })();
+          }}
+        >
+          {pending ? "Please Wait" : "Skip Extra Questions"}
+        </button>
         <button className="btn btn-primary" type="submit" disabled={pending}>
           {pending ? "Please Wait" : "Continue"}
         </button>

@@ -1,5 +1,6 @@
-import { MIN_INTERESTS, type MemberProfile } from "@/lib/profile-shared";
+import { type MemberProfile } from "@/lib/profile-shared";
 import { isStaff, type AppRole } from "@/lib/roles";
+import { isPortalPath } from "@/lib/portal";
 import { safeNextPath } from "@/lib/safe-path";
 
 export const ONBOARDING_COOKIE = "venturo_onboarding_plan";
@@ -55,11 +56,12 @@ export function resolveOnboardingStep(
   const chosen = effectiveOnboardingPlan(plan, paid);
   if (!chosen) return "plan";
   if (!profile.firstName.trim() || !profile.homePlaceId) return "basics";
-  if (chosen === "free") return "confirm";
-  if (profile.personaIds.length === 0) return "personas";
-  if (profile.interestIds.length < MIN_INTERESTS) return "interests";
-  if (profile.energyLow == null || profile.energyHigh == null) return "energy";
-  return "confirm";
+
+  const stored = profile.onboardingStep;
+  if (stored === "payoff" || stored === "complete") return "confirm";
+  if (stored === "activity_scale") return "energy";
+  if (stored === "interests") return "interests";
+  return "personas";
 }
 
 export function onboardingHref(step: OnboardingStepId, next?: string | null) {
@@ -69,12 +71,8 @@ export function onboardingHref(step: OnboardingStepId, next?: string | null) {
   return `${path}?next=${encodeURIComponent(dest)}`;
 }
 
-export function stepsForPlan(plan: OnboardingPlan | null): OnboardingStepId[] {
-  if (plan === "free") return ["plan", "basics", "confirm"];
-  if (plan === "subscribe") {
-    return ["plan", "basics", "personas", "interests", "energy", "confirm"];
-  }
-  return ["plan", "basics"];
+export function stepsForPlan(_plan: OnboardingPlan | null): OnboardingStepId[] {
+  return [...ONBOARDING_STEP_ORDER];
 }
 
 export function destinationAfterOnboarding(
@@ -94,6 +92,11 @@ export function memberPostAuthPath(input: {
   paid: boolean;
   requestedNext: string;
 }) {
+  if (isPortalPath(input.requestedNext)) {
+    return input.requestedNext.startsWith("/portal/login")
+      ? "/portal"
+      : input.requestedNext;
+  }
   if (isStaff(input.role)) {
     return input.requestedNext.startsWith("/admin") ? input.requestedNext : "/admin";
   }

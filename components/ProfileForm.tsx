@@ -6,7 +6,7 @@ import { EnergySpectrum } from "@/components/EnergySpectrum";
 import { createClient } from "@/lib/supabase/client";
 import {
   MAX_INTERESTS,
-  MIN_INTERESTS,
+  MAX_PERSONAS,
   onboardingStepFor,
   profileProgress,
   type MemberProfile,
@@ -550,19 +550,20 @@ export function ProfileForm({
           <h3>How You Usually Go Out</h3>
           <p className="muted" style={{ marginTop: 0 }}>
             Choose the situations that fit you—solo, with a partner, family, friends, or work.
-            Up to 8.
+            Skip any that don’t.
           </p>
-          <div className="tag-picker">
+          <div className="tag-picker persona-picker">
             {catalog.personas.map((persona) => {
               const on = personaIds.includes(persona.id);
               return (
                 <button
                   key={persona.id}
                   type="button"
-                  className={`chip${on ? " on" : ""}`}
-                  onClick={() => setPersonaIds(toggleId(personaIds, persona.id, 8))}
+                  className={`chip chip-persona${on ? " on" : ""}`}
+                  onClick={() => setPersonaIds(toggleId(personaIds, persona.id, MAX_PERSONAS))}
                 >
-                  {persona.title}
+                  <span>{persona.title}</span>
+                  {persona.subtitle && <small>{persona.subtitle}</small>}
                 </button>
               );
             })}
@@ -573,8 +574,7 @@ export function ProfileForm({
           <p className="eyebrow">Interests</p>
           <h3>Activities You Enjoy</h3>
           <p className="muted">
-            Pick at least {MIN_INTERESTS} so Made For You has enough to work with. Max{" "}
-            {MAX_INTERESTS}.
+            Pick as many as you like — up to {MAX_INTERESTS}. A handful helps Made For You.
           </p>
           <label className="field">
             <span>Search</span>

@@ -3,10 +3,14 @@ import type { MemberProfile, ProfileCatalog } from "@/lib/profile-shared";
 
 export {
   MAX_INTERESTS,
+  MAX_PERSONAS,
   MIN_INTERESTS,
+  furtherOnboardingStep,
+  isOnboardingAdvanceStep,
   onboardingStepFor,
   profileProgress,
   type MemberProfile,
+  type OnboardingAdvanceStep,
   type ProfileCatalog,
   type ProfileProgressStep,
 } from "@/lib/profile-shared";

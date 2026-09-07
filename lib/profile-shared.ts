@@ -1,5 +1,40 @@
-export const MAX_INTERESTS = 12;
+export const MAX_INTERESTS = 24;
 export const MIN_INTERESTS = 3;
+export const MAX_PERSONAS = 8;
+
+export const ONBOARDING_ADVANCE_STEPS = [
+  "personas",
+  "interests",
+  "activity_scale",
+  "payoff",
+  "complete",
+] as const;
+
+export type OnboardingAdvanceStep = (typeof ONBOARDING_ADVANCE_STEPS)[number];
+
+export function isOnboardingAdvanceStep(value: unknown): value is OnboardingAdvanceStep {
+  return (
+    typeof value === "string" &&
+    (ONBOARDING_ADVANCE_STEPS as readonly string[]).includes(value)
+  );
+}
+
+const ADVANCE_RANK: Record<OnboardingAdvanceStep, number> = {
+  personas: 0,
+  interests: 1,
+  activity_scale: 2,
+  payoff: 3,
+  complete: 4,
+};
+
+export function furtherOnboardingStep(
+  computed: string,
+  advance: OnboardingAdvanceStep,
+): OnboardingAdvanceStep {
+  const computedRank =
+    computed in ADVANCE_RANK ? ADVANCE_RANK[computed as OnboardingAdvanceStep] : -1;
+  return ADVANCE_RANK[advance] >= computedRank ? advance : (computed as OnboardingAdvanceStep);
+}
 
 export type ProfileProgressStep = {
   id: string;

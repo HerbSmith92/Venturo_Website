@@ -1,3 +1,5 @@
+import { destinationAfterOnboarding } from "@/lib/onboarding-shared";
+
 export async function saveOnboardingProfile(body: Record<string, unknown>) {
   const response = await fetch("/api/account/profile", {
     method: "POST",
@@ -21,4 +23,10 @@ export async function saveOnboardingPlan(plan: "free" | "subscribe") {
   if (!response.ok) {
     throw new Error(payload.error ?? "Could not save that plan.");
   }
+}
+
+export async function skipOnboarding(next?: string | null) {
+  await saveOnboardingPlan("free");
+  await saveOnboardingProfile({ plan: "free", finishOnboarding: true });
+  window.location.href = destinationAfterOnboarding(next, "free");
 }

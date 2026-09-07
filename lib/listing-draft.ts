@@ -155,12 +155,12 @@ export const PRICE_CATEGORY_OPTIONS: { value: PriceCategory; label: string }[] =
   { value: "other", label: "Other" },
 ];
 
-/** Simplified “Who comes” personas shown in the editor. */
+/** Simplified “Who comes” personas shown in the listing editor. */
 export const WHO_COMES_PERSONAS: { title: string; label: string }[] = [
   { title: "Going Solo", label: "Solo" },
-  { title: "Two's Company", label: "Couples" },
-  { title: "Family Crew", label: "Families" },
-  { title: "With the Squad", label: "Groups" },
+  { title: "With a Partner", label: "Couples" },
+  { title: "With Family", label: "Families" },
+  { title: "With Friends", label: "Groups" },
 ];
 
 function asText(value: string | null | undefined) {

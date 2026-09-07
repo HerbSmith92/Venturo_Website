@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { EnergySpectrum } from "@/components/EnergySpectrum";
+import { OnboardingSkipStep } from "@/components/onboarding/OnboardingSkip";
 import { saveOnboardingProfile } from "@/lib/onboarding-client";
 import { onboardingHref } from "@/lib/onboarding-shared";
 import type { MemberProfile, ProfileCatalog } from "@/lib/profile-shared";
@@ -48,16 +49,13 @@ export function EnergyForm({
 
   async function onSubmit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
-    if (!energyLow || !energyHigh) {
-      setError("Tap a card to set the energy you’re bringing today.");
-      return;
-    }
     setError(null);
     setPending(true);
     try {
       await saveOnboardingProfile({
-        energyLow: Number(energyLow),
-        energyHigh: Number(energyHigh),
+        energyLow: energyLow ? Number(energyLow) : null,
+        energyHigh: energyHigh ? Number(energyHigh) : null,
+        advanceStep: "payoff",
       });
       router.push(onboardingHref("confirm", next));
       router.refresh();
@@ -72,7 +70,8 @@ export function EnergyForm({
       <p className="eyebrow">Getting To Know You</p>
       <h1>What Energy Are You Bringing?</h1>
       <p className="lede muted">
-        This is a current mood, not a life sentence. You can change it anytime on your profile.
+        This is a current mood, not a life sentence. You can change it anytime on your profile,
+        or skip it for now.
       </p>
       <EnergySpectrum
         scales={catalog.scales}
@@ -85,6 +84,7 @@ export function EnergyForm({
         <a className="btn btn-ghost" href={onboardingHref("interests", next)}>
           Back
         </a>
+        <OnboardingSkipStep next={next} advanceStep="payoff" to="confirm" />
         <button className="btn btn-primary" type="submit" disabled={pending}>
           {pending ? "Please Wait" : "Continue"}
         </button>

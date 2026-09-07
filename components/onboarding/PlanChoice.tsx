@@ -56,7 +56,10 @@ export function PlanChoice({
             <li>Book tickets to events</li>
             <li>Keep a simple profile</li>
           </ul>
-          <p className="muted">A short confirm — name & home area. Tell us more later if you like.</p>
+          <p className="muted">
+            Name & home area first. Extra questions are optional — stay free at the end, or
+            subscribe then.
+          </p>
           <button
             className="btn btn-secondary"
             type="button"
@@ -79,7 +82,9 @@ export function PlanChoice({
             <li>Exclusive member discounts</li>
             <li>Same profile on the website & the app</li>
           </ul>
-          <p className="muted">We’ll get to know how you go out, what you love, & the energy you’re bringing.</p>
+          <p className="muted">
+            Same optional questions. Nothing is charged until you tap Subscribe.
+          </p>
           <button
             className="btn btn-primary"
             type="button"
@@ -93,6 +98,10 @@ export function PlanChoice({
         </article>
       </div>
       {error && <p className="error">{error}</p>}
+      <p className="muted" style={{ marginTop: 16 }}>
+        The extra questions are optional. At the end you can stay free or subscribe — nothing is
+        charged until you choose Subscribe.
+      </p>
     </>
   );
 }

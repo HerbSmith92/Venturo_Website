@@ -2,6 +2,7 @@
 
 import { useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
+import { OnboardingSkipStep } from "@/components/onboarding/OnboardingSkip";
 import { saveOnboardingProfile } from "@/lib/onboarding-client";
 import { onboardingHref } from "@/lib/onboarding-shared";
 import { MAX_INTERESTS, MIN_INTERESTS, type MemberProfile, type ProfileCatalog } from "@/lib/profile-shared";
@@ -51,14 +52,10 @@ export function InterestBubbles({
 
   async function onSubmit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
-    if (interestIds.length < MIN_INTERESTS) {
-      setError(`Pick at least ${MIN_INTERESTS} interests so Made For You has something to work with.`);
-      return;
-    }
     setError(null);
     setPending(true);
     try {
-      await saveOnboardingProfile({ interestIds });
+      await saveOnboardingProfile({ interestIds, advanceStep: "activity_scale" });
       router.push(onboardingHref("energy", next));
       router.refresh();
     } catch (caught) {
@@ -72,7 +69,8 @@ export function InterestBubbles({
       <p className="eyebrow">Getting To Know You</p>
       <h1>What Pulls You In</h1>
       <p className="lede muted">
-        Tap a bubble to open it. Pick at least {MIN_INTERESTS} interests — max {MAX_INTERESTS}.
+        Tap a bubble to open it. Pick as many as you like — at least {MIN_INTERESTS} helps Made For
+        You, max {MAX_INTERESTS}. Skip if you want to choose later.
       </p>
       <p className="onboarding-pick-count">
         {interestIds.length} selected
@@ -124,11 +122,13 @@ export function InterestBubbles({
         <a className="btn btn-ghost" href={onboardingHref("personas", next)}>
           Back
         </a>
-        <button
-          className="btn btn-primary"
-          type="submit"
-          disabled={pending || interestIds.length < MIN_INTERESTS}
-        >
+        <OnboardingSkipStep
+          next={next}
+          advanceStep="activity_scale"
+          to="energy"
+          extra={{ interestIds }}
+        />
+        <button className="btn btn-primary" type="submit" disabled={pending}>
           {pending ? "Please Wait" : "Continue"}
         </button>
       </div>

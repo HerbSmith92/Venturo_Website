@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { PAID_PRICE } from "@/lib/brand";
-import { saveOnboardingProfile } from "@/lib/onboarding-client";
+import { saveOnboardingPlan, saveOnboardingProfile } from "@/lib/onboarding-client";
 import {
   destinationAfterOnboarding,
   onboardingHref,
@@ -24,7 +24,7 @@ export function ConfirmForm({
   next?: string | null;
 }) {
   const [error, setError] = useState<string | null>(null);
-  const [pending, setPending] = useState(false);
+  const [pending, setPending] = useState<OnboardingPlan | null>(null);
 
   const homeLabel =
     catalog.places.find((place) => place.id === profile.homePlaceId)?.name ?? "Not set yet";
@@ -43,10 +43,11 @@ export function ConfirmForm({
         : `${lowTitle} – ${highTitle}`
       : null;
 
-  async function finish() {
+  async function finish(nextPlan: OnboardingPlan) {
     setError(null);
-    setPending(true);
+    setPending(nextPlan);
     try {
+      await saveOnboardingPlan(nextPlan);
       await saveOnboardingProfile({
         firstName: profile.firstName,
         lastName: profile.lastName,
@@ -55,12 +56,12 @@ export function ConfirmForm({
         interestIds: profile.interestIds,
         energyLow: profile.energyLow,
         energyHigh: profile.energyHigh,
-        plan,
+        plan: nextPlan,
         finishOnboarding: true,
       });
-      window.location.href = destinationAfterOnboarding(next, plan);
+      window.location.href = destinationAfterOnboarding(next, nextPlan);
     } catch (caught) {
-      setPending(false);
+      setPending(null);
       setError(caught instanceof Error ? caught.message : "Could not finish onboarding.");
     }
   }
@@ -70,9 +71,7 @@ export function ConfirmForm({
       <p className="eyebrow">Almost There</p>
       <h1>Looks Good?</h1>
       <p className="lede muted">
-        {plan === "free"
-          ? "Quick check, then you’re in. Add interests anytime from your profile."
-          : `Check this, then continue to PayFast for ${PAID_PRICE} / month.`}
+        Start free whenever you like. Subscribe when you want Made For You & member prices.
       </p>
       <dl className="onboarding-summary">
         <div>
@@ -90,53 +89,45 @@ export function ConfirmForm({
           <dd>{homeLabel}</dd>
         </div>
         <div>
-          <dt>Plan</dt>
-          <dd>{plan === "free" ? "Free" : `Subscribe · ${PAID_PRICE} / month`}</dd>
+          <dt>How You Go Out</dt>
+          <dd>{personas.length > 0 ? personas.join(", ") : "Skipped for now"}</dd>
         </div>
-        {plan === "subscribe" && (
-          <>
-            <div>
-              <dt>How You Go Out</dt>
-              <dd>{personas.length > 0 ? personas.join(", ") : "Not set yet"}</dd>
-            </div>
-            <div>
-              <dt>Interests</dt>
-              <dd>{interests.length > 0 ? interests.join(", ") : "Not set yet"}</dd>
-            </div>
-            <div>
-              <dt>Energy</dt>
-              <dd>{energyLabel ?? "Not set yet"}</dd>
-            </div>
-          </>
-        )}
+        <div>
+          <dt>Interests</dt>
+          <dd>{interests.length > 0 ? interests.join(", ") : "Skipped for now"}</dd>
+        </div>
+        <div>
+          <dt>Energy</dt>
+          <dd>{energyLabel ?? "Skipped for now"}</dd>
+        </div>
       </dl>
-      {plan === "subscribe" && (
-        <p className="muted">
-          Next step is PayFast sandbox / live checkout for {PAID_PRICE} / month. App Store & Play
-          Store remain available once the apps are published.
-        </p>
-      )}
       {error && <p className="error">{error}</p>}
       <div className="onboarding-actions">
-        <a
-          className="btn btn-ghost"
-          href={onboardingHref(plan === "free" ? "basics" : "energy", next)}
-        >
+        <a className="btn btn-ghost" href={onboardingHref("energy", next)}>
           Back
         </a>
-        <button className="btn btn-primary" type="button" disabled={pending} onClick={() => void finish()}>
-          {pending
-            ? "Please Wait"
-            : plan === "free"
-              ? "Take Me Exploring"
-              : "Continue To Subscribe"}
+        <button
+          className="btn btn-secondary"
+          type="button"
+          disabled={Boolean(pending)}
+          onClick={() => void finish("free")}
+        >
+          {pending === "free" ? "Please Wait" : "Stay Free"}
+        </button>
+        <button
+          className="btn btn-primary"
+          type="button"
+          disabled={Boolean(pending)}
+          onClick={() => void finish("subscribe")}
+        >
+          {pending === "subscribe" ? "Please Wait" : `Subscribe · ${PAID_PRICE} / mo`}
         </button>
       </div>
-      {plan === "free" && (
-        <p className="muted" style={{ marginTop: 16 }}>
-          Want Made For You later? <a href="/account">Tell us more on your profile</a>.
-        </p>
-      )}
+      <p className="muted" style={{ marginTop: 16 }}>
+        Free books event tickets. Paid is curated discovery & member prices. You can upgrade from
+        your profile anytime.
+        {plan === "subscribe" ? " You can still stay free — nothing is charged until you subscribe." : ""}
+      </p>
     </div>
   );
 }

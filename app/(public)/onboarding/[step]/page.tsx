@@ -47,16 +47,22 @@ export default async function OnboardingStepPage({
     redirect(dest);
   }
 
-  const chosen = effectiveOnboardingPlan(plan, paid);
-  const path = stepsForPlan(chosen);
-  const resolvedIndex = path.indexOf(resolved);
-  const stepIndex = path.indexOf(step);
-  if (stepIndex === -1 || (resolvedIndex >= 0 && stepIndex > resolvedIndex)) {
-    redirect(onboardingHref(resolved, next || null));
-  }
-
   const firstName = profile.firstName.trim() || user.firstName;
   const formProfile = { ...profile, firstName };
+  const chosen = effectiveOnboardingPlan(plan, paid);
+  const path = stepsForPlan(chosen);
+  const stepIndex = path.indexOf(step);
+  const basicsReady = Boolean(formProfile.firstName.trim() && formProfile.homePlaceId);
+  if (stepIndex === -1) {
+    redirect(onboardingHref(resolved, next || null));
+  }
+  if (!chosen && step !== "plan") {
+    redirect(onboardingHref("plan", next || null));
+  }
+  if (chosen && !basicsReady && step !== "plan" && step !== "basics") {
+    redirect(onboardingHref("basics", next || null));
+  }
+
   const wide = step === "interests" || step === "plan";
 
   return (

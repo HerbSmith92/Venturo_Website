@@ -1,4 +1,5 @@
 import type { ReactNode } from "react";
+import { OnboardingSkipAll } from "@/components/onboarding/OnboardingSkip";
 import type { OnboardingPlan, OnboardingStepId } from "@/lib/onboarding-shared";
 import { onboardingHref, stepsForPlan } from "@/lib/onboarding-shared";
 
@@ -51,6 +52,9 @@ export function OnboardingFrame({
           </ol>
         </div>
         {children}
+        {step !== "plan" && step !== "basics" && step !== "confirm" && (
+          <OnboardingSkipAll next={next} />
+        )}
       </section>
     </main>
   );

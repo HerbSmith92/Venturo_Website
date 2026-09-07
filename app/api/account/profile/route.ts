@@ -1,10 +1,12 @@
 import { NextResponse } from "next/server";
 import { getCurrentUser } from "@/lib/auth";
-import { parseOnboardingPlan } from "@/lib/onboarding-shared";
 import {
   loadMemberProfile,
   loadProfileCatalog,
   MAX_INTERESTS,
+  MAX_PERSONAS,
+  furtherOnboardingStep,
+  isOnboardingAdvanceStep,
   onboardingStepFor,
 } from "@/lib/profile";
 import { createClient } from "@/lib/supabase/server";
@@ -82,6 +84,7 @@ export async function POST(request: Request) {
     energyHigh?: number | null;
     plan?: string;
     finishOnboarding?: boolean;
+    advanceStep?: string;
   };
 
   const current = await loadMemberProfile(user.id);
@@ -100,7 +103,7 @@ export async function POST(request: Request) {
 
   const personaIds =
     body.personaIds !== undefined
-      ? asIdList(body.personaIds, new Set(catalog.personas.map((row) => row.id)), 8)
+      ? asIdList(body.personaIds, new Set(catalog.personas.map((row) => row.id)), MAX_PERSONAS)
       : current.personaIds;
   const interestIds =
     body.interestIds !== undefined
@@ -138,19 +141,18 @@ export async function POST(request: Request) {
     energyLow,
     energyHigh,
   });
+  if (isOnboardingAdvanceStep(body.advanceStep)) {
+    step = furtherOnboardingStep(step, body.advanceStep);
+  }
   let completedAt = current.onboardingCompletedAt;
-  const plan = parseOnboardingPlan(body.plan);
 
   if (body.finishOnboarding) {
-    const canFinishLite = plan === "free" && Boolean(firstName) && Boolean(homePlaceId);
-    if (canFinishLite) {
+    if (firstName && homePlaceId) {
       step = "complete";
-      completedAt = completedAt ?? new Date().toISOString();
-    } else if (step === "complete") {
       completedAt = completedAt ?? new Date().toISOString();
     } else {
       return NextResponse.json(
-        { error: "Finish the remaining steps before confirming." },
+        { error: "Add your name & home area before you jump in." },
         { status: 400 },
       );
     }

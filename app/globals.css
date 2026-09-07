@@ -455,6 +455,37 @@ button.chip.on {
   color: var(--night);
 }
 
+.chip-persona {
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 2px;
+  height: auto;
+  min-height: 44px;
+  white-space: normal;
+  max-width: 280px;
+  text-align: left;
+  padding: 10px 14px;
+}
+
+.chip-persona small {
+  font-size: 12px;
+  font-weight: 200;
+  opacity: 0.78;
+  line-height: 1.3;
+}
+
+.persona-picker {
+  gap: 10px;
+}
+
+.onboarding-skip {
+  margin-top: 8px;
+}
+
+.onboarding-skip .btn {
+  padding-left: 0;
+}
+
 a.chip {
   background: color-mix(in srgb, var(--snow) 88%, transparent);
   color: var(--snow);
@@ -1917,6 +1948,46 @@ a.chip.active {
 .cr-paper .btn-secondary {
   border-color: color-mix(in srgb, var(--night) 28%, transparent);
   color: var(--night);
+}
+
+.catalog-admin-list {
+  list-style: none;
+  padding: 0;
+  margin: 16px 0;
+  display: grid;
+  gap: 8px;
+}
+
+.catalog-admin-list .is-hidden input,
+.catalog-admin-list .is-hidden select {
+  opacity: 0.5;
+}
+
+.catalog-admin-row,
+.catalog-admin-add {
+  display: grid;
+  grid-template-columns: minmax(140px, 1.2fr) minmax(160px, 1.6fr) auto auto;
+  gap: 8px;
+  align-items: center;
+}
+
+.catalog-admin-row input,
+.catalog-admin-row select,
+.catalog-admin-add input,
+.catalog-admin-add select {
+  min-height: 40px;
+  padding: 8px 10px;
+  border-radius: var(--radius-sm);
+  border: 1px solid color-mix(in srgb, var(--night) 16%, transparent);
+  background: var(--snow);
+  color: var(--night);
+}
+
+@media (max-width: 800px) {
+  .catalog-admin-row,
+  .catalog-admin-add {
+    grid-template-columns: 1fr;
+  }
 }
 
 .cr-field-hint {
