@@ -304,6 +304,12 @@ select {
   height: 100%;
 }
 
+@media (max-width: 640px) {
+  .taste-rail {
+    grid-auto-columns: minmax(200px, 78vw);
+  }
+}
+
 .price-pitch {
   margin: 0 0 16px;
   font-weight: 600;
