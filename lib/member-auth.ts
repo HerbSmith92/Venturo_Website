@@ -1,13 +1,10 @@
 import { APP_ROLES, type AppRole } from "@/lib/roles";
+import { safeNextPath } from "@/lib/safe-path";
 import { createServiceClient } from "@/lib/supabase/admin";
 import { createClient } from "@/lib/supabase/server";
 import type { User } from "@supabase/supabase-js";
 
-export function safeNextPath(raw: unknown, fallback = "/account") {
-  if (typeof raw !== "string") return fallback;
-  if (raw.startsWith("/") && !raw.startsWith("//")) return raw;
-  return fallback;
-}
+export { safeNextPath };
 
 function asAppRole(value: unknown): AppRole | null {
   return typeof value === "string" && APP_ROLES.includes(value as AppRole)
@@ -18,8 +15,17 @@ function asAppRole(value: unknown): AppRole | null {
 function displayNameFrom(user: User, firstName?: string) {
   const typed = firstName?.trim();
   if (typed) return typed.slice(0, 80);
-  const meta = user.user_metadata as { first_name?: string } | undefined;
-  const fromMeta = meta?.first_name?.trim();
+  const meta = user.user_metadata as {
+    first_name?: string;
+    given_name?: string;
+    name?: string;
+    full_name?: string;
+  } | undefined;
+  const fromMeta =
+    meta?.first_name?.trim() ||
+    meta?.given_name?.trim() ||
+    meta?.name?.trim()?.split(/\s+/)[0] ||
+    meta?.full_name?.trim()?.split(/\s+/)[0];
   return fromMeta ? fromMeta.slice(0, 80) : "";
 }
 

@@ -20,14 +20,10 @@ export function CategoryChips({
           <Link
             key={category.id}
             href={href}
-            className={
-              category.id === "all" || category.id === "third-party"
-                ? "chip chip-light"
-                : "chip"
-            }
+            className="chip chip-light"
             style={{
               background: category.colour,
-              color: category.id === "third-party" ? "#EBEBF3" : undefined,
+              color: category.id === "third-party" ? "#EBEBF3" : "#2A2D35",
               outline: isActive ? "2px solid #F3BF4A" : "none",
               outlineOffset: "2px",
             }}

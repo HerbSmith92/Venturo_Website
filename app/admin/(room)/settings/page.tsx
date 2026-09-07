@@ -1,11 +1,21 @@
+import { CatalogEditor } from "@/components/admin/CatalogEditor";
 import { FeeSettingsForm } from "@/components/admin/FeeSettingsForm";
+import { getStaffSession } from "@/lib/auth";
+import { loadCatalogAdmin } from "@/lib/catalog-admin";
 import { getPlatformFees } from "@/lib/events";
 import { getPayFastStatus } from "@/lib/payfast";
 import { getAppStoreLinks, revenueCatIsConfigured } from "@/lib/brand";
+import { isAdmin } from "@/lib/roles";
 import { getPublicSiteUrl } from "@/lib/site-url";
 
 export default async function AdminSettingsPage() {
-  const [fees, payfast] = await Promise.all([getPlatformFees(), Promise.resolve(getPayFastStatus())]);
+  const session = await getStaffSession();
+  const canManage = isAdmin(session?.role);
+  const [fees, payfast, catalog] = await Promise.all([
+    getPlatformFees(),
+    Promise.resolve(getPayFastStatus()),
+    loadCatalogAdmin(),
+  ]);
   const siteUrl = getPublicSiteUrl();
   const stores = getAppStoreLinks();
   const rcReady = revenueCatIsConfigured();
@@ -83,6 +93,18 @@ export default async function AdminSettingsPage() {
           bookingFeeCents={fees.bookingFeeCents}
         />
       </article>
+
+      {canManage && (
+        <article className="plan" style={{ marginTop: 20 }}>
+          <p className="eyebrow">Sign-Up Lists</p>
+          <h2>How You Go Out & Activities</h2>
+          <p className="muted">
+            Add, hide, or rewrite the chips people tap during onboarding. Hidden items stay on
+            existing profiles.
+          </p>
+          <CatalogEditor catalog={catalog} />
+        </article>
+      )}
     </section>
   );
 }

@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { fulfillPayFastMembership } from "@/lib/memberships";
 import { createServiceClient } from "@/lib/supabase/admin";
 import { getPayFastConfig, verifyPayFastSignature } from "@/lib/payfast";
 
@@ -18,9 +19,26 @@ export async function POST(request: Request) {
     return new NextResponse("Invalid signature", { status: 400 });
   }
 
-  const paymentStatus = data.payment_status;
-  const mPaymentId = data.m_payment_id;
+  const paymentStatus = data.payment_status ?? "";
+  const mPaymentId = data.m_payment_id ?? "";
   const paymentId = data.pf_payment_id;
+  const token = data.token;
+
+  // Membership checkouts use mem_… ids. Ticket checkouts use evt_… (and legacy ids).
+  if (mPaymentId.startsWith("mem_") || (!mPaymentId && token)) {
+    const result = await fulfillPayFastMembership({
+      mPaymentId,
+      paymentStatus,
+      paymentId,
+      token,
+      amountGross: data.amount_gross,
+    });
+    if (!result.ok) {
+      const status = result.error === "Membership not found" ? 404 : 400;
+      return new NextResponse(result.error, { status });
+    }
+    return new NextResponse("OK", { status: 200 });
+  }
 
   if (!mPaymentId) {
     return new NextResponse("Missing payment id", { status: 400 });

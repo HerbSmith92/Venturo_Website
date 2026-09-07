@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { provisionMember, safeNextPath } from "@/lib/member-auth";
+import { postAuthPathAfterProvision } from "@/lib/onboarding";
 import { createClient } from "@/lib/supabase/server";
 
 export async function POST(request: Request) {
@@ -38,5 +39,5 @@ export async function POST(request: Request) {
     await provisionMember(userId, firstName);
   }
 
-  return NextResponse.json({ redirect: next });
+  return NextResponse.json({ redirect: await postAuthPathAfterProvision(next) });
 }

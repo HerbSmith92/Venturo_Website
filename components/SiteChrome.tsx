@@ -1,4 +1,5 @@
 import type { CurrentUser } from "@/lib/auth";
+import { SiteHeaderNav } from "@/components/SiteHeaderNav";
 
 export function SiteHeader({ user }: { user: CurrentUser | null }) {
   return (
@@ -12,47 +13,7 @@ export function SiteHeader({ user }: { user: CurrentUser | null }) {
             alt="Venturo"
           />
         </a>
-        <nav className="nav-actions" aria-label="Site">
-          <a className="btn btn-ghost" href="/directory">
-            Directory
-          </a>
-          <a className="btn btn-ghost" href="/guides">
-            Guides
-          </a>
-          <a className="btn btn-ghost" href="/events">
-            Events
-          </a>
-          <a className="btn btn-ghost" href="/communities">
-            Communities
-          </a>
-          <a className="btn btn-ghost" href="/admin">
-            Admin
-          </a>
-          {user ? (
-            <>
-              <a className="btn btn-ghost" href="/events/create">
-                Create Event
-              </a>
-              <a className="btn btn-ghost" href="/account">
-                {user.firstName && user.firstName !== "there" ? user.firstName : "Profile"}
-              </a>
-              <form action="/auth/sign-out" method="post">
-                <button className="btn btn-secondary" type="submit">
-                  Sign Out
-                </button>
-              </form>
-            </>
-          ) : (
-            <>
-              <a className="btn btn-ghost" href="/login">
-                Log In
-              </a>
-              <a className="btn btn-primary" href="/signup">
-                Sign Up
-              </a>
-            </>
-          )}
-        </nav>
+        <SiteHeaderNav user={user} />
       </header>
     </div>
   );

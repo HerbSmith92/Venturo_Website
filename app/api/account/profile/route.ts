@@ -4,6 +4,9 @@ import {
   loadMemberProfile,
   loadProfileCatalog,
   MAX_INTERESTS,
+  MAX_PERSONAS,
+  furtherOnboardingStep,
+  isOnboardingAdvanceStep,
   onboardingStepFor,
 } from "@/lib/profile";
 import { createClient } from "@/lib/supabase/server";
@@ -79,27 +82,48 @@ export async function POST(request: Request) {
     interestIds?: string[];
     energyLow?: number | null;
     energyHigh?: number | null;
+    plan?: string;
+    finishOnboarding?: boolean;
+    advanceStep?: string;
   };
 
-  const firstName = String(body.firstName ?? "").trim().slice(0, 80);
-  const lastName = String(body.lastName ?? "").trim().slice(0, 80);
+  const current = await loadMemberProfile(user.id);
+  const catalog = await loadProfileCatalog();
+  const placeIds = new Set(catalog.places.map((row) => row.id));
+
+  const firstName = String(body.firstName ?? current.firstName)
+    .trim()
+    .slice(0, 80);
+  const lastName = String(body.lastName ?? current.lastName)
+    .trim()
+    .slice(0, 80);
   if (!firstName) {
     return NextResponse.json({ error: "First name is required." }, { status: 400 });
   }
 
-  const catalog = await loadProfileCatalog();
-  const placeIds = new Set(catalog.places.map((row) => row.id));
-  const personaIds = asIdList(body.personaIds, new Set(catalog.personas.map((row) => row.id)), 8);
-  const interestIds = asIdList(
-    body.interestIds,
-    new Set(catalog.interests.map((row) => row.id)),
-    MAX_INTERESTS,
-  );
+  const personaIds =
+    body.personaIds !== undefined
+      ? asIdList(body.personaIds, new Set(catalog.personas.map((row) => row.id)), MAX_PERSONAS)
+      : current.personaIds;
+  const interestIds =
+    body.interestIds !== undefined
+      ? asIdList(
+          body.interestIds,
+          new Set(catalog.interests.map((row) => row.id)),
+          MAX_INTERESTS,
+        )
+      : current.interestIds;
 
   const homePlaceId =
-    body.homePlaceId && placeIds.has(body.homePlaceId) ? body.homePlaceId : null;
-  let energyLow = asScale(body.energyLow);
-  let energyHigh = asScale(body.energyHigh);
+    body.homePlaceId !== undefined
+      ? body.homePlaceId && placeIds.has(body.homePlaceId)
+        ? body.homePlaceId
+        : null
+      : current.homePlaceId;
+  let energyLow =
+    body.energyLow !== undefined ? asScale(body.energyLow) : current.energyLow;
+  let energyHigh =
+    body.energyHigh !== undefined ? asScale(body.energyHigh) : current.energyHigh;
   if (energyLow != null && energyHigh == null) energyHigh = energyLow;
   if (energyHigh != null && energyLow == null) energyLow = energyHigh;
   if (energyLow != null && energyHigh != null && energyLow > energyHigh) {
@@ -109,8 +133,7 @@ export async function POST(request: Request) {
     );
   }
 
-  const current = await loadMemberProfile(user.id);
-  const step = onboardingStepFor({
+  let step = onboardingStepFor({
     firstName,
     homePlaceId,
     personaIds,
@@ -118,6 +141,22 @@ export async function POST(request: Request) {
     energyLow,
     energyHigh,
   });
+  if (isOnboardingAdvanceStep(body.advanceStep)) {
+    step = furtherOnboardingStep(step, body.advanceStep);
+  }
+  let completedAt = current.onboardingCompletedAt;
+
+  if (body.finishOnboarding) {
+    if (firstName && homePlaceId) {
+      step = "complete";
+      completedAt = completedAt ?? new Date().toISOString();
+    } else {
+      return NextResponse.json(
+        { error: "Add your name & home area before you jump in." },
+        { status: 400 },
+      );
+    }
+  }
 
   const { error: profileError } = await supabase.from("profiles").upsert(
     {
@@ -129,10 +168,7 @@ export async function POST(request: Request) {
       activity_scale_high: energyHigh,
       onboarding_step: step,
       onboarding_version: 1,
-      onboarding_completed_at:
-        step === "complete"
-          ? (current.onboardingCompletedAt ?? new Date().toISOString())
-          : current.onboardingCompletedAt,
+      onboarding_completed_at: completedAt,
     },
     { onConflict: "id" },
   );
