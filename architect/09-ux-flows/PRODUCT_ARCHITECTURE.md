@@ -21,7 +21,7 @@ Paywall sits on **value**, not on existence of the directory. People must taste 
 **Plans (locked 26 Aug 2026):**
 
 - **Free** — creates a profile. Can book event tickets. No subscriber benefits.
-- **Paid** — R 19.99 / month via the App Store or Play Store. Unlocks curated discovery / personal recommendations & exclusive member discounts. **RevenueCat** is the source of truth for whether membership is active. The website does not take card payments.
+- **Paid** — R 19.99 / month via PayFast on the website, or the App Store / Play Store in the app. Unlocks curated discovery / personal recommendations & exclusive member discounts. **`member_access.subscribed`** is the only privilege check (PayFast **or** RevenueCat write that row; members cannot edit it). Do not store Paid on `profiles.plan`.
 
 This matches the app prototypes (Discover is the product) and the Control Room copy (“Website, directory & memberships”).
 
@@ -127,7 +127,7 @@ Statuses: `draft` → `in_review` → `changes_needed` → `live` (or `rejected`
 - See all live directory listings
 - See member price when subscribed
 - View & book events (Free can book tickets; Paid adds member discounts)
-- Paid membership: R 19.99 / month via App Store or Play Store, confirmed by RevenueCat using the same user id as Supabase
+- Paid membership: R 19.99 / month via PayFast (website) or App Store / Play Store (app). Both write `member_access`; the website & app read `subscribed` only. The app still uses RevenueCat to take store payments.
 - Bucketlist / Dreams
 - Follow communities
 - Subscription status is the source of “member” benefits

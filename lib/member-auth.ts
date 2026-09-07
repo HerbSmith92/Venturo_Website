@@ -66,12 +66,14 @@ export async function provisionMember(userId: string, firstName?: string) {
         onboarding_step: "identity",
         onboarding_version: 1,
       });
-      return;
-    }
-
-    if (displayName && (!profile.display_name || firstName?.trim())) {
+    } else if (displayName && (!profile.display_name || firstName?.trim())) {
       await admin.from("profiles").update({ display_name: displayName }).eq("id", userId);
     }
+
+    await admin.from("member_access").upsert(
+      { user_id: userId },
+      { onConflict: "user_id", ignoreDuplicates: true },
+    );
     return;
   }
 

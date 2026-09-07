@@ -11,7 +11,7 @@ export default async function MembersPage({
   const params = await searchParams;
   const session = await getStaffSession();
   const canManage = isAdmin(session?.role);
-  const { members, revenueCatReady, serviceRoleReady, loadError } = await loadMembers(
+  const { members, serviceRoleReady, loadError } = await loadMembers(
     params.q,
   );
   const paidCount = members.filter((member) => member.plan === "paid").length;
@@ -22,9 +22,9 @@ export default async function MembersPage({
       <p className="eyebrow">People</p>
       <h1>Members</h1>
       <p className="lede muted">
-        Every auth user on the Venturo project. Paid status comes from RevenueCat.
-        Reset Password emails a recovery link. Delete removes the auth user
-        (profile cascades).
+        Every auth user on the Venturo project. Paid is <code>member_access.subscribed</code>
+        — PayFast or RevenueCat write that row; this list only reads it. Reset Password emails
+        a recovery link. Delete removes the auth user (profile cascades).
       </p>
 
       {params.error && <p className="error">{params.error}</p>}
@@ -44,11 +44,6 @@ export default async function MembersPage({
       )}
       {fullDirectory && (
         <p className="notice">Full user directory loaded (emails, roles, manage actions).</p>
-      )}
-      {!revenueCatReady && (
-        <p className="notice">
-          RevenueCat secret is not set — everyone shows as Free until it is.
-        </p>
       )}
 
       <div className="cr-stats" style={{ marginBottom: 24 }}>
