@@ -15,6 +15,10 @@ export function portalEventHref(id: string) {
   return `${PORTAL_EVENTS}/${id}`;
 }
 
+export function portalDoorHref(id: string) {
+  return `${PORTAL_EVENTS}/${id}/door`;
+}
+
 export function isPortalPath(path: string) {
   return path === PORTAL_HOME || path.startsWith(`${PORTAL_HOME}/`);
 }

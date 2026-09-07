@@ -1,7 +1,7 @@
 import { CreateEventPrompt } from "@/components/portal/CreateEventPrompt";
 import { PortalBarChart } from "@/components/portal/PortalBarChart";
 import { formatCents, formatEventWindow } from "@/lib/events";
-import { portalEventHref } from "@/lib/portal";
+import { portalDoorHref, portalEventHref } from "@/lib/portal";
 import {
   PORTAL_RANGE_LABELS,
   PORTAL_RANGES,
@@ -34,13 +34,20 @@ function EventBlock({ row }: { row: EventHomeSeries }) {
 
   return (
     <article className="portal-event">
-      <a className="portal-event-copy" href={portalEventHref(event.id)}>
-        <h3>{event.title}</h3>
-        <p className="muted">
-          {when}
-          {event.venueName ? ` · ${event.venueName}` : ""}
-        </p>
-      </a>
+      <div className="portal-event-copy">
+        <a href={portalEventHref(event.id)}>
+          <h3>{event.title}</h3>
+          <p className="muted">
+            {when}
+            {event.venueName ? ` · ${event.venueName}` : ""}
+          </p>
+        </a>
+        {event.status === "approved" && (
+          <a className="btn btn-primary portal-door-btn" href={portalDoorHref(event.id)}>
+            Open Door
+          </a>
+        )}
+      </div>
       <span className={`status-pill ${event.status}`}>{statusLabel(event.status)}</span>
       <details className="portal-event-fold" open>
         <summary className="portal-event-toggle" aria-label={`${event.title}. Toggle graphs.`}>

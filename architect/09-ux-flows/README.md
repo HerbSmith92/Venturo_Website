@@ -2,6 +2,8 @@
 
 Product architecture (roles, sites, claim flow, algorithm) is in [`PRODUCT_ARCHITECTURE.md`](PRODUCT_ARCHITECTURE.md).
 
+Host door check-in (scan QR, guest counts, guest list) is in [`HOST_COMPANION_SCANNING.md`](HOST_COMPANION_SCANNING.md).
+
 Drop extra journeys, sitemaps, and wireframes here.
 
 Useful files:

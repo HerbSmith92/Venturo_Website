@@ -1,4 +1,5 @@
 import { AccountNav } from "@/components/AccountNav";
+import { TicketQr } from "@/components/TicketQr";
 import { getCurrentUser } from "@/lib/auth";
 import { formatEventWhen } from "@/lib/events";
 import { listBuyerTickets } from "@/lib/orders";
@@ -39,22 +40,25 @@ export default async function MyTicketsPage({
                 ? ticket.event_ticket_types[0]
                 : ticket.event_ticket_types;
               return (
-                <article key={ticket.id}>
-                  <h2>{event?.title ?? "Event"}</h2>
-                  <p className="muted">
-                    {type?.name ?? "Ticket"} · Code <strong>{ticket.code}</strong>
-                  </p>
-                  {event?.starts_at && (
+                <article key={ticket.id} className="ticket-wallet-card">
+                  <div>
+                    <h2>{event?.title ?? "Event"}</h2>
                     <p className="muted">
-                      {formatEventWhen(event.starts_at, event.timezone ?? "Africa/Johannesburg")}
-                      {event.venue_name ? ` · ${event.venue_name}` : ""}
+                      {type?.name ?? "Ticket"} · Code <strong>{ticket.code}</strong>
                     </p>
-                  )}
-                  {event?.slug && (
-                    <a className="btn btn-secondary" href={`/events/${event.slug}`}>
-                      View Event
-                    </a>
-                  )}
+                    {event?.starts_at && (
+                      <p className="muted">
+                        {formatEventWhen(event.starts_at, event.timezone ?? "Africa/Johannesburg")}
+                        {event.venue_name ? ` · ${event.venue_name}` : ""}
+                      </p>
+                    )}
+                    {event?.slug && (
+                      <a className="btn btn-secondary" href={`/events/${event.slug}`}>
+                        View Event
+                      </a>
+                    )}
+                  </div>
+                  <TicketQr code={ticket.code} />
                 </article>
               );
             })}

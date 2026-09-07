@@ -8,6 +8,7 @@ import {
   getOrganiserSalesSummary,
   listOrganiserEvents,
 } from "@/lib/events";
+import { portalDoorHref } from "@/lib/portal";
 import { createClient } from "@/lib/supabase/server";
 import { redirect } from "next/navigation";
 
@@ -110,19 +111,29 @@ export default async function MyEventsPage({
         ) : (
           <div className="host-event-list">
             {filtered.map((event) => (
-              <a className="host-event-row" key={event.id} href={`/account/events/${event.id}`}>
-                <img src={eventFeedImage(event)} alt="" />
-                <div>
-                  <h2>{event.title}</h2>
-                  <p className="muted">
-                    {formatEventWindow(event.startsAt, event.endsAt, event.timezone)}
-                    {event.venueName ? ` · ${event.venueName}` : ""}
-                  </p>
-                </div>
-                <span className={`status-pill ${event.status}`}>
-                  {event.status === "approved" ? "live" : event.status}
-                </span>
-              </a>
+              <article key={event.id} className="host-event-card">
+                <a className="host-event-row" href={`/account/events/${event.id}`}>
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <img src={eventFeedImage(event)} alt="" />
+                  <div>
+                    <h2>{event.title}</h2>
+                    <p className="muted">
+                      {formatEventWindow(event.startsAt, event.endsAt, event.timezone)}
+                      {event.venueName ? ` · ${event.venueName}` : ""}
+                    </p>
+                  </div>
+                  <span className={`status-pill ${event.status}`}>
+                    {event.status === "approved" ? "live" : event.status}
+                  </span>
+                </a>
+                {event.status === "approved" && (
+                  <div className="host-event-actions">
+                    <a className="btn btn-primary" href={portalDoorHref(event.id)}>
+                      Open Door
+                    </a>
+                  </div>
+                )}
+              </article>
             ))}
           </div>
         )}

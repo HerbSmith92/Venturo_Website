@@ -32,7 +32,7 @@ import {
   type VenturoEvent,
 } from "@/lib/event-types";
 import { ticketMemberCents } from "@/lib/event-fees";
-import { PORTAL_SETTINGS_BANK } from "@/lib/portal";
+import { PORTAL_SETTINGS_BANK, portalDoorHref } from "@/lib/portal";
 
 type TicketDraft = {
   name: string;
@@ -389,6 +389,11 @@ export function EventStudio({
 
       <header className="studio-top">
         <div className="hero-actions">
+          {event.status === "approved" && (
+            <a className="btn btn-secondary" href={portalDoorHref(event.id)}>
+              Open Door
+            </a>
+          )}
           <button className="btn btn-ghost" type="button" onClick={() => setPreviewOpen(true)}>
             Preview
           </button>

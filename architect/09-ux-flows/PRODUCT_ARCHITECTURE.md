@@ -134,6 +134,10 @@ Statuses: `draft` → `in_review` → `changes_needed` → `live` (or `rejected`
 
 App sync = **same Supabase user + same tables**. No separate member database.
 
+### Event Host door (companion)
+
+Hosts use the **Event Host portal** (`/portal`) to scan ticket QR codes at the door, see scanned vs still-to-come counts, and browse the guest list. Architecture: [`HOST_COMPANION_SCANNING.md`](HOST_COMPANION_SCANNING.md).
+
 ---
 
 ## Build order
@@ -144,8 +148,9 @@ App sync = **same Supabase user + same tables**. No separate member database.
 4. Public website: landing + directory taste + listing detail
 5. Member auth, profile, subscription
 6. Events booking + payment
-7. Business claim flow
-8. Algorithm (Made For You) once tags exist on listings and members
+7. Host door check-in (QR scan, guest list, live counts)
+8. Business claim flow
+9. Algorithm (Made For You) once tags exist on listings and members
 
 ---
 
@@ -153,5 +158,5 @@ App sync = **same Supabase user + same tables**. No separate member database.
 
 - Payment provider (PayFast / Paystack / Peach)
 - Member price & trial
-- How a discount is redeemed in-venue (QR, code, staff check)
+- ~~How a discount is redeemed in-venue (QR, code, staff check)~~ → ticket door scan locked in `HOST_COMPANION_SCANNING.md`
 - Confirm existing Supabase project URL to connect (MCP auth still needed)

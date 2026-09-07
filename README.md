@@ -37,6 +37,10 @@ Staff portal: [http://localhost:3000/admin](http://localhost:3000/admin). Same S
 
 Grant the first admin in the Application SQL editor using `supabase/scripts/grant_control_room_admin.sql`, then sign out and log in again. Inviting more staff from `/admin/staff` needs `SUPABASE_SERVICE_ROLE_KEY`.
 
+## Event Host door
+
+Hosts scan tickets in the Event Host portal: [http://localhost:3000/portal](http://localhost:3000/portal) → **My Events** → **Open Door**. Apply `supabase/migrations/20260907180000_host_ticket_scanning.sql` before using scan / guest-list RPCs. Architecture notes live in `architect/09-ux-flows/HOST_COMPANION_SCANNING.md`.
+
 Run `supabase/migrations/20260826120000_profiles.sql` in the Venturo project before sign-up.
 
 Brand source files stay in `architect/`.
