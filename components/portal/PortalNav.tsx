@@ -16,11 +16,7 @@ export function PortalNav() {
           const isEvents = item.href === PORTAL_EVENTS;
           const listActive = isEvents && path === PORTAL_EVENTS;
           const branchOpen = isEvents && Boolean(eventPath);
-          const active = item.exact
-            ? path === item.href
-            : isEvents
-              ? listActive
-              : path === item.href || path.startsWith(`${item.href}/`);
+          const active = isEvents ? listActive : path === item.href;
 
           if (isEvents) {
             return (
