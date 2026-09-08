@@ -2,7 +2,7 @@ import { CreateEventPrompt } from "@/components/portal/CreateEventPrompt";
 import { getCurrentUser } from "@/lib/auth";
 import {
   eventFeedImage,
-  formatEventWhen,
+  formatEventWindow,
   listOrganiserEvents,
 } from "@/lib/events";
 import { getEventDoorStats } from "@/lib/host-scanning";
@@ -17,6 +17,7 @@ function statusLabel(status: string) {
   if (status === "approved") return "Live";
   if (status === "review") return "In Review";
   if (status === "draft") return "Draft";
+  if (status === "cancelled") return "Cancelled";
   return status;
 }
 
@@ -54,28 +55,44 @@ export default async function PortalEventsPage() {
       <CreateEventPrompt hasEvents={events.length > 0} />
 
       {events.length === 0 ? (
-        <p className="muted">No events yet. Create one and the door tools unlock when it goes live.</p>
+        <p className="muted">
+          No events yet. Create one above &amp; the door tools unlock when it goes live.
+        </p>
       ) : (
         <div className="host-event-list">
           {events.map((event) => {
             const image = eventFeedImage(event);
             const stats = statsById.get(event.id);
             const canDoor = event.status === "approved" || event.status === "cancelled";
+            const when = formatEventWindow(
+              event.startsAt,
+              event.endsAt,
+              event.timezone,
+            );
             return (
               <article key={event.id} className="host-event-card">
-                <a className="host-event-row" href={portalEventHref(event.id)}>
+                <a
+                  className="host-event-row portal-my-event-row"
+                  href={portalEventHref(event.id)}
+                >
                   {image ? (
                     // eslint-disable-next-line @next/next/no-img-element
                     <img src={image} alt="" />
                   ) : (
-                    <span className="host-event-ph" aria-hidden="true" />
+                    <span className="portal-my-event-ph" aria-hidden="true" />
                   )}
                   <div>
-                    <span className={`status-pill ${event.status}`}>{statusLabel(event.status)}</span>
+                    <span className={`status-pill ${event.status}`}>
+                      {statusLabel(event.status)}
+                    </span>
                     <h2>{event.title}</h2>
                     <p className="muted">
-                      {formatEventWhen(event.startsAt, event.timezone)}
-                      {event.city ? ` · ${event.city}` : ""}
+                      {when}
+                      {event.venueName
+                        ? ` · ${event.venueName}`
+                        : event.city
+                          ? ` · ${event.city}`
+                          : ""}
                     </p>
                     {stats && (
                       <p className="muted">

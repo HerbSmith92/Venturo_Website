@@ -49,7 +49,7 @@ function EventBlock({ row }: { row: EventHomeSeries }) {
         )}
       </div>
       <span className={`status-pill ${event.status}`}>{statusLabel(event.status)}</span>
-      <details className="portal-event-fold" open>
+      <details className="portal-event-fold">
         <summary className="portal-event-toggle" aria-label={`${event.title}. Toggle graphs.`}>
           <svg viewBox="0 0 24 24" focusable="false">
             <path
