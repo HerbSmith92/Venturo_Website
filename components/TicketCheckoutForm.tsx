@@ -24,14 +24,19 @@ export function TicketCheckoutForm({
   paidMember,
   loggedIn,
   fees,
+  promoCode: initialPromo = "",
+  inviteToken = "",
 }: {
   eventSlug: string;
   tickets: EventTicketType[];
   paidMember: boolean;
   loggedIn: boolean;
   fees: PlatformFees;
+  promoCode?: string;
+  inviteToken?: string;
 }) {
   const [qty, setQty] = useState<Record<string, number>>(() => initialQuantities(tickets));
+  const [promoCode, setPromoCode] = useState(initialPromo);
   const [error, setError] = useState<string | null>(null);
   const [pending, setPending] = useState(false);
   const [payfast, setPayfast] = useState<{
@@ -70,7 +75,10 @@ export function TicketCheckoutForm({
   async function onSubmit(event: React.FormEvent) {
     event.preventDefault();
     if (!loggedIn) {
-      window.location.href = `/login?next=/events/${eventSlug}`;
+      const next = inviteToken
+        ? `/events/${eventSlug}?invite=${encodeURIComponent(inviteToken)}`
+        : `/events/${eventSlug}`;
+      window.location.href = `/login?next=${encodeURIComponent(next)}`;
       return;
     }
     if (!hasSelection) {
@@ -87,7 +95,7 @@ export function TicketCheckoutForm({
     const response = await fetch("/api/events/checkout", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ eventSlug, lines }),
+        body: JSON.stringify({ eventSlug, lines, promoCode, inviteToken }),
     });
     const payload = (await response.json()) as {
       error?: string;
@@ -212,6 +220,14 @@ export function TicketCheckoutForm({
         </p>
       )}
       {error && <p className="error">{error}</p>}
+      <label className="field">
+        <span>Promo Code</span>
+        <input
+          value={promoCode}
+          onChange={(change) => setPromoCode(change.target.value)}
+          autoComplete="off"
+        />
+      </label>
       <div className="hero-actions">
         <button
           className="btn btn-primary"

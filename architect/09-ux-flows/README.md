@@ -4,6 +4,8 @@ Product architecture (roles, sites, claim flow, algorithm) is in [`PRODUCT_ARCHI
 
 Host door check-in (scan QR, guest counts, guest list) is in [`HOST_COMPANION_SCANNING.md`](HOST_COMPANION_SCANNING.md).
 
+Per-event Menu (Dashboard through Settings) is in [`EVENT_HOST_MENU.md`](EVENT_HOST_MENU.md).
+
 Drop extra journeys, sitemaps, and wireframes here.
 
 Useful files:

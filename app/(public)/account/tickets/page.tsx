@@ -52,6 +52,9 @@ export default async function MyTicketsPage({
                         {event.venue_name ? ` · ${event.venue_name}` : ""}
                       </p>
                     )}
+                    {event?.status === "cancelled" ? (
+                      <p className="error">This event is cancelled.</p>
+                    ) : null}
                     {event?.slug && (
                       <a className="btn btn-secondary" href={`/events/${event.slug}`}>
                         View Event

@@ -3,7 +3,7 @@ import { getCurrentUser } from "@/lib/auth";
 import {
   eventFeedImage,
   formatEventWindow,
-  listOrganiserEvents,
+  listAccessibleEvents,
 } from "@/lib/events";
 import { getEventDoorStats } from "@/lib/host-scanning";
 import {
@@ -25,7 +25,7 @@ export default async function PortalEventsPage() {
   const user = await getCurrentUser();
   if (!user) redirect(PORTAL_LOGIN);
 
-  const events = await listOrganiserEvents(user.id);
+  const events = await listAccessibleEvents(user.id);
   const doorStats = await Promise.all(
     events
       .filter((event) => event.status === "approved" || event.status === "cancelled")
@@ -47,7 +47,7 @@ export default async function PortalEventsPage() {
           <p className="eyebrow">Event Host</p>
           <h1>My Events</h1>
           <p className="lede muted">
-            Open the door on the night, or polish the listing before guests arrive.
+            Open the door on the night, or open the Menu to run the rest.
           </p>
         </div>
       </div>
@@ -111,7 +111,7 @@ export default async function PortalEventsPage() {
                     <span className="muted door-locked">Door unlocks when live</span>
                   )}
                   <a className="btn btn-secondary" href={portalEventHref(event.id)}>
-                    Edit
+                    Menu
                   </a>
                 </div>
               </article>

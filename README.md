@@ -39,7 +39,7 @@ Grant the first admin in the Application SQL editor using `supabase/scripts/gran
 
 ## Event Host door
 
-Hosts scan tickets in the Event Host portal: [http://localhost:3000/portal](http://localhost:3000/portal) → **My Events** → **Open Door**. Apply `supabase/migrations/20260907180000_host_ticket_scanning.sql` before using scan / guest-list RPCs. Architecture notes live in `architect/09-ux-flows/HOST_COMPANION_SCANNING.md`.
+Hosts scan tickets in the Event Host portal: [http://localhost:3000/portal](http://localhost:3000/portal) → **My Events** → event **Menu** → Door, or **Open Door** from the list. Apply `supabase/migrations/20260907180000_host_ticket_scanning.sql` and `supabase/migrations/20260908140000_event_host_menu.sql` before using scan, guest list, comps, or host event actions. Architecture notes live in `architect/09-ux-flows/HOST_COMPANION_SCANNING.md` and `architect/09-ux-flows/EVENT_HOST_MENU.md`.
 
 Run `supabase/migrations/20260826120000_profiles.sql` in the Venturo project before sign-up.
 

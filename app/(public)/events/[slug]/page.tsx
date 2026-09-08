@@ -17,7 +17,7 @@ export default async function EventDetailPage({
   searchParams,
 }: {
   params: Promise<{ slug: string }>;
-  searchParams: Promise<{ cancelled?: string }>;
+  searchParams: Promise<{ cancelled?: string; c?: string; invite?: string }>;
 }) {
   const { slug } = await params;
   const query = await searchParams;
@@ -83,14 +83,20 @@ export default async function EventDetailPage({
             {event.organiserId === user?.id ? (
               <>
                 {" "}
-                <a href={`/account/events/${event.id}`}>Open studio</a>
+                <a href={`/portal/events/${event.id}`}>Open Menu</a>
               </>
             ) : null}
           </p>
         )}
+        {event.status === "cancelled" ? (
+          <p className="error">This event is cancelled.</p>
+        ) : null}
         {query.cancelled && (
           <p className="notice">Payment cancelled — grab your spot again below.</p>
         )}
+        {query.invite && event.status === "approved" ? (
+          <p className="notice">You&apos;re invited. Tickets are below.</p>
+        ) : null}
 
         <div className="event-detail-grid">
           <article className="event-story">
@@ -150,7 +156,9 @@ export default async function EventDetailPage({
                 ? "This event is for Venturo members. Not on Paid yet? Join at checkout—membership plus your ticket in one payment."
                 : "Public tickets are open to every profile. Exclusive member tickets: join at checkout—membership plus your ticket in one payment."}
             </p>
-            {event.status !== "approved" ? (
+            {event.status === "cancelled" ? (
+              <p className="error">This event is cancelled. Tickets are closed.</p>
+            ) : event.status !== "approved" ? (
               <p className="notice">Tickets unlock once the event is approved.</p>
             ) : event.ticketTypes.length === 0 ? (
               <p className="muted">Coming soon.</p>
@@ -161,6 +169,7 @@ export default async function EventDetailPage({
                 paidMember={user?.plan === "paid"}
                 loggedIn={Boolean(user)}
                 fees={fees}
+                inviteToken={query.invite ?? ""}
               />
             )}
           </aside>
@@ -168,6 +177,7 @@ export default async function EventDetailPage({
       </section>
       <EventViewBeacon
         eventId={event.id}
+        campaignSlug={query.c}
         skip={
           event.status !== "approved" ||
           event.organiserId === user?.id ||

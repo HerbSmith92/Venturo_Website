@@ -14,9 +14,10 @@ export type DoorGuest = {
   ticketId: string;
   code: string;
   ticketTypeName: string;
-  buyerId: string;
+  buyerId: string | null;
   guestName: string | null;
   guestEmail: string | null;
+  guestPhone: string | null;
   scannedAt: string | null;
   scannedBy: string | null;
   purchasedAt: string;
@@ -67,9 +68,10 @@ function mapGuest(row: Record<string, unknown>): DoorGuest {
     ticketId: String(row.ticket_id),
     code: String(row.code),
     ticketTypeName: String(row.ticket_type_name ?? "Ticket"),
-    buyerId: String(row.buyer_id),
+    buyerId: (row.buyer_id as string | null) ?? null,
     guestName: (row.guest_name as string | null) ?? null,
     guestEmail: (row.guest_email as string | null) ?? null,
+    guestPhone: (row.guest_phone as string | null) ?? null,
     scannedAt: (row.scanned_at as string | null) ?? null,
     scannedBy: (row.scanned_by as string | null) ?? null,
     purchasedAt: String(row.purchased_at),

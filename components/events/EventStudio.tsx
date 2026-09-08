@@ -35,6 +35,7 @@ import { ticketMemberCents } from "@/lib/event-fees";
 import { PORTAL_SETTINGS_BANK, portalDoorHref } from "@/lib/portal";
 
 type TicketDraft = {
+  id?: string;
   name: string;
   kind: TicketKind;
   priceRands: string;
@@ -71,6 +72,7 @@ const emptyTicket = (kind: TicketKind = "paid"): TicketDraft => ({
 function fromEventTickets(event: VenturoEvent): TicketDraft[] {
   if (!event.ticketTypes.length) return [];
   return event.ticketTypes.map((ticket) => ({
+    id: ticket.id,
     name: ticket.name,
     kind: ticket.kind,
     priceRands: (ticket.priceCents / 100).toFixed(2),
@@ -108,6 +110,7 @@ export function EventStudio({
   commissionPct,
   bookingFeeCents,
   stay,
+  focus,
 }: {
   event: VenturoEvent;
   isStaff: boolean;
@@ -115,6 +118,7 @@ export function EventStudio({
   commissionPct: number;
   bookingFeeCents: number;
   stay?: "portal";
+  focus?: "manage" | "checkout" | "settings" | "full";
 }) {
   const [title, setTitle] = useState(event.title);
   const [description, setDescription] = useState(event.description);
@@ -151,6 +155,11 @@ export function EventStudio({
   const [pending, setPending] = useState<"save" | "live" | null>(null);
   const [uploading, setUploading] = useState<EventImageKind | null>(null);
   const [previewOpen, setPreviewOpen] = useState(false);
+  const showDetails = !focus || focus === "full" || focus === "manage";
+  const showTickets = !focus || focus === "full" || focus === "checkout";
+  const showSettings = !focus || focus === "full" || focus === "settings";
+  const showPreview = !focus || focus === "full" || focus === "manage";
+  const nested = Boolean(focus && focus !== "full");
 
   const hasPaidTickets = useMemo(
     () => tickets.some((ticket) => ticket.kind === "paid" && parseRandsToCents(ticket.priceRands) > 0),
@@ -282,6 +291,7 @@ export function EventStudio({
       showMap,
       prohibitedItems,
       ticketTypes: tickets.map((ticket) => ({
+        id: ticket.id,
         name: ticket.name,
         kind: ticket.kind,
         priceCents: ticket.kind === "free" ? 0 : parseRandsToCents(ticket.priceRands),
@@ -376,43 +386,49 @@ export function EventStudio({
 
   return (
     <div className="studio-shell">
-      <EventPageHero
-        className="studio-page-hero"
-        imageUrl={bannerUrl || null}
-        category={category || "Adventure & Thrills"}
-        title={title || "Untitled event"}
-        place={[venueName, city].filter(Boolean).join(" · ")}
-        priceLabel={
-          previewEvent.ticketTypes.length ? formatEventFromPrice(previewEvent.fromPriceCents) : null
-        }
-      />
+      {!nested ? (
+        <EventPageHero
+          className="studio-page-hero"
+          imageUrl={bannerUrl || null}
+          category={category || "Adventure & Thrills"}
+          title={title || "Untitled event"}
+          place={[venueName, city].filter(Boolean).join(" · ")}
+          priceLabel={
+            previewEvent.ticketTypes.length ? formatEventFromPrice(previewEvent.fromPriceCents) : null
+          }
+        />
+      ) : null}
 
       <header className="studio-top">
         <div className="hero-actions">
-          {event.status === "approved" && (
+          {!nested && event.status === "approved" && (
             <a className="btn btn-secondary" href={portalDoorHref(event.id)}>
               Open Door
             </a>
           )}
-          <button className="btn btn-ghost" type="button" onClick={() => setPreviewOpen(true)}>
-            Preview
-          </button>
+          {showPreview ? (
+            <button className="btn btn-ghost" type="button" onClick={() => setPreviewOpen(true)}>
+              Preview
+            </button>
+          ) : null}
           <button
             className="btn btn-secondary"
             type="button"
             disabled={pending !== null}
             onClick={() => void save("save")}
           >
-            {pending === "save" ? "Saving" : "Save Draft"}
+            {pending === "save" ? "Saving" : event.status === "approved" ? "Save" : "Save Draft"}
           </button>
-          <button
-            className="btn btn-primary"
-            type="button"
-            disabled={pending !== null}
-            onClick={() => void save("live")}
-          >
-            {pending === "live" ? "Please Wait" : isStaff ? "Go Live" : "Submit To Review"}
-          </button>
+          {event.status !== "approved" ? (
+            <button
+              className="btn btn-primary"
+              type="button"
+              disabled={pending !== null}
+              onClick={() => void save("live")}
+            >
+              {pending === "live" ? "Please Wait" : isStaff ? "Go Live" : "Submit To Review"}
+            </button>
+          ) : null}
         </div>
       </header>
 
@@ -421,6 +437,7 @@ export function EventStudio({
 
       <div className="studio-layout">
         <div className="studio-main">
+          {showDetails ? (
           <StudioSection title="Details">
             <label className="field">
               <span>Title</span>
@@ -500,6 +517,7 @@ export function EventStudio({
                   ))}
                 </select>
               </label>
+              {(!focus || focus === "full") ? (
               <label className="field">
                 <span>Page Listing</span>
                 <select
@@ -510,6 +528,7 @@ export function EventStudio({
                   <option value="private">Private — link only</option>
                 </select>
               </label>
+              ) : null}
             </div>
             <div className="studio-personas">
               <p className="eyebrow">Persona</p>
@@ -545,6 +564,7 @@ export function EventStudio({
                 onPick={pickEnergy}
               />
             </div>
+            {(!focus || focus === "full") ? (
             <label className="check">
               <input
                 type="checkbox"
@@ -553,6 +573,7 @@ export function EventStudio({
               />
               Show map on the event page
             </label>
+            ) : null}
             <p className="eyebrow" style={{ marginTop: 18 }}>
               Tags
             </p>
@@ -599,8 +620,32 @@ export function EventStudio({
               </button>
             </div>
           </StudioSection>
+          ) : null}
 
+          {showSettings ? (
           <StudioSection title="Information">
+            {focus === "settings" ? (
+              <>
+                <label className="field">
+                  <span>Page Listing</span>
+                  <select
+                    value={visibility}
+                    onChange={(event) => setVisibility(event.target.value as "public" | "private")}
+                  >
+                    <option value="public">Public</option>
+                    <option value="private">Private — link only</option>
+                  </select>
+                </label>
+                <label className="check">
+                  <input
+                    type="checkbox"
+                    checked={showMap}
+                    onChange={(event) => setShowMap(event.target.checked)}
+                  />
+                  Show map on the event page
+                </label>
+              </>
+            ) : null}
             <label className="field">
               <span>Age Requirement</span>
               <select value={ageRestriction} onChange={(event) => setAgeRestriction(event.target.value)}>
@@ -621,7 +666,9 @@ export function EventStudio({
               />
             </label>
           </StudioSection>
+          ) : null}
 
+          {showTickets ? (
           <StudioSection title="Ticket Types">
             {tickets.length === 0 && <p className="notice">Add ticket types before you go live.</p>}
             <ul className="studio-tickets">
@@ -667,7 +714,9 @@ export function EventStudio({
               )}
             </div>
           </StudioSection>
+          ) : null}
 
+          {showDetails ? (
           <StudioSection title="Appearance">
             <p className="muted">
               Event Page fills the hero above. Feed &amp; story are for What&apos;s On &amp; the app.
@@ -698,15 +747,18 @@ export function EventStudio({
               })}
             </div>
           </StudioSection>
+          ) : null}
         </div>
 
+        {showPreview ? (
         <aside className="studio-preview">
           <p className="eyebrow">Live Preview</p>
           <EventPreview event={previewEvent} />
         </aside>
+        ) : null}
       </div>
 
-      {previewOpen ? (
+      {previewOpen && showPreview ? (
         <div className="studio-modal-wrap studio-preview-modal">
           <button className="studio-modal-backdrop" type="button" onClick={() => setPreviewOpen(false)} />
           <div className="studio-preview-sheet">

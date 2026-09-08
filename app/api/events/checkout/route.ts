@@ -17,6 +17,8 @@ export async function POST(request: Request) {
   const body = (await request.json()) as {
     eventSlug?: string;
     lines?: { ticketTypeId: string; quantity: number }[];
+    promoCode?: string;
+    inviteToken?: string;
   };
 
   if (!body.eventSlug || !body.lines?.length) {
@@ -33,6 +35,8 @@ export async function POST(request: Request) {
       lines: body.lines,
       paidMember: user.plan === "paid",
       origin,
+      promoCode: body.promoCode,
+      inviteToken: body.inviteToken,
     });
 
     if (order.free) {

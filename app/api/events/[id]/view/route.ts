@@ -7,7 +7,7 @@ import { createClient } from "@/lib/supabase/server";
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
 export async function POST(
-  _request: Request,
+  request: Request,
   { params }: { params: Promise<{ id: string }> },
 ) {
   const { id } = await params;
@@ -49,6 +49,35 @@ export async function POST(
     { event_id: id, day, views },
     { onConflict: "event_id,day" },
   );
+
+  const campaignSlug = new URL(request.url).searchParams.get("c")?.trim();
+  if (campaignSlug) {
+    const { data: campaign } = await admin
+      .from("event_campaigns")
+      .select("id, visits, unique_visits")
+      .eq("event_id", id)
+      .eq("slug", campaignSlug)
+      .maybeSingle();
+    if (campaign) {
+      const nextVisits = (Number(campaign.visits) || 0) + 1;
+      const nextUnique = (Number(campaign.unique_visits) || 0) + 1;
+      await admin
+        .from("event_campaigns")
+        .update({ visits: nextVisits, unique_visits: nextUnique })
+        .eq("id", campaign.id);
+
+      const { data: hit } = await admin
+        .from("event_campaign_hits")
+        .select("views")
+        .eq("campaign_id", campaign.id)
+        .eq("day", day)
+        .maybeSingle();
+      await admin.from("event_campaign_hits").upsert(
+        { campaign_id: campaign.id, day, views: (hit?.views ?? 0) + 1 },
+        { onConflict: "campaign_id,day" },
+      );
+    }
+  }
 
   return new NextResponse(null, { status: 204 });
 }
