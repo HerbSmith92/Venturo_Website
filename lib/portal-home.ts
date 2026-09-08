@@ -1,4 +1,4 @@
-import { listOrganiserEvents } from "@/lib/events";
+import { listAccessibleEvents } from "@/lib/events";
 import { PORTAL_SANDBOX_DAYS, PORTAL_SANDBOX_SLUG } from "@/lib/portal-sandbox";
 import { createClient } from "@/lib/supabase/server";
 import type { VenturoEvent } from "@/lib/event-types";
@@ -170,7 +170,7 @@ export async function getPortalHome(
   range: PortalRange,
 ): Promise<PortalHomeData> {
   const window = rangeWindow(range);
-  const allEvents = await listOrganiserEvents(organiserId);
+  const allEvents = await listAccessibleEvents(organiserId);
   const active = allEvents
     .filter((event) => isActiveEvent(event))
     .sort((a, b) => {

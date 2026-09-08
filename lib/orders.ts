@@ -35,6 +35,8 @@ export async function createTicketOrder(input: {
   lines: CheckoutLine[];
   paidMember: boolean;
   origin: string;
+  promoCode?: string;
+  inviteToken?: string;
 }): Promise<TicketOrderResult> {
   const supabase = await createClient();
   if (!supabase) throw new Error("Supabase is not connected.");
@@ -90,8 +92,53 @@ export async function createTicketOrder(input: {
   );
   const commission = share.commission;
   const bookingFee = share.booking;
-  const total = share.total;
+  let total = share.total;
+  let promoCodeId: string | null = null;
+  const code = (input.promoCode ?? "").trim().toUpperCase();
+  if (code) {
+    try {
+      const { data: promo } = await supabase
+        .from("event_promo_codes")
+        .select("id, kind, value")
+        .eq("event_id", event.id)
+        .eq("code", code)
+        .maybeSingle();
+      if (!promo) throw new Error("That promo code is not on this event.");
+      promoCodeId = promo.id;
+      if (promo.kind === "percent") {
+        const pct = Number(promo.value) || 0;
+        total = Math.max(0, Math.round(total * (1 - pct / 100)));
+      } else if (promo.kind === "amount") {
+        const off = Math.round((Number(promo.value) || 0) * 100);
+        total = Math.max(0, total - off);
+      }
+    } catch (caught) {
+      if (caught instanceof Error && caught.message.includes("promo code")) throw caught;
+      // Table may not be applied yet.
+    }
+  }
   const mPaymentId = `evt_${randomUUID().replace(/-/g, "").slice(0, 24)}`;
+  let inviteId: string | null = null;
+  const inviteToken = (input.inviteToken ?? "").trim();
+  if (inviteToken) {
+    const admin = createServiceClient();
+    if (admin) {
+      const { data: invite } = await admin
+        .from("event_invites")
+        .select("id, event_id, status, complimentary, kind")
+        .eq("token", inviteToken)
+        .maybeSingle();
+      if (
+        invite &&
+        invite.event_id === event.id &&
+        !invite.complimentary &&
+        invite.kind !== "rsvp" &&
+        (invite.status === "pending" || invite.status === "opened")
+      ) {
+        inviteId = invite.id as string;
+      }
+    }
+  }
 
   const { data: order, error } = await supabase
     .from("event_orders")
@@ -107,6 +154,8 @@ export async function createTicketOrder(input: {
       used_member_pricing: priceAsMember,
       m_payment_id: mPaymentId,
       payout_status: total > 0 ? "pending" : "waived",
+      promo_code_id: promoCodeId,
+      invite_id: inviteId,
     })
     .select("id, m_payment_id, total_cents")
     .single();
@@ -168,7 +217,7 @@ export async function listBuyerTickets(userId: string) {
     .select(
       `
       id, code, created_at, event_id,
-      events ( id, slug, title, starts_at, timezone, venue_name, city ),
+      events ( id, slug, title, starts_at, timezone, venue_name, city, status ),
       event_ticket_types ( id, name )
     `,
     )

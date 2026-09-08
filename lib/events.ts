@@ -264,6 +264,33 @@ export async function getEventById(id: string): Promise<VenturoEvent | null> {
   return mapEvent(data as EventRow);
 }
 
+export async function listAccessibleEvents(userId: string): Promise<VenturoEvent[]> {
+  const own = await listOrganiserEvents(userId);
+  const supabase = await createClient();
+  if (!supabase) return own;
+  try {
+    const { data } = await supabase
+      .from("event_collaborators")
+      .select("event_id")
+      .eq("user_id", userId);
+    const extraIds = [...new Set((data ?? []).map((row) => row.event_id as string))].filter(
+      (id) => !own.some((event) => event.id === id),
+    );
+    if (!extraIds.length) return own;
+    const extras = (
+      await Promise.all(extraIds.map((id) => getEventById(id)))
+    ).filter((event): event is VenturoEvent => Boolean(event));
+    return [...own, ...extras].sort((a, b) => {
+      if (!a.startsAt && !b.startsAt) return 0;
+      if (!a.startsAt) return 1;
+      if (!b.startsAt) return -1;
+      return new Date(b.startsAt).getTime() - new Date(a.startsAt).getTime();
+    });
+  } catch {
+    return own;
+  }
+}
+
 export async function listOrganiserEvents(userId: string): Promise<VenturoEvent[]> {
   const supabase = await createClient();
   if (!supabase) return [];
@@ -336,6 +363,7 @@ export type CreateEventInput = {
   parking?: string;
   prohibitedItems?: string;
   ticketTypes?: {
+    id?: string;
     name: string;
     kind: TicketKind;
     priceCents: number;
@@ -468,9 +496,50 @@ export async function saveEventDraft(
     .eq("id", eventId)
     .maybeSingle();
   if (loadError || !existing) throw new Error("Event not found.");
-  if (!staff && existing.organiser_id !== userId) throw new Error("Not allowed.");
-  if (!staff && !["draft", "review", "rejected"].includes(existing.status)) {
-    throw new Error("This event is locked. Ask Control Room if you need a change.");
+  if (!staff && existing.organiser_id !== userId) {
+    const { data: collab } = await supabase
+      .from("event_collaborators")
+      .select("access")
+      .eq("event_id", eventId)
+      .eq("user_id", userId)
+      .eq("access", "editor")
+      .maybeSingle();
+    if (!collab) throw new Error("Not allowed.");
+  }
+  const live = !["draft", "review", "rejected"].includes(existing.status as string);
+  if (!staff && live) {
+    const { error: rpcError } = await supabase.rpc("host_update_live_event", {
+      p_event_id: eventId,
+      p_payload: {
+        title: input.title.trim(),
+        description: input.description.trim(),
+        age_restriction: input.ageRestriction || null,
+        audience_gender: input.audienceGender || "Everyone",
+        format: input.format || null,
+        category: input.category || null,
+        tags: input.tags ?? [],
+        banner_url: input.bannerUrl || null,
+        listing_image_url: input.listingImageUrl || null,
+        story_image_url: input.storyImageUrl || null,
+        starts_at: input.startsAt || null,
+        ends_at: input.endsAt || null,
+        timezone: input.timezone || "Africa/Johannesburg",
+        venue_name: (input.venueName ?? "").trim(),
+        address_line1: input.addressLine1 || null,
+        address_line2: input.addressLine2 || null,
+        city: input.city || null,
+        postal_code: input.postalCode || null,
+        country: (input.country || "South Africa").trim(),
+        latitude: input.latitude ?? null,
+        longitude: input.longitude ?? null,
+        show_map: Boolean(input.showMap),
+        visibility: input.visibility || "public",
+        prohibited_items: input.prohibitedItems?.trim() || null,
+        ticket_types: input.ticketTypes ?? null,
+      },
+    });
+    if (rpcError) throw new Error(rpcError.message);
+    return { id: existing.id as string, slug: existing.slug as string };
   }
 
   const { error: updateError } = await supabase
