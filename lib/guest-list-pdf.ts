@@ -154,7 +154,9 @@ export function buildGuestListPdf({
 }
 
 export function downloadGuestListPdf(filename: string, bytes: Uint8Array) {
-  const blob = new Blob([bytes], { type: "application/pdf" });
+  const copy = new ArrayBuffer(bytes.byteLength);
+  new Uint8Array(copy).set(bytes);
+  const blob = new Blob([copy], { type: "application/pdf" });
   const url = URL.createObjectURL(blob);
   const link = document.createElement("a");
   link.href = url;
