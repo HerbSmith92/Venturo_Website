@@ -2,12 +2,23 @@ import type { Metadata } from "next";
 import { EventCard } from "@/components/EventCard";
 import { getCurrentUser } from "@/lib/auth";
 import { EVENT_CATEGORIES, listPublicEvents } from "@/lib/events";
+import { eventCategoryChipInk, eventCategoryColour } from "@/lib/event-style";
+import { COLORS } from "@/lib/brand";
 import { EVENT_HOST } from "@/lib/portal";
 
 export const metadata: Metadata = {
   title: "What's On · Venturo",
   description: "Upcoming Venturo adventures near you.",
 };
+
+function chipStyle(fill: string, active: boolean) {
+  return {
+    background: fill,
+    color: eventCategoryChipInk(fill),
+    outline: active ? `2px solid ${COLORS.canary}` : "none",
+    outlineOffset: "2px",
+  };
+}
 
 export default async function EventsPage({
   searchParams,
@@ -50,19 +61,30 @@ export default async function EventsPage({
           </div>
         </div>
 
-        <div className="chips" style={{ marginBottom: 28 }}>
-          <a className={`chip${category === "all" ? " active" : ""}`} href="/events">
+        <div className="chips events-interest-chips" style={{ marginBottom: 28 }} role="list">
+          <a
+            className={`chip chip-light${category === "all" ? " active" : ""}`}
+            href="/events"
+            aria-current={category === "all" ? "page" : undefined}
+            style={chipStyle(COLORS.sapphire, category === "all")}
+          >
             All
           </a>
-          {EVENT_CATEGORIES.map((item) => (
-            <a
-              key={item}
-              className={`chip${category === item ? " active" : ""}`}
-              href={`/events?category=${encodeURIComponent(item)}`}
-            >
-              {item}
-            </a>
-          ))}
+          {EVENT_CATEGORIES.map((item) => {
+            const fill = eventCategoryColour(item);
+            const on = category === item;
+            return (
+              <a
+                key={item}
+                className={`chip chip-light${on ? " active" : ""}`}
+                href={`/events?category=${encodeURIComponent(item)}`}
+                aria-current={on ? "page" : undefined}
+                style={chipStyle(fill, on)}
+              >
+                {item}
+              </a>
+            );
+          })}
         </div>
 
         {events.length === 0 ? (
