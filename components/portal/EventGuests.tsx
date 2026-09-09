@@ -3,9 +3,10 @@
 import { useMemo, useState } from "react";
 import type { EventInvite } from "@/lib/event-marketing";
 import { invitePublicUrl } from "@/lib/event-links";
+import { buildGuestListPdf, downloadGuestListPdf } from "@/lib/guest-list-pdf";
 import { portalDoorHref } from "@/lib/portal";
 import type { DoorGuest } from "@/lib/host-scanning";
-import type { VenturoEvent } from "@/lib/event-types";
+import { formatEventWindow, type VenturoEvent } from "@/lib/event-types";
 
 export function EventGuests({
   event,
@@ -88,6 +89,29 @@ export function EventGuests({
     }
   }
 
+  function exportPdf() {
+    setError(null);
+    try {
+      const bytes = buildGuestListPdf({
+        title: event.title,
+        when: formatEventWindow(event.startsAt, event.endsAt, event.timezone),
+        place: [event.venueName, event.city].filter(Boolean).join(" · "),
+        filter: filter === "all" ? "All" : filter,
+        rows: filtered.map((guest) => ({
+          name: guest.guestName || "—",
+          phone: guest.guestPhone || "—",
+          email: guest.guestEmail || "—",
+          ticket: guest.ticketTypeName,
+          door: guest.isScanned ? "Scanned" : "Still to come",
+        })),
+      });
+      downloadGuestListPdf(`${event.slug}-guest-list`, bytes);
+      setNotice("PDF downloaded. Open it to print if you need a paper copy.");
+    } catch {
+      setError("Could not export that PDF.");
+    }
+  }
+
   const origin = typeof window === "undefined" ? "" : window.location.origin;
 
   return (
@@ -100,8 +124,8 @@ export function EventGuests({
         <a className="btn btn-primary" href={portalDoorHref(event.id)}>
           Open Door
         </a>
-        <button className="btn btn-secondary" type="button" onClick={() => window.print()}>
-          Print List
+        <button className="btn btn-secondary" type="button" onClick={() => exportPdf()}>
+          Export PDF
         </button>
         <label className="field">
           <span>Filtered Tickets</span>
