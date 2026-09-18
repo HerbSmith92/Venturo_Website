@@ -1,16 +1,23 @@
 import { AccountNav } from "@/components/AccountNav";
 import { HostEventsHeader } from "@/components/events/HostEventsHeader";
+import { EventCard } from "@/components/EventCard";
 import { getCurrentUser } from "@/lib/auth";
 import {
-  eventFeedImage,
   formatCents,
-  formatEventWindow,
   getOrganiserSalesSummary,
   listOrganiserEvents,
 } from "@/lib/events";
-import { portalDoorHref } from "@/lib/portal";
+import { companionEventHref } from "@/lib/companion";
 import { createClient } from "@/lib/supabase/server";
 import { redirect } from "next/navigation";
+
+function statusLabel(status: string) {
+  if (status === "approved") return "Live";
+  if (status === "review") return "In Review";
+  if (status === "draft") return "Draft";
+  if (status === "cancelled") return "Cancelled";
+  return status;
+}
 
 export default async function MyEventsPage({
   searchParams,
@@ -112,23 +119,21 @@ export default async function MyEventsPage({
           <div className="host-event-list">
             {filtered.map((event) => (
               <article key={event.id} className="host-event-card">
-                <a className="host-event-row" href={`/account/events/${event.id}`}>
-                  {/* eslint-disable-next-line @next/next/no-img-element */}
-                  <img src={eventFeedImage(event)} alt="" />
-                  <div>
-                    <h2>{event.title}</h2>
-                    <p className="muted">
-                      {formatEventWindow(event.startsAt, event.endsAt, event.timezone)}
-                      {event.venueName ? ` · ${event.venueName}` : ""}
-                    </p>
-                  </div>
-                  <span className={`status-pill ${event.status}`}>
-                    {event.status === "approved" ? "live" : event.status}
-                  </span>
-                </a>
+                <EventCard
+                  event={event}
+                  href={`/account/events/${event.id}`}
+                  showMemberPrice
+                    imageBadge={
+                    event.status !== "approved" ? (
+                      <span className={`card-status-badge ${event.status}`}>
+                        {statusLabel(event.status)}
+                      </span>
+                    ) : undefined
+                  }
+                />
                 {event.status === "approved" && (
                   <div className="host-event-actions">
-                    <a className="btn btn-primary" href={portalDoorHref(event.id)}>
+                    <a className="btn btn-primary" href={companionEventHref(event.id)}>
                       Open Door
                     </a>
                   </div>

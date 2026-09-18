@@ -81,9 +81,13 @@ export type ListingDetail = QueueListing & {
   street_address_2: string | null;
   province: string | null;
   postal_code: string | null;
+  latitude: number | string | null;
+  longitude: number | string | null;
+  maps_url: string | null;
   booking_required: boolean;
   indoor_outdoor: string | null;
   google_rating: number | string | null;
+  google_review_count: number | string | null;
   authorised_to_submit: boolean;
   image_rights_granted: boolean;
   published_at: string | null;

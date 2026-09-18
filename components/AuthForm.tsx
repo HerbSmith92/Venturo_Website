@@ -30,7 +30,7 @@ export function AuthForm({
   configured: boolean;
   next?: string;
   initialError?: string | null;
-  surface?: "site" | "portal";
+  surface?: "site" | "portal" | "companion";
 }) {
   const [step, setStep] = useState<Step>("methods");
   const [email, setEmail] = useState("");
@@ -40,30 +40,39 @@ export function AuthForm({
   const [oauthPending, setOauthPending] = useState<OAuthProvider | null>(null);
 
   const heading = useMemo(() => {
+    if (surface === "companion") return "Log In To Companion";
     if (surface === "portal") return mode === "login" ? "Log In To Event Host" : "Join As A Host";
     return mode === "login" ? "Log In" : "Sign Up Free";
   }, [mode, surface]);
 
   const eyebrow =
-    surface === "portal"
-      ? "Event Host"
-      : mode === "login"
-        ? "Welcome Back"
-        : "Create A Profile";
+    surface === "companion"
+      ? null
+      : surface === "portal"
+        ? "Event Host"
+        : mode === "login"
+          ? "Welcome Back"
+          : "Create A Profile";
 
   const lede =
-    surface === "portal"
-      ? mode === "login"
-        ? "Same Venturo account. Event Host is just for hosting & tickets."
-        : "Use the same email as the Venturo site & app. Then you land in Event Host—not the public site."
-      : mode === "login"
-        ? "Pick how you want to get in. Same account across the website & the Venturo app."
-        : "Pick how you want to join. Free lets you book event tickets — same email as the Venturo app.";
+    surface === "companion"
+      ? "Same Venturo account as Event Host. Pull the guest list onto this phone, then scan at the door."
+      : surface === "portal"
+        ? mode === "login"
+          ? "Same Venturo account. Event Host is just for hosting & tickets."
+          : "Use the same email as the Venturo site & app. Then you land in Event Host—not the public site."
+        : mode === "login"
+          ? "Pick how you want to get in. Same account across the website & the Venturo app."
+          : "Pick how you want to join. Free lets you book event tickets — same email as the Venturo app.";
 
   const loginHref =
-    surface === "portal" ? "/portal/login" : `/login?next=${encodeURIComponent(next)}`;
+    surface === "companion"
+      ? "/companion/login"
+      : surface === "portal"
+        ? "/portal/login"
+        : `/login?next=${encodeURIComponent(next)}`;
   const signupHref =
-    surface === "portal"
+    surface === "companion" || surface === "portal"
       ? "/portal/login?join=1"
       : `/signup?next=${encodeURIComponent(next)}`;
 
@@ -212,7 +221,7 @@ export function AuthForm({
   if (step === "email") {
     return (
       <form key="auth-email" className="auth-card" onSubmit={startWithEmail}>
-        <p className="eyebrow">{eyebrow}</p>
+        {eyebrow ? <p className="eyebrow">{eyebrow}</p> : null}
         <h1>{heading}</h1>
         <p className="lede muted">
           {mode === "login"
@@ -257,7 +266,8 @@ export function AuthForm({
               setError(null);
             }}
           >
-            Other ways to {mode === "login" ? "log in" : surface === "portal" ? "join" : "sign up"}
+            Other ways to{" "}
+            {mode === "login" ? "log in" : surface === "portal" || surface === "companion" ? "join" : "sign up"}
           </button>
         </p>
       </form>
@@ -266,7 +276,7 @@ export function AuthForm({
 
   return (
     <div key="auth-methods" className="auth-card">
-      <p className="eyebrow">{eyebrow}</p>
+      {eyebrow ? <p className="eyebrow">{eyebrow}</p> : null}
       <h1>{heading}</h1>
       <p className="lede muted">{lede}</p>
       {!configured && (
@@ -301,7 +311,9 @@ export function AuthForm({
         {mode === "login" ? (
           <>
             Need an account?{" "}
-            <a href={signupHref}>{surface === "portal" ? "Join As A Host" : "Sign Up"}</a>
+            <a href={signupHref}>
+              {surface === "portal" || surface === "companion" ? "Join As A Host" : "Sign Up"}
+            </a>
           </>
         ) : (
           <>

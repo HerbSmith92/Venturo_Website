@@ -1,6 +1,7 @@
 import { createServerClient } from "@supabase/ssr";
 import { NextResponse, type NextRequest } from "next/server";
 import { isSupabaseConfigured } from "@/lib/env";
+import { COMPANION_HOME, COMPANION_LOGIN, isCompanionPath } from "@/lib/companion";
 import { isPortalPath, EVENT_HOST, PORTAL_HOME, PORTAL_LOGIN } from "@/lib/portal";
 import { roleFromClaims } from "@/lib/roles";
 
@@ -66,6 +67,14 @@ export async function updateSession(request: NextRequest) {
   }
   if (isPortalLogin && signedIn) {
     return NextResponse.redirect(new URL(PORTAL_HOME, request.url));
+  }
+
+  const isCompanionLogin = path === COMPANION_LOGIN;
+  if (isCompanionPath(path) && !isCompanionLogin && !signedIn) {
+    return NextResponse.redirect(new URL(COMPANION_LOGIN, request.url));
+  }
+  if (isCompanionLogin && signedIn) {
+    return NextResponse.redirect(new URL(COMPANION_HOME, request.url));
   }
 
   return response;

@@ -32,7 +32,8 @@ import {
   type VenturoEvent,
 } from "@/lib/event-types";
 import { ticketMemberCents } from "@/lib/event-fees";
-import { PORTAL_SETTINGS_BANK, portalDoorHref } from "@/lib/portal";
+import { companionEventHref } from "@/lib/companion";
+import { PORTAL_SETTINGS_BANK } from "@/lib/portal";
 
 type TicketDraft = {
   id?: string;
@@ -402,7 +403,7 @@ export function EventStudio({
       <header className="studio-top">
         <div className="hero-actions">
           {!nested && event.status === "approved" && (
-            <a className="btn btn-secondary" href={portalDoorHref(event.id)}>
+            <a className="btn btn-secondary" href={companionEventHref(event.id)}>
               Open Door
             </a>
           )}

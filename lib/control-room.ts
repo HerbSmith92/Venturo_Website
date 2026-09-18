@@ -72,7 +72,8 @@ export async function loadListing(id: string): Promise<ListingDetail | null> {
       id, business_id, name, branch_name, slug, suburb, city, status, is_featured, price_from, updated_at,
       short_description, description, phone, email, website_url, booking_url,
       street_address_1, street_address_2, province, postal_code,
-      booking_required, indoor_outdoor, google_rating,
+      latitude, longitude, maps_url,
+      booking_required, indoor_outdoor, google_rating, google_review_count,
       authorised_to_submit, image_rights_granted,
       published_at, last_verified_at,
       businesses ( id, name, slug, status, description, website_url ),
@@ -123,15 +124,43 @@ export async function loadEditorBranches(businessId: string) {
   if (!supabase) return [];
   const { data } = await supabase
     .from("directory_listings")
-    .select("id, name, branch_name, status")
+    .select(
+      "id, name, branch_name, status, suburb, city, price_from, listing_media ( public_url, is_cover, sort_order )",
+    )
     .eq("business_id", businessId)
     .order("name");
-  return (data ?? []) as {
+
+  type BranchRow = {
     id: string;
     name: string;
     branch_name: string | null;
     status: ListingStatus;
-  }[];
+    suburb: string | null;
+    city: string | null;
+    price_from: number | string | null;
+    listing_media?: {
+      public_url: string | null;
+      is_cover: boolean | null;
+      sort_order: number | null;
+    }[];
+  };
+
+  return ((data ?? []) as BranchRow[]).map((row) => {
+    const media = [...(row.listing_media ?? [])].sort((a, b) => {
+      if (a.is_cover !== b.is_cover) return a.is_cover ? -1 : 1;
+      return (a.sort_order ?? 0) - (b.sort_order ?? 0);
+    });
+    return {
+      id: row.id,
+      name: row.name,
+      branch_name: row.branch_name,
+      status: row.status,
+      suburb: row.suburb,
+      city: row.city,
+      price_from: row.price_from,
+      cover_url: media.find((item) => item.public_url)?.public_url ?? null,
+    };
+  });
 }
 
 export async function loadEditorCatalog() {

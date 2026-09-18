@@ -1,16 +1,13 @@
 import { CreateEventPrompt } from "@/components/portal/CreateEventPrompt";
+import { EventCard } from "@/components/EventCard";
 import { getCurrentUser } from "@/lib/auth";
-import {
-  eventFeedImage,
-  formatEventWindow,
-  listAccessibleEvents,
-} from "@/lib/events";
+import { listAccessibleEvents } from "@/lib/events";
 import { getEventDoorStats } from "@/lib/host-scanning";
 import {
   PORTAL_LOGIN,
-  portalDoorHref,
   portalEventHref,
 } from "@/lib/portal";
+import { companionEventHref } from "@/lib/companion";
 import { redirect } from "next/navigation";
 
 function statusLabel(status: string) {
@@ -61,50 +58,32 @@ export default async function PortalEventsPage() {
       ) : (
         <div className="host-event-list">
           {events.map((event) => {
-            const image = eventFeedImage(event);
             const stats = statsById.get(event.id);
             const canDoor = event.status === "approved" || event.status === "cancelled";
-            const when = formatEventWindow(
-              event.startsAt,
-              event.endsAt,
-              event.timezone,
-            );
             return (
               <article key={event.id} className="host-event-card">
-                <a
-                  className="host-event-row portal-my-event-row"
+                <EventCard
+                  event={event}
                   href={portalEventHref(event.id)}
+                  showMemberPrice
+                  imageBadge={
+                    event.status !== "approved" ? (
+                      <span className={`card-status-badge ${event.status}`}>
+                        {statusLabel(event.status)}
+                      </span>
+                    ) : undefined
+                  }
                 >
-                  {image ? (
-                    // eslint-disable-next-line @next/next/no-img-element
-                    <img src={image} alt="" />
-                  ) : (
-                    <span className="portal-my-event-ph" aria-hidden="true" />
-                  )}
-                  <div>
-                    <span className={`status-pill ${event.status}`}>
-                      {statusLabel(event.status)}
-                    </span>
-                    <h2>{event.title}</h2>
-                    <p className="muted">
-                      {when}
-                      {event.venueName
-                        ? ` · ${event.venueName}`
-                        : event.city
-                          ? ` · ${event.city}`
-                          : ""}
+                  {stats ? (
+                    <p className="card-meta">
+                      {stats.scannedGuests} scanned · {stats.remainingGuests} still to come ·{" "}
+                      {stats.totalGuests} on the list
                     </p>
-                    {stats && (
-                      <p className="muted">
-                        {stats.scannedGuests} scanned · {stats.remainingGuests} still to come ·{" "}
-                        {stats.totalGuests} on the list
-                      </p>
-                    )}
-                  </div>
-                </a>
+                  ) : null}
+                </EventCard>
                 <div className="host-event-actions">
                   {canDoor ? (
-                    <a className="btn btn-primary" href={portalDoorHref(event.id)}>
+                    <a className="btn btn-primary" href={companionEventHref(event.id)}>
                       Open Door
                     </a>
                   ) : (

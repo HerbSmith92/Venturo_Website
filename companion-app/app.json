@@ -1,0 +1,66 @@
+{
+  "expo": {
+    "name": "Venturo Companion",
+    "slug": "venturo-companion",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "icon": "./assets/images/icon.png",
+    "scheme": "venturo-companion",
+    "userInterfaceStyle": "dark",
+    "primaryColor": "#2A2D35",
+    "ios": {
+      "supportsTablet": true,
+      "bundleIdentifier": "za.co.venturo.companion",
+      "buildNumber": "1",
+      "infoPlist": {
+        "NSCameraUsageDescription": "Venturo Companion uses the camera to scan ticket QR codes from phones & printed tickets at the door."
+      },
+      "privacyManifests": {
+        "NSPrivacyAccessedAPITypes": [
+          {
+            "NSPrivacyAccessedAPIType": "NSPrivacyAccessedAPICategoryUserDefaults",
+            "NSPrivacyAccessedAPITypeReasons": ["CA92.1"]
+          }
+        ]
+      }
+    },
+    "android": {
+      "package": "za.co.venturo.companion",
+      "versionCode": 1,
+      "adaptiveIcon": {
+        "backgroundColor": "#2A2D35",
+        "foregroundImage": "./assets/images/icon.png"
+      },
+      "permissions": ["CAMERA"],
+      "predictiveBackGestureEnabled": false
+    },
+    "web": {
+      "output": "single",
+      "favicon": "./assets/images/icon.png"
+    },
+    "plugins": [
+      "expo-router",
+      "expo-secure-store",
+      "expo-font",
+      [
+        "expo-camera",
+        {
+          "cameraPermission": "Venturo Companion uses the camera to scan ticket QR codes from phones & printed tickets at the door.",
+          "recordAudioAndroid": false
+        }
+      ],
+      [
+        "expo-splash-screen",
+        {
+          "backgroundColor": "#2A2D35",
+          "image": "./assets/images/logo-stacked-dark.png",
+          "imageWidth": 200
+        }
+      ],
+      "./plugins/with-disable-user-script-sandboxing.js"
+    ],
+    "experiments": {
+      "typedRoutes": true
+    }
+  }
+}

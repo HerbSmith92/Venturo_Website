@@ -84,6 +84,9 @@ export type ListingDraft = {
   city: string;
   province: string;
   postal_code: string;
+  latitude: string;
+  longitude: string;
+  maps_url: string;
   booking_required: boolean;
   indoor_outdoor: "" | "indoor" | "outdoor" | "both";
   business_name: string;
@@ -114,6 +117,10 @@ export type EditorBranch = {
   name: string;
   branch_name: string | null;
   status: ListingStatus;
+  suburb?: string | null;
+  city?: string | null;
+  price_from?: number | string | null;
+  cover_url?: string | null;
 };
 
 export type StepKey =
@@ -126,12 +133,12 @@ export type StepKey =
   | "review";
 
 export const EDITOR_STEPS: { key: StepKey; label: string; number: number }[] = [
-  { key: "contact", label: "Your Contact", number: 1 },
-  { key: "business", label: "The Business", number: 2 },
-  { key: "hours", label: "Branch & Hours", number: 3 },
-  { key: "prices", label: "Activities & Pricing", number: 4 },
-  { key: "audience", label: "Who It's For", number: 5 },
-  { key: "photos", label: "Branch Photos", number: 6 },
+  { key: "contact", label: "Social & Contact", number: 1 },
+  { key: "business", label: "The Listing", number: 2 },
+  { key: "hours", label: "Hours & Map", number: 3 },
+  { key: "prices", label: "Cost", number: 4 },
+  { key: "audience", label: "Chips & Who It's For", number: 5 },
+  { key: "photos", label: "Photos", number: 6 },
   { key: "review", label: "Permission & Review", number: 7 },
 ];
 
@@ -241,7 +248,7 @@ function asPriceCategory(value: string | null | undefined): PriceCategory {
 }
 
 export function emptyHours(): DraftHour[] {
-  return [1, 2, 3, 4, 5, 6, 7].map((day) => ({
+  return [1, 2, 3, 4, 5, 6, 7, 8].map((day) => ({
     day_of_week: day,
     opens_at: "",
     closes_at: "",
@@ -403,10 +410,9 @@ export function listingToDraft(listing: ListingDetail): ListingDraft {
       (a, b) => Number(Boolean(b.is_primary)) - Number(Boolean(a.is_primary)),
     )[0]?.activity_scale_id ?? "";
 
-  const primaryKind =
-    [...(listing.listing_activity_kinds ?? [])].sort(
-      (a, b) => Number(Boolean(b.is_primary)) - Number(Boolean(a.is_primary)),
-    )[0]?.activity_kind_id ?? "";
+  const kindIds = [...(listing.listing_activity_kinds ?? [])]
+    .sort((a, b) => Number(Boolean(b.is_primary)) - Number(Boolean(a.is_primary)))
+    .map((row) => row.activity_kind_id);
 
   return {
     name: listing.name,
@@ -423,6 +429,9 @@ export function listingToDraft(listing: ListingDetail): ListingDraft {
     city: asText(listing.city),
     province: asText(listing.province),
     postal_code: asText(listing.postal_code),
+    latitude: asText(listing.latitude != null ? String(listing.latitude) : ""),
+    longitude: asText(listing.longitude != null ? String(listing.longitude) : ""),
+    maps_url: asText(listing.maps_url),
     booking_required: Boolean(listing.booking_required),
     indoor_outdoor: (listing.indoor_outdoor as ListingDraft["indoor_outdoor"]) || "",
     business_name: asText(biz?.name),
@@ -439,7 +448,7 @@ export function listingToDraft(listing: ListingDetail): ListingDraft {
     persona_ids: (listing.listing_personas ?? []).map((row) => row.persona_id),
     interest_ids: (listing.listing_interests ?? []).map((row) => row.interest_id),
     scale_id: primaryScale,
-    kind_ids: primaryKind ? [primaryKind] : [],
+    kind_ids: kindIds,
     cover_media_id: cover,
     authorised_to_submit: Boolean(listing.authorised_to_submit),
     image_rights_granted: Boolean(listing.image_rights_granted),
@@ -457,7 +466,7 @@ export function stepComplete(draft: ListingDraft, key: StepKey) {
       return Boolean(draft.email.trim() || draft.phone.trim());
     case "business":
       return Boolean(
-        draft.business_name.trim() && draft.name.trim() && draft.short_description.trim(),
+        draft.business_name.trim() && draft.name.trim() && draft.description.trim(),
       );
     case "hours": {
       const place = draft.street_address_1.trim() || draft.city.trim();
@@ -534,6 +543,9 @@ export function draftToPayload(draft: ListingDraft) {
       city: draft.city,
       province: draft.province,
       postal_code: draft.postal_code,
+      latitude: draft.latitude,
+      longitude: draft.longitude,
+      maps_url: draft.maps_url,
       booking_required: draft.booking_required,
       indoor_outdoor: draft.indoor_outdoor || null,
     },
@@ -586,7 +598,7 @@ export function draftToPayload(draft: ListingDraft) {
     persona_ids: draft.persona_ids,
     interest_ids: draft.interest_ids,
     scale_ids: draft.scale_id ? [draft.scale_id] : [],
-    kind_ids: draft.kind_ids.slice(0, 1),
+    kind_ids: draft.kind_ids.slice(0, 3),
     social: draft.social.map((row) => ({
       platform: row.platform,
       handle: row.handle,
@@ -599,36 +611,67 @@ export function previewHours(draft: ListingDraft) {
   return draft.hours.map((row) => ({
     day: formatDay(row.day_of_week),
     hours: formatHours(row.opens_at || null, row.closes_at || null, row.is_closed),
+    closed: row.is_closed,
   }));
 }
 
-export function previewPrices(draft: ListingDraft, limit = 4) {
+export function priceUnitLabel(applies: PriceAppliesTo | string) {
+  if (applies === "person") return "p.p";
+  if (applies === "adult") return "adult";
+  if (applies === "child") return "child";
+  if (applies === "pensioner") return "pensioner";
+  if (applies === "group") return "group";
+  if (applies === "hour") return "/hr";
+  if (applies === "item") return "";
+  return "";
+}
+
+export function formatAppPrice(value: number | null, unit: string, free = false) {
+  if (free || value === 0) return "Free";
+  if (value === null) return "—";
+  const amount = formatRand(value);
+  return unit ? `${amount} ${unit}` : amount;
+}
+
+export function indoorOutdoorChips(value: ListingDraft["indoor_outdoor"]) {
+  if (value === "indoor") return ["Indoor"];
+  if (value === "outdoor") return ["Outdoor"];
+  if (value === "both") return ["Indoor", "Outdoor"];
+  return [];
+}
+
+export function previewChips(draft: ListingDraft, catalog: EditorCatalog) {
+  const kinds = catalog.kinds
+    .filter((kind) => draft.kind_ids.includes(kind.id))
+    .sort((a, b) => draft.kind_ids.indexOf(a.id) - draft.kind_ids.indexOf(b.id))
+    .map((kind) => kind.title);
+  return [...kinds, ...indoorOutdoorChips(draft.indoor_outdoor)];
+}
+
+export function previewPrices(draft: ListingDraft, limit = 8) {
   const rows: {
     name: string;
     standard: number | null;
     member: number | null;
-    inclusions: string;
-    save: number | null;
+    unit: string;
+    free: boolean;
   }[] = [];
 
   for (const activity of draft.activities) {
     if (!activity.is_active) continue;
     for (const price of activity.prices) {
       if (!price.is_active || !price.name.trim()) continue;
-      const standard = Number(price.standard_price);
-      const member = Number(price.member_price);
-      const standardOk = Number.isFinite(standard) ? standard : null;
-      const memberOk = Number.isFinite(member) ? member : null;
-      const save =
-        standardOk !== null && memberOk !== null && memberOk < standardOk
-          ? standardOk - memberOk
-          : null;
+      const standardOk = price.standard_price.trim() === "" ? null : Number(price.standard_price);
+      const memberOk = price.member_price.trim() === "" ? null : Number(price.member_price);
+      const standard = Number.isFinite(standardOk as number) ? standardOk : null;
+      const member = Number.isFinite(memberOk as number) ? memberOk : null;
+      const free = standard === 0 && (member === 0 || member === null);
       rows.push({
         name: price.name,
-        standard: standardOk,
-        member: memberOk,
-        inclusions: price.inclusions,
-        save,
+        standard,
+        member,
+        unit: priceUnitLabel(price.applies_to),
+        free,
       });
       if (rows.length >= limit) return rows;
     }

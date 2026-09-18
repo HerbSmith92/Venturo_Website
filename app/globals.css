@@ -611,6 +611,7 @@ a.chip.active {
   position: absolute;
   left: 14px;
   bottom: 10px;
+  z-index: 2;
   background: var(--canary);
   color: var(--night);
   font-size: 11px;
@@ -619,6 +620,33 @@ a.chip.active {
   text-transform: uppercase;
   padding: 5px 10px;
   border-radius: 999px;
+}
+
+.card-status-badge {
+  position: absolute;
+  left: 14px;
+  top: 10px;
+  z-index: 2;
+  background: color-mix(in srgb, var(--snow) 88%, transparent);
+  color: var(--night);
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  padding: 5px 10px;
+  border-radius: 999px;
+}
+
+.card-status-badge.draft,
+.card-status-badge.review {
+  background: var(--canary);
+  color: var(--night);
+}
+
+.card-status-badge.cancelled,
+.card-status-badge.rejected {
+  background: var(--pomegranate);
+  color: var(--snow);
 }
 
 .card-body {
@@ -653,6 +681,10 @@ a.chip.active {
 
 .from-price {
   font-weight: 400;
+}
+
+.price-row + .card-meta {
+  margin-top: 6px;
 }
 
 .member-price {
@@ -1871,7 +1903,7 @@ fieldset.field {
 
 .cr-editor {
   display: grid;
-  grid-template-columns: 220px minmax(0, 1fr) 300px;
+  grid-template-columns: 220px minmax(0, 1fr) 340px;
   gap: 16px;
   align-items: start;
 }
@@ -2122,7 +2154,7 @@ fieldset.field {
 
 .cr-hour-row {
   display: grid;
-  grid-template-columns: 110px 90px 1fr 1fr;
+  grid-template-columns: 140px 90px 1fr 1fr;
   gap: 10px;
   align-items: center;
 }
@@ -2350,15 +2382,26 @@ fieldset.field {
 }
 
 .cr-phone {
-  background: color-mix(in srgb, var(--currant) 40%, var(--night));
+  background: var(--night);
   border: 1px solid color-mix(in srgb, var(--snow) 14%, transparent);
-  border-radius: 28px;
+  border-radius: 32px;
   overflow: hidden;
-  box-shadow: var(--shadow-1);
+}
+
+.cr-phone-app {
+  display: flex;
+  flex-direction: column;
+  max-height: calc(100vh - 120px);
 }
 
 .cr-phone-discover {
   max-height: calc(100vh - 120px);
+  overflow: auto;
+}
+
+.cr-phone-screen {
+  flex: 1;
+  min-height: 0;
   overflow: auto;
 }
 
@@ -2372,8 +2415,7 @@ fieldset.field {
 
 .cr-phone-hero {
   position: relative;
-  margin-top: 10px;
-  height: 180px;
+  height: 210px;
   background: color-mix(in srgb, var(--snow) 8%, transparent);
 }
 
@@ -2392,6 +2434,32 @@ fieldset.field {
   font-size: 13px;
 }
 
+.cr-phone-hero-chrome {
+  position: absolute;
+  inset: 12px 12px auto;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.cr-phone-hero-actions {
+  display: flex;
+  gap: 8px;
+}
+
+.cr-phone-hero-btn {
+  width: 32px;
+  height: 32px;
+  border-radius: 999px;
+  display: grid;
+  place-items: center;
+  background: color-mix(in srgb, var(--night) 55%, transparent);
+  color: var(--snow);
+  border: 1px solid color-mix(in srgb, var(--snow) 28%, transparent);
+  font-size: 16px;
+  line-height: 1;
+}
+
 .cr-phone-see-all {
   position: absolute;
   right: 10px;
@@ -2399,40 +2467,56 @@ fieldset.field {
   padding: 6px 10px;
   border-radius: 999px;
   background: color-mix(in srgb, var(--night) 72%, transparent);
-  color: var(--snow);
+  color: var(--canary);
   font-size: 11px;
   border: 1px solid color-mix(in srgb, var(--snow) 22%, transparent);
+  cursor: pointer;
 }
 
 .cr-phone-body {
-  padding: 14px 14px 12px;
+  padding: 16px 16px 20px;
 }
 
 .cr-phone h3 {
-  font-size: 22px;
-  margin-bottom: 8px;
+  font-size: 24px;
+  margin-bottom: 10px;
+  text-transform: uppercase;
+  letter-spacing: 0.02em;
 }
 
 .cr-phone-chips {
   display: flex;
   flex-wrap: wrap;
   gap: 6px;
-  margin-bottom: 8px;
+  margin-bottom: 10px;
 }
 
 .cr-phone-chips span {
-  padding: 4px 8px;
+  padding: 5px 10px;
   border-radius: 999px;
-  border: 1px solid color-mix(in srgb, var(--canary) 70%, transparent);
-  color: var(--canary);
+  border: 1px solid color-mix(in srgb, var(--snow) 38%, transparent);
+  color: var(--snow);
   font-size: 10px;
-  letter-spacing: 0.04em;
-  text-transform: uppercase;
+  letter-spacing: 0.02em;
 }
 
 .cr-phone-rating {
-  margin: 0 0 10px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 0 0 12px;
   font-size: 13px;
+  color: color-mix(in srgb, var(--snow) 82%, transparent);
+}
+
+.cr-phone-stars {
+  display: inline-flex;
+  gap: 1px;
+  color: color-mix(in srgb, var(--snow) 28%, transparent);
+  font-size: 14px;
+}
+
+.cr-phone-stars .filled {
   color: var(--canary);
 }
 
@@ -2440,26 +2524,33 @@ fieldset.field {
   display: grid;
   grid-template-columns: 1fr 1fr;
   gap: 8px;
-  margin-bottom: 14px;
+  margin-bottom: 16px;
   border-bottom: 1px solid color-mix(in srgb, var(--snow) 12%, transparent);
 }
 
+.cr-phone-tabs button,
 .cr-phone-tabs span {
   text-align: center;
   padding: 8px 0;
-  font-size: 13px;
+  font-size: 14px;
   color: color-mix(in srgb, var(--snow) 45%, transparent);
+  background: none;
+  border: 0;
+  cursor: pointer;
 }
 
+.cr-phone-tabs button.active,
 .cr-phone-tabs span.active {
   color: var(--canary);
   border-bottom: 2px solid var(--canary);
 }
 
-.cr-phone-copy {
+.cr-phone-copy,
+.cr-phone-reviews p {
   font-size: 13px;
-  margin: 0 0 14px;
+  margin: 0 0 16px;
   color: color-mix(in srgb, var(--snow) 82%, transparent);
+  line-height: 1.45;
 }
 
 .cr-phone-copy button {
@@ -2481,14 +2572,23 @@ fieldset.field {
 .cr-phone-cost-list {
   display: grid;
   gap: 8px;
-  margin-bottom: 16px;
+  margin-bottom: 18px;
 }
 
 .cr-phone-cost-card {
-  border: 1px solid color-mix(in srgb, var(--canary) 55%, transparent);
-  border-radius: 12px;
-  padding: 10px 12px;
-  background: color-mix(in srgb, var(--snow) 4%, transparent);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 10px;
+  border: 1px solid color-mix(in srgb, var(--canary) 70%, transparent);
+  border-radius: 14px;
+  padding: 12px 14px;
+  background: transparent;
+}
+
+.cr-phone-cost-card strong {
+  font-size: 13px;
+  font-weight: 500;
 }
 
 .cr-phone-cost-top {
@@ -2514,6 +2614,12 @@ fieldset.field {
   text-align: right;
   display: grid;
   gap: 2px;
+  flex: 0 0 auto;
+}
+
+.cr-phone-cost-prices span {
+  color: var(--snow);
+  font-size: 12px;
 }
 
 .cr-phone-cost-prices .struck {
@@ -2524,8 +2630,12 @@ fieldset.field {
 
 .cr-phone-cost-prices b {
   color: var(--canary);
-  font-size: 13px;
+  font-size: 12px;
   font-weight: 600;
+}
+
+.cr-phone-cost-prices b.free {
+  font-size: 13px;
 }
 
 .cr-phone-cost-card ul {
@@ -2537,13 +2647,15 @@ fieldset.field {
 }
 
 .cr-phone h4 {
-  font-size: 14px;
+  font-size: 15px;
   margin: 0 0 8px;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
 }
 
 .cr-phone-hours {
   list-style: none;
-  margin: 0 0 16px;
+  margin: 0 0 18px;
   padding: 0;
 }
 
@@ -2551,41 +2663,128 @@ fieldset.field {
   display: flex;
   justify-content: space-between;
   gap: 8px;
-  padding: 5px 0;
-  font-size: 12px;
-  border-bottom: 1px solid color-mix(in srgb, var(--snow) 8%, transparent);
+  padding: 6px 0;
+  font-size: 13px;
+  color: var(--snow);
+}
+
+.cr-phone-hours li.closed span:last-child {
+  color: color-mix(in srgb, var(--snow) 45%, transparent);
+}
+
+.cr-phone-social {
+  display: flex;
+  gap: 10px;
+  margin: 0 0 18px;
+}
+
+.cr-phone-social span {
+  width: 36px;
+  height: 36px;
+  border-radius: 999px;
+  border: 1px solid color-mix(in srgb, var(--snow) 35%, transparent);
+  display: grid;
+  place-items: center;
+  color: var(--snow);
+}
+
+.cr-phone-social svg {
+  width: 16px;
+  height: 16px;
 }
 
 .cr-phone-map {
-  min-height: 88px;
-  margin-bottom: 8px;
-  border-radius: 12px;
-  border: 1px dashed color-mix(in srgb, var(--snow) 22%, transparent);
-  background:
-    linear-gradient(
-      135deg,
-      color-mix(in srgb, var(--sapphire) 18%, transparent),
-      color-mix(in srgb, var(--night) 40%, transparent)
-    );
-  display: grid;
-  place-items: center;
-  padding: 12px;
-  text-align: center;
+  min-height: 128px;
+  margin-bottom: 18px;
+  border-radius: 16px;
+  overflow: hidden;
+  border: 0;
+  background: color-mix(in srgb, var(--sapphire) 18%, var(--night));
+}
+
+.cr-phone-map iframe {
+  width: 100%;
+  height: 128px;
+  border: 0;
+  display: block;
 }
 
 .cr-phone-map p {
   margin: 0;
+  min-height: 128px;
+  display: grid;
+  place-items: center;
+  padding: 12px;
+  text-align: center;
   font-size: 11px;
   color: color-mix(in srgb, var(--snow) 80%, transparent);
+}
+
+.cr-phone-related-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: 8px;
+}
+
+.cr-phone-related-head h4 {
+  margin-bottom: 0;
+}
+
+.cr-phone-related-head span {
+  color: var(--canary);
+  font-size: 12px;
+}
+
+.cr-phone-related-sub {
+  margin: 4px 0 10px;
+  font-size: 12px;
+  color: color-mix(in srgb, var(--snow) 55%, transparent);
+}
+
+.cr-phone-related {
+  display: grid;
+  grid-auto-flow: column;
+  grid-auto-columns: 42%;
+  gap: 10px;
+  overflow: hidden;
+  margin-bottom: 8px;
+}
+
+.cr-phone-related article strong {
+  display: block;
+  margin-top: 6px;
+  font-size: 11px;
+  text-transform: uppercase;
+}
+
+.cr-phone-related article em {
+  display: block;
+  margin-top: 2px;
+  font-style: normal;
+  font-size: 11px;
+  color: color-mix(in srgb, var(--snow) 55%, transparent);
+}
+
+.cr-phone-related img,
+.cr-phone-related-empty {
+  width: 100%;
+  aspect-ratio: 1;
+  object-fit: cover;
+  border-radius: 10px;
+  display: block;
+  background: color-mix(in srgb, var(--snow) 10%, transparent);
 }
 
 .cr-phone-nav {
   display: grid;
   grid-template-columns: repeat(5, 1fr);
   gap: 2px;
-  padding: 10px 6px 14px;
-  border-top: 1px solid color-mix(in srgb, var(--snow) 10%, transparent);
-  background: color-mix(in srgb, var(--currant) 55%, var(--night));
+  margin: 0 12px 12px;
+  padding: 10px 6px;
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--currant) 45%, var(--night));
+  border: 1px solid color-mix(in srgb, var(--snow) 12%, transparent);
 }
 
 .cr-phone-nav span {
@@ -2951,7 +3150,9 @@ code {
 
 .host-event-list {
   display: grid;
-  gap: 10px;
+  grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+  gap: 16px;
+  align-items: start;
 }
 
 .host-event-row {
@@ -6399,5 +6600,298 @@ label.check {
   .event-guest-table {
     color: #2a2d35;
   }
+}
+
+/* Venturo Companion App */
+.companion-app {
+  min-height: 100dvh;
+  display: flex;
+  flex-direction: column;
+  background: var(--night);
+  color: var(--snow);
+  padding-bottom: env(safe-area-inset-bottom);
+}
+
+.companion-app::before {
+  content: "";
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  opacity: 0.05;
+  background: url("/brand/pattern/pathway.png") center / 420px repeat;
+}
+
+.companion-top-title {
+  align-items: center;
+}
+
+.companion-large-title {
+  margin: 0;
+  font-size: 34px;
+  line-height: 1.05;
+  min-width: 0;
+}
+
+.companion-page-title {
+  position: relative;
+  z-index: 2;
+  margin: 0 20px 8px;
+  font-size: 34px;
+  line-height: 1.05;
+  text-align: left;
+}
+
+.companion-back {
+  min-height: 44px;
+  padding-left: 0;
+}
+
+.companion-brand {
+  display: grid;
+  justify-items: start;
+  gap: 8px;
+  min-width: 0;
+}
+
+.companion-brand img {
+  width: 88px;
+  height: auto;
+}
+
+.companion-top-actions {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 8px;
+}
+
+.companion-main {
+  position: relative;
+  z-index: 1;
+  width: min(560px, calc(100% - 32px));
+  margin: 0 auto;
+  padding: 12px 0 48px;
+  flex: 1;
+}
+
+.companion-gate {
+  display: flex;
+  justify-content: flex-start;
+}
+
+.companion-gate .auth-card {
+  margin: 12px 0 0;
+}
+
+.companion-hero {
+  margin-bottom: 22px;
+}
+
+.companion-hero h1 {
+  margin: 8px 0 12px;
+  font-size: clamp(28px, 7vw, 40px);
+}
+
+.companion-section-head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 16px;
+}
+
+.companion-section-head h2 {
+  margin: 0;
+  font-size: 22px;
+}
+
+.companion-cache {
+  margin: -8px 0 16px;
+  font-size: 12px;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--canary);
+}
+
+.companion-status-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  align-items: center;
+  margin-bottom: 18px;
+}
+
+.companion-pill {
+  min-height: 32px;
+  display: inline-flex;
+  align-items: center;
+  padding: 4px 12px;
+  border-radius: 999px;
+  font-size: 12px;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  background: color-mix(in srgb, var(--snow) 10%, transparent);
+}
+
+.companion-pill.ok {
+  background: color-mix(in srgb, var(--jade) 22%, transparent);
+  color: color-mix(in srgb, var(--jade) 70%, var(--snow));
+}
+
+.companion-pill.warn {
+  background: color-mix(in srgb, var(--canary) 22%, transparent);
+  color: var(--night);
+}
+
+.companion-install {
+  display: grid;
+  gap: 12px;
+  margin-top: 18px;
+  margin-bottom: 18px;
+  padding: 16px 16px;
+  border-radius: var(--radius-md);
+  background: color-mix(in srgb, var(--canary) 14%, transparent);
+  border: 1px solid color-mix(in srgb, var(--canary) 32%, transparent);
+  color: var(--snow);
+}
+
+.companion-install-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.companion-event-scroller {
+  list-style: none;
+  margin: 0;
+  padding: 0 0 12px;
+  display: flex;
+  gap: 14px;
+  overflow-x: auto;
+  scroll-snap-type: x mandatory;
+  scrollbar-width: none;
+  -webkit-overflow-scrolling: touch;
+}
+
+.companion-event-scroller::-webkit-scrollbar {
+  display: none;
+}
+
+.companion-event-scroller li {
+  flex: 0 0 58%;
+  max-width: 240px;
+  scroll-snap-align: start;
+}
+
+.companion-event-scroller .card {
+  border-radius: 24px;
+}
+
+.companion-event-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: 12px;
+}
+
+.companion-empty {
+  margin-top: 12px;
+}
+
+.companion-panel {
+  padding: 18px 16px 22px;
+  border-radius: var(--radius-lg);
+  background: color-mix(in srgb, var(--snow) 6%, transparent);
+  border: 1px solid color-mix(in srgb, var(--snow) 12%, transparent);
+}
+
+.companion-camera-wrap {
+  display: grid;
+  gap: 12px;
+  margin-bottom: 18px;
+}
+
+.companion-camera {
+  position: relative;
+  overflow: hidden;
+  border-radius: var(--radius-md);
+  background: #000;
+  aspect-ratio: 3 / 4;
+}
+
+.companion-camera video {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.companion-camera-frame {
+  position: absolute;
+  inset: 16%;
+  border: 2px solid color-mix(in srgb, var(--canary) 80%, transparent);
+  border-radius: var(--radius-sm);
+  box-shadow: 0 0 0 999px rgba(20, 0, 26, 0.38);
+  pointer-events: none;
+}
+
+.companion-camera-hint {
+  position: absolute;
+  left: 12px;
+  right: 12px;
+  bottom: 12px;
+  margin: 0;
+  text-align: left;
+  font-size: 12px;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--snow);
+}
+
+.companion-flash {
+  margin-top: 16px;
+  padding: 14px 16px;
+  border-radius: var(--radius-md);
+  border: 1px solid color-mix(in srgb, var(--snow) 16%, transparent);
+  background: color-mix(in srgb, var(--snow) 8%, transparent);
+}
+
+.companion-flash.ok {
+  border-color: color-mix(in srgb, var(--jade) 55%, transparent);
+  background: color-mix(in srgb, var(--jade) 18%, transparent);
+}
+
+.companion-flash.warn {
+  border-color: color-mix(in srgb, var(--canary) 55%, transparent);
+  background: color-mix(in srgb, var(--canary) 16%, transparent);
+  color: var(--night);
+}
+
+.companion-flash.bad {
+  border-color: color-mix(in srgb, var(--pomegranate) 55%, transparent);
+  background: color-mix(in srgb, var(--pomegranate) 18%, transparent);
+}
+
+.companion-panel > input {
+  width: 100%;
+  min-height: 48px;
+  padding: 10px 14px;
+  border-radius: var(--radius-sm);
+  border: 1px solid color-mix(in srgb, var(--snow) 22%, transparent);
+  background: color-mix(in srgb, var(--night) 70%, #000);
+  color: var(--snow);
+  font: inherit;
+}
+
+.companion-door-banner {
+  margin: 0 0 18px;
+  padding: 14px 16px;
+  border-radius: var(--radius-md);
+  background: color-mix(in srgb, var(--canary) 14%, transparent);
+  border: 1px solid color-mix(in srgb, var(--canary) 30%, transparent);
+}
+
+.companion-door-banner p {
+  margin: 0 0 10px;
 }
 
