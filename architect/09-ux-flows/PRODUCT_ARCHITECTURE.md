@@ -136,7 +136,7 @@ App sync = **same Supabase user + same tables**. No separate member database.
 
 ### Event Host door (companion)
 
-Hosts use the **Event Host portal** (`/portal`) to scan ticket QR codes at the door, see scanned vs still-to-come counts, and browse the guest list. Architecture: [`HOST_COMPANION_SCANNING.md`](HOST_COMPANION_SCANNING.md).
+Hosts use the **Venturo Companion App** (`/companion`) to scan ticket QR codes at the door, keep the guest list on the phone offline, and sync when the network returns. Desktop fallback: Event Host portal (`/portal`). Architecture: [`HOST_COMPANION_SCANNING.md`](HOST_COMPANION_SCANNING.md).
 
 ---
 

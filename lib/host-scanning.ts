@@ -1,7 +1,11 @@
+import { getCollaboratorAccess } from "@/lib/event-access";
 import { createClient } from "@/lib/supabase/server";
 import type { VenturoEvent } from "@/lib/event-types";
-import { formatEventWhen, listOrganiserEvents } from "@/lib/events";
+import { formatEventWhen, getEventById, listOrganiserEvents } from "@/lib/events";
 import { isStaff, type AppRole } from "@/lib/roles";
+import { normalizeTicketCode, ticketQrPayload } from "@/lib/ticket-code";
+
+export { normalizeTicketCode, ticketQrPayload };
 
 export type DoorStats = {
   eventId: string;
@@ -79,33 +83,6 @@ function mapGuest(row: Record<string, unknown>): DoorGuest {
   };
 }
 
-/** Normalise QR payloads / pasted codes to the 12-char ticket code. */
-export function normalizeTicketCode(raw: string) {
-  const trimmed = raw.trim();
-  if (!trimmed) return "";
-
-  try {
-    if (trimmed.startsWith("http://") || trimmed.startsWith("https://")) {
-      const url = new URL(trimmed);
-      const fromQuery = url.searchParams.get("code") || url.searchParams.get("ticket");
-      if (fromQuery) return fromQuery.trim().toUpperCase();
-      const parts = url.pathname.split("/").filter(Boolean);
-      const last = parts[parts.length - 1];
-      if (last) return last.trim().toUpperCase();
-    }
-  } catch {
-    // fall through
-  }
-
-  const venturoMatch = trimmed.match(/venturo:\/\/ticket\/([A-Za-z0-9]+)/i);
-  if (venturoMatch?.[1]) return venturoMatch[1].toUpperCase();
-
-  const jsonMatch = trimmed.match(/"code"\s*:\s*"([A-Za-z0-9]+)"/i);
-  if (jsonMatch?.[1]) return jsonMatch[1].toUpperCase();
-
-  return trimmed.replace(/\s+/g, "").toUpperCase();
-}
-
 export async function listHostEvents(userId: string): Promise<HostEventSummary[]> {
   const events = await listOrganiserEvents(userId);
   return events.map((event) => ({
@@ -119,28 +96,12 @@ export async function assertCanManageEventDoor(
   userId: string,
   role: AppRole | null,
 ) {
-  const supabase = await createClient();
-  if (!supabase) throw new Error("Supabase is not connected.");
-
-  if (isStaff(role)) {
-    const { data } = await supabase
-      .from("events")
-      .select("id, organiser_id, title, slug, status, starts_at, timezone, venue_name, city")
-      .eq("id", eventId)
-      .maybeSingle();
-    if (!data) throw new Error("Event not found.");
-    return data;
-  }
-
-  const { data } = await supabase
-    .from("events")
-    .select("id, organiser_id, title, slug, status, starts_at, timezone, venue_name, city")
-    .eq("id", eventId)
-    .eq("organiser_id", userId)
-    .maybeSingle();
-
-  if (!data) throw new Error("Event not found or you are not the host.");
-  return data;
+  const event = await getEventById(eventId);
+  if (!event) throw new Error("Event not found.");
+  if (isStaff(role) || event.organiserId === userId) return event;
+  const access = await getCollaboratorAccess(eventId, userId);
+  if (access === "editor" || access === "door") return event;
+  throw new Error("Event not found or you are not the host.");
 }
 
 export async function getEventDoorStats(eventId: string): Promise<DoorStats> {
@@ -218,7 +179,3 @@ export async function scanEventTicket(
   };
 }
 
-/** Payload encoded into buyer QR codes — plain code stays scannable offline. */
-export function ticketQrPayload(code: string) {
-  return normalizeTicketCode(code);
-}

@@ -1,18 +1,20 @@
 # Host companion — ticket scanning architecture
 
-Locked for the Event Host portal door surface (`/portal`), sharing the same Supabase project as the member app and Control Room.
+Locked for the Event Host door. The **Venturo Companion App** is the night-of scanner. It shares the same Supabase project as the member app, website, and Control Room.
 
 ## Job to be done
 
-Hosts log in to Event Host, open an event door, scan guest QR / ticket codes, watch live arrival counts, and browse the full guest list with scan status.
+Hosts & door staff log in, pull the guest list onto the phone, scan ticket QR codes (phone screens or printed paper) at the venue, keep working if the network drops, and sync scans back to the database.
 
 | Need | Surface |
 | --- | --- |
-| Log in | Portal auth (`/portal/login`) |
-| View my events | `/portal` home + `/portal/events` |
-| Scan tickets (QR + manual) | `/portal/events/[id]/door` |
+| Log in | Companion (`/companion/login`) — same Venturo account as Event Host |
+| View my events | `/companion` |
+| Scan tickets (camera QR + manual) | `/companion/events/[id]` |
+| Offline guest list & queued scans | IndexedDB on the device, then `POST /api/host/scan` |
 | Guests scanned / still to come | Door stats strip |
-| Guest list + details + scanned flag | Same door page, Guests panel |
+| Guest list + details + scanned flag | Companion Guests tab |
+| Desktop fallback | `/portal/events/[id]/door` |
 
 ## Data model
 
@@ -36,7 +38,7 @@ Organisers already **read** tickets via RLS; they cannot update scan columns fro
 
 | RPC | Purpose |
 | --- | --- |
-| `can_manage_event_door(event_id)` | Organiser of the event **or** staff |
+| `can_manage_event_door(event_id)` | Organiser, staff, or `editor` / `door` collaborator |
 | `get_event_door_stats(event_id)` | `{ totalGuests, scannedGuests, remainingGuests }` |
 | `list_event_door_guests(event_id)` | Door list with name, email, ticket type, code, scan flag |
 | `scan_event_ticket(event_id, code)` | Idempotent redeem + audit row; returns guest + refreshed stats |
@@ -47,30 +49,37 @@ Guest email comes from `auth.users` inside the RPC — profiles stay closed unde
 
 | Path | Role |
 | --- | --- |
-| `lib/host-scanning.ts` | Domain helpers, code normalisation, typed RPC wrappers |
+| `/companion` | Venturo Companion App (installable PWA) |
+| `lib/companion-offline.ts` | IndexedDB guest list + scan queue |
+| `lib/qr-detect.ts` | Camera QR (BarcodeDetector + jsQR fallback) |
+| `lib/host-scanning.ts` | Domain helpers, typed RPC wrappers |
 | `POST /api/host/scan` | `{ eventId, code }` → scan result |
+| `GET /api/host/events` | Door-ready events for the signed-in host |
 | `GET /api/host/events/[eventId]/door` | Stats + guest list for refresh |
-| `/portal/events` | Host event list with door entry |
-| `/portal/events/[id]/door` | Scanner + counts + guest list |
+| `/portal/events` | Host event list — Open Door launches Companion |
+| `/portal/events/[id]/door` | Desktop door fallback |
 | Buyer `/account/tickets` | Shows QR for each code |
 
-Auth: portal middleware already gates `/portal/*`. Staff may open any event door; hosts only their `organiser_id` events.
+Auth: middleware gates `/companion/*` and `/portal/*`. Door collaborators may scan; hosts only events they own or were invited to.
 
 ## Brand (companion UI)
 
-Follow `architect/DESIGN_SYSTEM.md` — same Event Host portal chrome:
+Follow `architect/DESIGN_SYSTEM.md`:
 
 - Surfaces: Night Sky `#2A2D35` + Snow Drift `#EBEBF3`
 - Accent for door success: Jungle Jade; alerts: Passionate Pomegranate; warm nudge: Cheerful Canary
 - Type: Social Gothic Rough (titles), Nunito Extra Light (body / buttons)
 - Pathway pattern at ~5% on dark empty areas
-- Horizontal light logo top-left; radius 12 / 18 / 24; 44–48px tap targets
-- Voice: Bold · Magical · Humorous · Insightful · Daring — short door copy, no corporate “portal” language
+- Horizontal light logo top-left; never centred; radius 12 / 18 / 24; 44–48px tap targets
+- Voice: Bold · Magical · Humorous · Insightful · Daring — short door copy, no corporate language
+- Time: 24-hour
 
-## Out of scope for this slice
+## Native stores
 
-- Co-host / door-staff invites beyond the single organiser (+ Control Room staff)
-- Offline-first native scanner app (this web companion is the architectural backend + first UI; native can call the same RPCs later)
+`companion-app/` is the Expo iOS & Android app (`za.co.venturo.companion`). Same RPCs as the web companion. Ship with EAS Build / EAS Submit. See `companion-app/README.md`.
+
+## Out of scope
+
 - Ticket transfer / void / refund from the door
 - Multi-entry tickets (one scan = one admit)
 

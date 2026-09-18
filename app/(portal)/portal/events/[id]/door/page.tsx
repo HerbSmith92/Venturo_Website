@@ -1,5 +1,6 @@
 import { DoorCompanion } from "@/components/portal/DoorCompanion";
 import { EventChrome } from "@/components/portal/EventChrome";
+import { companionEventHref } from "@/lib/companion";
 import { requirePortalEvent } from "@/lib/event-access";
 import {
   getEventDoorStats,
@@ -36,6 +37,12 @@ export default async function PortalEventDoorPage({
   return (
     <main className="door-page">
       <EventChrome event={event} current="door">
+        <aside className="companion-door-banner">
+          <p>On a phone at the venue? Open the Companion App — camera, offline list &amp; sync.</p>
+          <a className="btn btn-primary" href={companionEventHref(id)}>
+            Open Companion
+          </a>
+        </aside>
         <DoorCompanion
           eventId={id}
           eventTitle={event.title}

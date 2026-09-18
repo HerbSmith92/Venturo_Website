@@ -1,7 +1,8 @@
 import { CreateEventPrompt } from "@/components/portal/CreateEventPrompt";
 import { PortalBarChart } from "@/components/portal/PortalBarChart";
 import { formatCents, formatEventWindow } from "@/lib/events";
-import { portalDoorHref, portalEventHref } from "@/lib/portal";
+import { companionEventHref } from "@/lib/companion";
+import { portalEventHref } from "@/lib/portal";
 import {
   PORTAL_RANGE_LABELS,
   PORTAL_RANGES,
@@ -43,7 +44,7 @@ function EventBlock({ row }: { row: EventHomeSeries }) {
           </p>
         </a>
         {event.status === "approved" && (
-          <a className="btn btn-primary portal-door-btn" href={portalDoorHref(event.id)}>
+          <a className="btn btn-primary portal-door-btn" href={companionEventHref(event.id)}>
             Open Door
           </a>
         )}

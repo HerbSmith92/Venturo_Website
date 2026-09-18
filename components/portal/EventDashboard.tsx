@@ -5,7 +5,8 @@ import { EventPreview } from "@/components/EventPreview";
 import { EventQr } from "@/components/portal/EventQr";
 import type { EventDashboardData } from "@/lib/event-dashboard";
 import { formatCents, isoToDatetimeLocal } from "@/lib/event-types";
-import { portalDoorHref, portalMarketingInvitesHref, portalEventHref } from "@/lib/portal";
+import { companionEventHref } from "@/lib/companion";
+import { portalMarketingInvitesHref, portalEventHref } from "@/lib/portal";
 import { PortalBarChart } from "@/components/portal/PortalBarChart";
 import type { VenturoEvent } from "@/lib/event-types";
 
@@ -186,7 +187,7 @@ export function EventDashboard({
                 <a
                   className="event-dash-menu-item primary"
                   role="menuitem"
-                  href={portalDoorHref(event.id)}
+                  href={companionEventHref(event.id)}
                 >
                   Open Door
                 </a>

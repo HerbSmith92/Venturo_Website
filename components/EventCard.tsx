@@ -1,3 +1,6 @@
+"use client";
+
+import type { ReactNode } from "react";
 import Link from "next/link";
 import {
   eventFeedImage,
@@ -7,14 +10,36 @@ import {
 } from "@/lib/event-types";
 import { eventCategoryColour } from "@/lib/event-style";
 
+export type EventCardModel = Pick<
+  VenturoEvent,
+  | "title"
+  | "category"
+  | "audienceGender"
+  | "startsAt"
+  | "timezone"
+  | "city"
+  | "listingImageUrl"
+  | "bannerUrl"
+  | "storyImageUrl"
+  | "fromPriceCents"
+  | "memberFromPriceCents"
+  | "membersOnly"
+> & { slug?: string };
+
 export function EventCard({
   event,
   showMemberPrice = false,
   preview = false,
+  href,
+  imageBadge,
+  children,
 }: {
-  event: VenturoEvent;
+  event: EventCardModel;
   showMemberPrice?: boolean;
   preview?: boolean;
+  href?: string;
+  imageBadge?: ReactNode;
+  children?: ReactNode;
 }) {
   const colour = eventCategoryColour(event.category);
   const hasMemberDeal =
@@ -23,10 +48,12 @@ export function EventCard({
 
   const className = `card card-event${hasMemberDeal ? " card-deal" : ""}`;
   const style = { ["--card-accent" as string]: colour };
+  const target = href ?? (event.slug ? `/events/${event.slug}` : undefined);
   const body = (
     <>
       <div className="card-image card-image-post">
         <img src={eventFeedImage(event)} alt="" />
+        {imageBadge}
         {hasMemberDeal && (
           <span className="deal-badge">
             {event.membersOnly ? "Members" : "Members Save"}
@@ -57,11 +84,12 @@ export function EventCard({
             </span>
           )}
         </div>
+        {children}
       </div>
     </>
   );
 
-  if (preview) {
+  if (preview || !target) {
     return (
       <article className={className} style={style}>
         {body}
@@ -70,17 +98,17 @@ export function EventCard({
   }
 
   return (
-    <Link className={className} href={`/events/${event.slug}`} style={style}>
+    <Link className={className} href={target} style={style}>
       {body}
     </Link>
   );
 }
 
-function publicPriceLabel(event: VenturoEvent) {
+function publicPriceLabel(event: EventCardModel) {
   if (event.membersOnly && event.memberFromPriceCents !== null) {
     return `Members from ${formatCents(event.memberFromPriceCents)}`;
   }
-  if (event.fromPriceCents === null) return "Tickets soon";
+  if (event.fromPriceCents == null) return "Tickets soon";
   if (event.fromPriceCents === 0) return "Free";
   return `From ${formatCents(event.fromPriceCents)}`;
 }

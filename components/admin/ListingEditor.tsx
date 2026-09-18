@@ -8,6 +8,7 @@ import {
   uploadListingPhoto,
 } from "@/app/admin/actions";
 import { ListingActions } from "@/components/admin/ListingActions";
+import { ListingAppPreview } from "@/components/admin/ListingAppPreview";
 import type { ListingDetail } from "@/lib/control-room-types";
 import {
   formatClock,
@@ -25,10 +26,7 @@ import {
   completeness,
   emptyActivity,
   emptyPrice,
-  formatPreviewRand,
   listingToDraft,
-  previewHours,
-  previewPrices,
   statusLegend,
   type DraftActivity,
   type DraftMedia,
@@ -43,157 +41,6 @@ function toggleId(ids: string[], id: string, max?: number) {
   if (ids.includes(id)) return ids.filter((item) => item !== id);
   if (max !== undefined && ids.length >= max) return ids;
   return [...ids, id];
-}
-
-function inclusionBullets(text: string) {
-  return text
-    .split(/\n|•|;/)
-    .map((item) => item.trim())
-    .filter(Boolean)
-    .slice(0, 4);
-}
-
-function PhonePreview({
-  draft,
-  listing,
-  catalog,
-}: {
-  draft: ListingDraft;
-  listing: ListingDetail;
-  catalog: EditorCatalog;
-}) {
-  const [descOpen, setDescOpen] = useState(false);
-  const hours = previewHours(draft);
-  const prices = previewPrices(draft, 4);
-  const media = activeMedia(draft);
-  const cover =
-    media.find((item) => item.id === draft.cover_media_id)?.public_url ??
-    media[0]?.public_url ??
-    null;
-  const kinds = catalog.kinds.filter((kind) => draft.kind_ids.includes(kind.id));
-  const address = [
-    draft.street_address_1,
-    draft.suburb,
-    draft.city,
-    draft.postal_code,
-  ]
-    .filter(Boolean)
-    .join(", ");
-  const rating =
-    listing.google_rating != null && Number.isFinite(Number(listing.google_rating))
-      ? Number(listing.google_rating).toFixed(1)
-      : null;
-  const description = draft.description || draft.short_description || "";
-  const shortDesc =
-    description.length > 140 && !descOpen
-      ? `${description.slice(0, 140).trim()}…`
-      : description;
-
-  return (
-    <aside className="cr-phone-wrap" aria-label="App preview">
-      <p className="cr-phone-label">Discover Info Preview</p>
-      <div className="cr-phone cr-phone-discover">
-        <div className="cr-phone-notch" />
-        <div className="cr-phone-hero">
-          {cover ? (
-            <img src={cover} alt="" />
-          ) : (
-            <div className="cr-phone-hero-empty">No cover yet</div>
-          )}
-          <span className="cr-phone-see-all">See all images</span>
-        </div>
-        <div className="cr-phone-body">
-          <h3>{draft.name || "Listing name"}</h3>
-          {kinds.length > 0 && (
-            <div className="cr-phone-chips">
-              {kinds.map((kind) => (
-                <span key={kind.id}>{kind.title}</span>
-              ))}
-            </div>
-          )}
-          {rating && (
-            <p className="cr-phone-rating">
-              <span aria-hidden="true">★</span> {rating}
-            </p>
-          )}
-          <div className="cr-phone-tabs" aria-hidden="true">
-            <span className="active">Info</span>
-            <span>Reviews</span>
-          </div>
-
-          <h4>Description</h4>
-          <p className="cr-phone-copy">
-            {shortDesc || "Description shows here."}
-            {description.length > 140 && (
-              <>
-                {" "}
-                <button type="button" onClick={() => setDescOpen((open) => !open)}>
-                  {descOpen ? "See Less" : "See More"}
-                </button>
-              </>
-            )}
-          </p>
-
-          <h4>Cost</h4>
-          <p className="cr-phone-cost-hint">Show your app at checkout to claim your discount.</p>
-          <div className="cr-phone-cost-list">
-            {prices.length === 0 && <p className="cr-phone-muted">Add member prices to preview.</p>}
-            {prices.map((row, index) => (
-              <article className="cr-phone-cost-card" key={`${row.name}-${index}`}>
-                <div className="cr-phone-cost-top">
-                  <div>
-                    <strong>{row.name}</strong>
-                    {row.save != null && (
-                      <em>Save {formatPreviewRand(row.save)}</em>
-                    )}
-                  </div>
-                  <div className="cr-phone-cost-prices">
-                    {row.standard != null && (
-                      <span className={row.member != null ? "struck" : undefined}>
-                        {formatPreviewRand(row.standard)}
-                      </span>
-                    )}
-                    {row.member != null && (
-                      <b>{formatPreviewRand(row.member)}</b>
-                    )}
-                  </div>
-                </div>
-                {row.inclusions && (
-                  <ul>
-                    {inclusionBullets(row.inclusions).map((item) => (
-                      <li key={item}>{item}</li>
-                    ))}
-                  </ul>
-                )}
-              </article>
-            ))}
-          </div>
-
-          <h4>Operating Hours</h4>
-          <ul className="cr-phone-hours">
-            {hours.map((row) => (
-              <li key={row.day}>
-                <span>{row.day}</span>
-                <span>{row.hours}</span>
-              </li>
-            ))}
-          </ul>
-
-          <h4>Map Location</h4>
-          <div className="cr-phone-map">
-            <p>{address || "Add a street address to preview the map pin."}</p>
-          </div>
-        </div>
-        <nav className="cr-phone-nav" aria-hidden="true">
-          <span>Calendar</span>
-          <span>Search</span>
-          <span className="active">Discover</span>
-          <span>Community</span>
-          <span>Profile</span>
-        </nav>
-      </div>
-    </aside>
-  );
 }
 
 export function ListingEditor({
@@ -543,11 +390,15 @@ export function ListingEditor({
         <div className="cr-paper">
           <section className="cr-step" id="step-contact">
             <h2>
-              <span>1</span> Your Contact
+              <span>1</span> Social & Contact
             </h2>
+            <p className="muted cr-step-help">
+              These fill the Social Media icon row on Discover: website, email, camera, Facebook,
+              phone.
+            </p>
             <div className="cr-grid-2">
               <label className="field">
-                <span>Contact Email</span>
+                <span>Email</span>
                 <input
                   type="email"
                   value={draft.email}
@@ -555,7 +406,7 @@ export function ListingEditor({
                 />
               </label>
               <label className="field">
-                <span>Contact Number</span>
+                <span>Phone</span>
                 <input
                   type="tel"
                   value={draft.phone}
@@ -563,12 +414,41 @@ export function ListingEditor({
                 />
               </label>
             </div>
+            <label className="field">
+              <span>Website</span>
+              <input
+                type="url"
+                value={draft.website_url}
+                onChange={(e) => patch({ website_url: e.target.value })}
+              />
+            </label>
+            <p className="cr-subhead">Social Handles</p>
+            <div className="cr-grid-3">
+              {draft.social.map((row) => (
+                <label className="field" key={row.platform}>
+                  <span>{row.platform === "instagram" ? "Instagram" : row.platform === "facebook" ? "Facebook" : "TikTok"}</span>
+                  <input
+                    value={row.handle}
+                    onChange={(e) => patchSocial(row.platform, e.target.value)}
+                    placeholder="@handle"
+                  />
+                </label>
+              ))}
+            </div>
           </section>
 
           <section className="cr-step" id="step-business">
             <h2>
-              <span>2</span> The Business
+              <span>2</span> The Listing
             </h2>
+            <p className="muted cr-step-help">
+              Listing Name, Description, and Indoor / Outdoor are what members see under Info.
+            </p>
+            <label className="field">
+              <span>Listing Name</span>
+              <input value={draft.name} onChange={(e) => patch({ name: e.target.value })} />
+              <small className="cr-field-hint">Discover title. Shown in Social Gothic, uppercase.</small>
+            </label>
             <div className="cr-grid-2">
               <label className="field">
                 <span>Main Business Name</span>
@@ -587,62 +467,31 @@ export function ListingEditor({
               </label>
             </div>
             <label className="field">
-              <span>Listing Name</span>
-              <input value={draft.name} onChange={(e) => patch({ name: e.target.value })} />
+              <span>Description</span>
+              <textarea
+                rows={6}
+                value={draft.description}
+                onChange={(e) => patch({ description: e.target.value })}
+              />
+              <small className="cr-field-hint">The Info tab write-up. See More appears after a long paragraph.</small>
             </label>
-            <div className="cr-grid-2">
-              <label className="field">
-                <span>Website</span>
-                <input
-                  type="url"
-                  value={draft.website_url}
-                  onChange={(e) => patch({ website_url: e.target.value })}
-                />
-              </label>
-              <label className="field">
-                <span>Booking Link</span>
-                <input
-                  type="url"
-                  value={draft.booking_url}
-                  onChange={(e) => patch({ booking_url: e.target.value })}
-                />
-              </label>
-            </div>
-            <div className="cr-grid-3">
-              {draft.social.map((row) => (
-                <label className="field" key={row.platform}>
-                  <span>{row.platform}</span>
-                  <input
-                    value={row.handle}
-                    onChange={(e) => patchSocial(row.platform, e.target.value)}
-                    placeholder="@handle"
-                  />
-                </label>
-              ))}
-            </div>
             <label className="field">
-              <span>Short Description</span>
+              <span>Directory Card Blurb</span>
               <textarea
                 rows={2}
                 value={draft.short_description}
                 onChange={(e) => patch({ short_description: e.target.value })}
               />
+              <small className="cr-field-hint">Search cards &amp; People Also Searched For. Not the full listing copy.</small>
             </label>
             <label className="field">
-              <span>Marketing Description</span>
-              <textarea
-                rows={5}
-                value={draft.description}
-                onChange={(e) => patch({ description: e.target.value })}
-              />
-            </label>
-            <label className="field">
-              <span>Business Description</span>
+              <span>Organisation Note</span>
               <textarea
                 rows={3}
                 value={draft.business_description}
                 onChange={(e) => patch({ business_description: e.target.value })}
               />
+              <small className="cr-field-hint">Staff only. Not shown on Discover.</small>
             </label>
             <div className="cr-grid-2">
               <label className="field">
@@ -660,6 +509,7 @@ export function ListingEditor({
                   <option value="outdoor">Outdoor</option>
                   <option value="both">Both</option>
                 </select>
+                <small className="cr-field-hint">Shows as listing chips next to the category.</small>
               </label>
               <label className="field checkbox">
                 <span>Booking</span>
@@ -673,18 +523,36 @@ export function ListingEditor({
                 </label>
               </label>
             </div>
+            <label className="field">
+              <span>Booking Link</span>
+              <input
+                type="url"
+                value={draft.booking_url}
+                onChange={(e) => patch({ booking_url: e.target.value })}
+              />
+            </label>
           </section>
 
           <section className="cr-step" id="step-hours">
             <h2>
-              <span>3</span> Branch & Hours
+              <span>3</span> Hours &amp; Map
             </h2>
+            <p className="muted cr-step-help">
+              Operating Hours include Public Holiday. The map pin uses the street address or coordinates.
+            </p>
             <div className="cr-grid-2">
               <label className="field">
                 <span>Street Address</span>
                 <input
                   value={draft.street_address_1}
                   onChange={(e) => patch({ street_address_1: e.target.value })}
+                />
+              </label>
+              <label className="field">
+                <span>Address Line 2</span>
+                <input
+                  value={draft.street_address_2}
+                  onChange={(e) => patch({ street_address_2: e.target.value })}
                 />
               </label>
               <label className="field">
@@ -699,6 +567,13 @@ export function ListingEditor({
                 <input value={draft.city} onChange={(e) => patch({ city: e.target.value })} />
               </label>
               <label className="field">
+                <span>Province</span>
+                <input
+                  value={draft.province}
+                  onChange={(e) => patch({ province: e.target.value })}
+                />
+              </label>
+              <label className="field">
                 <span>Postal Code</span>
                 <input
                   value={draft.postal_code}
@@ -706,6 +581,37 @@ export function ListingEditor({
                 />
               </label>
             </div>
+            <p className="cr-subhead">Map Pin</p>
+            <div className="cr-grid-3">
+              <label className="field">
+                <span>Latitude</span>
+                <input
+                  inputMode="decimal"
+                  value={draft.latitude}
+                  onChange={(e) => patch({ latitude: e.target.value })}
+                  placeholder="-26.13"
+                />
+              </label>
+              <label className="field">
+                <span>Longitude</span>
+                <input
+                  inputMode="decimal"
+                  value={draft.longitude}
+                  onChange={(e) => patch({ longitude: e.target.value })}
+                  placeholder="27.99"
+                />
+              </label>
+              <label className="field">
+                <span>Maps URL</span>
+                <input
+                  type="url"
+                  value={draft.maps_url}
+                  onChange={(e) => patch({ maps_url: e.target.value })}
+                  placeholder="https://maps.google.com/?q="
+                />
+              </label>
+            </div>
+            <p className="cr-subhead">Operating Hours</p>
             <div className="cr-hours-edit">
               {draft.hours.map((row, index) => (
                 <div className="cr-hour-row" key={row.day_of_week}>
@@ -739,11 +645,12 @@ export function ListingEditor({
 
           <section className="cr-step" id="step-prices">
             <h2>
-              <span>4</span> Activities, Prices & Member Offers
+              <span>4</span> Cost
             </h2>
             <p className="muted cr-step-help">
-              Group prices under each activity. Every active price needs a Venturo member price —
-              that is the paid membership promise.
+              Each active price becomes a Cost card. Members see the standard price in white and
+              the Venturo member price in gold. Use 0 for Free. Copy on the listing reads
+              “Scan QR Code to claim your Discount.”
             </p>
             <div className="cr-activity-list">
               {draft.activities.map((activity) => (
@@ -1043,21 +950,24 @@ export function ListingEditor({
 
           <section className="cr-step" id="step-audience">
             <h2>
-              <span>5</span> Who It&apos;s For
+              <span>5</span> Chips &amp; Who It&apos;s For
             </h2>
-            <p className="cr-subhead">Primary Category</p>
-            <p className="muted cr-step-help">Pick one kind — this steers interest suggestions.</p>
-            <div className="cr-chip-grid" role="radiogroup" aria-label="Primary category">
+            <p className="cr-subhead">Listing Chips</p>
+            <p className="muted cr-step-help">
+              Shown under the listing name. Pick up to 3 categories. Indoor / Outdoor is set on
+              The Listing. First selected is the primary category for interest suggestions.
+            </p>
+            <div className="cr-chip-grid" aria-label="Listing chips">
               {catalog.kinds.map((kind) => {
-                const active = draft.kind_ids[0] === kind.id;
+                const active = draft.kind_ids.includes(kind.id);
                 return (
                   <button
                     key={kind.id}
                     type="button"
-                    role="radio"
-                    aria-checked={active}
                     className={active ? "cr-tag active" : "cr-tag"}
-                    onClick={() => patch({ kind_ids: [kind.id] })}
+                    onClick={() =>
+                      patch({ kind_ids: toggleId(draft.kind_ids, kind.id, 3) })
+                    }
                   >
                     {kind.title}
                   </button>
@@ -1066,7 +976,10 @@ export function ListingEditor({
             </div>
 
             <p className="cr-subhead">Who Comes</p>
-            <p className="muted cr-step-help">Optional. Choose up to 3.</p>
+            <p className="muted cr-step-help">
+              Algorithm only — not listing chips. Powers People Also Searched For &amp; For You.
+              Optional. Choose up to 3.
+            </p>
             <div className="cr-chip-grid">
               {whoComes.map((persona) => {
                 const active = draft.persona_ids.includes(persona.id);
@@ -1164,10 +1077,10 @@ export function ListingEditor({
 
           <section className="cr-step" id="step-photos">
             <h2>
-              <span>6</span> Branch Photos
+              <span>6</span> Photos
             </h2>
             <p className="muted cr-step-help">
-              Drag to reorder. The cover is the Discover hero image.
+              Cover is the Discover hero. The rest appear under See all images.
             </p>
             {media.length === 0 && <p className="muted">No photos on this listing yet.</p>}
             <div className="cr-photo-grid">
@@ -1270,7 +1183,12 @@ export function ListingEditor({
           </section>
         </div>
 
-        <PhonePreview draft={draft} listing={listing} catalog={catalog} />
+        <ListingAppPreview
+          draft={draft}
+          listing={listing}
+          catalog={catalog}
+          branches={branches}
+        />
       </div>
 
       <footer className="cr-sticky">
@@ -1278,7 +1196,7 @@ export function ListingEditor({
           <strong>
             {progress.ready ? "Ready for review" : `${progress.doneCount} of ${progress.total} complete`}
           </strong>
-          <p className="muted">Member prices, tags, photos & permissions count.</p>
+          <p className="muted">Photos, Cost cards, hours, map pin &amp; listing chips count.</p>
         </div>
         <div className="cr-sticky-actions">
           <button className="btn btn-secondary" type="button" onClick={onSave} disabled={pending}>

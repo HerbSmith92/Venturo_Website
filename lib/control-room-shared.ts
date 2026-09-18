@@ -42,6 +42,7 @@ export function formatClock(iso: string | null | undefined) {
 }
 
 export function formatDay(dayOfWeek: number) {
+  if (dayOfWeek === 8) return "Public Holiday";
   const days = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"];
   return days[dayOfWeek - 1] ?? `Day ${dayOfWeek}`;
 }
@@ -51,7 +52,7 @@ export function formatHours(opensAt: string | null, closesAt: string | null, clo
   const open = opensAt?.slice(0, 5);
   const close = closesAt?.slice(0, 5);
   if (!open || !close) return "Hours TBC";
-  return `${open}–${close}`;
+  return `${open} – ${close}`;
 }
 
 export type AuditEvent = {

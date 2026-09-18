@@ -4,7 +4,7 @@ import { useMemo, useState } from "react";
 import type { EventInvite } from "@/lib/event-marketing";
 import { invitePublicUrl } from "@/lib/event-links";
 import { buildGuestListPdf, downloadGuestListPdf } from "@/lib/guest-list-pdf";
-import { portalDoorHref } from "@/lib/portal";
+import { companionEventHref } from "@/lib/companion";
 import type { DoorGuest } from "@/lib/host-scanning";
 import { formatEventWindow, type VenturoEvent } from "@/lib/event-types";
 
@@ -121,7 +121,7 @@ export function EventGuests({
           <p className="eyebrow">Guest Management</p>
           <h2>Who&apos;s On The List</h2>
         </div>
-        <a className="btn btn-primary" href={portalDoorHref(event.id)}>
+        <a className="btn btn-primary" href={companionEventHref(event.id)}>
           Open Door
         </a>
         <button className="btn btn-secondary" type="button" onClick={() => exportPdf()}>

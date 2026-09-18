@@ -1,5 +1,5 @@
 import QRCode from "qrcode";
-import { ticketQrPayload } from "@/lib/host-scanning";
+import { ticketQrPayload } from "@/lib/ticket-code";
 
 export async function TicketQr({ code }: { code: string }) {
   const payload = ticketQrPayload(code);
