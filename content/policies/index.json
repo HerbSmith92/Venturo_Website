@@ -1,0 +1,32 @@
+[
+  {
+    "slug": "privacy",
+    "href": "/privacy_policy/",
+    "title": "Venturo Privacy Policy",
+    "summary": "Venturo respects your privacy and is committed to protecting your personal information."
+  },
+  {
+    "slug": "terms",
+    "href": "/terms/",
+    "title": "Venturo Terms & Conditions",
+    "summary": "Welcome to Venturo."
+  },
+  {
+    "slug": "refunds",
+    "href": "/refunds/",
+    "title": "Venturo Refund & Cancellation Policy",
+    "summary": "This Refund & Cancellation Policy explains how cancellations, refunds & changes are handled for purchases made directly from Venturo."
+  },
+  {
+    "slug": "copyright",
+    "href": "/copyright/",
+    "title": "Venturo Copyright & Intellectual Property Policy",
+    "summary": "Venturo respects copyright, trade marks & other intellectual property rights."
+  },
+  {
+    "slug": "community-guidelines",
+    "href": "/community-guidelines/",
+    "title": "Venturo User-Generated Content & Community Guidelines",
+    "summary": "Venturo is built around discovering things to do, meeting people with similar interests & helping people spend more time experiencing the world around them."
+  }
+]

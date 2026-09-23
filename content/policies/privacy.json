@@ -1,0 +1,1767 @@
+{
+  "slug": "privacy",
+  "href": "/privacy_policy/",
+  "title": "Venturo Privacy Policy",
+  "summary": "Venturo respects your privacy and is committed to protecting your personal information.",
+  "meta": [
+    "Business: Viatori Ventures (Pty) Ltd trading as Venturo",
+    "Website: www.venturo.co.za",
+    "Country: South Africa",
+    "Effective date: 01 October 2025",
+    "Last Updated: 01 September 2025"
+  ],
+  "blocks": [
+    {
+      "type": "h2",
+      "text": "1. Introduction"
+    },
+    {
+      "type": "p",
+      "text": "Venturo respects your privacy and is committed to protecting your personal information."
+    },
+    {
+      "type": "p",
+      "text": "This Privacy Policy explains how Viatori Ventures (Pty) Ltd trading as Venturo collects, uses, stores, shares & protects personal information when you use:"
+    },
+    {
+      "type": "li",
+      "text": "the Venturo mobile application;"
+    },
+    {
+      "type": "li",
+      "text": "www.venturo.co.za;"
+    },
+    {
+      "type": "li",
+      "text": "a Venturo account;"
+    },
+    {
+      "type": "li",
+      "text": "Venturo Membership;"
+    },
+    {
+      "type": "li",
+      "text": "Venturo communities;"
+    },
+    {
+      "type": "li",
+      "text": "Venturo-operated events;"
+    },
+    {
+      "type": "li",
+      "text": "business or activity listings;"
+    },
+    {
+      "type": "li",
+      "text": "customer support;"
+    },
+    {
+      "type": "li",
+      "text": "promotional communications; or"
+    },
+    {
+      "type": "li",
+      "text": "other services provided by Venturo."
+    },
+    {
+      "type": "p",
+      "text": "This Policy should be read together with the Venturo Terms & Conditions and Refund & Cancellation Policy."
+    },
+    {
+      "type": "p",
+      "text": "Venturo processes personal information in accordance with applicable South African law, including the Protection of Personal Information Act 4 of 2013 (\"POPIA\")."
+    },
+    {
+      "type": "h2",
+      "text": "2. Who Is Responsible for Your Information?"
+    },
+    {
+      "type": "p",
+      "text": "For purposes of POPIA, the responsible party is:"
+    },
+    {
+      "type": "p",
+      "text": "Viatori Ventures (Pty) Ltd trading as Venturo"
+    },
+    {
+      "type": "p",
+      "text": "Website: www.venturo.co.za"
+    },
+    {
+      "type": "p",
+      "text": "Company Registration Number: 2024 / 211126 / 07"
+    },
+    {
+      "type": "p",
+      "text": "Physical Address: 20 Lingerett Ave, Sunninghill, 2191"
+    },
+    {
+      "type": "p",
+      "text": "Email: herb@venturo.co.za"
+    },
+    {
+      "type": "p",
+      "text": "Telephone: 063 401 9080"
+    },
+    {
+      "type": "p",
+      "text": "Venturo determines why & how personal information is processed for the purposes described in this Privacy Policy."
+    },
+    {
+      "type": "h2",
+      "text": "3. What Is Personal Information?"
+    },
+    {
+      "type": "p",
+      "text": "Personal information is information relating to an identifiable living person and, where applicable under South African law, an identifiable existing juristic person."
+    },
+    {
+      "type": "p",
+      "text": "It may include information such as:"
+    },
+    {
+      "type": "li",
+      "text": "name;"
+    },
+    {
+      "type": "li",
+      "text": "surname;"
+    },
+    {
+      "type": "li",
+      "text": "email address;"
+    },
+    {
+      "type": "li",
+      "text": "telephone number;"
+    },
+    {
+      "type": "li",
+      "text": "photographs;"
+    },
+    {
+      "type": "li",
+      "text": "account information;"
+    },
+    {
+      "type": "li",
+      "text": "location information;"
+    },
+    {
+      "type": "li",
+      "text": "preferences;"
+    },
+    {
+      "type": "li",
+      "text": "transaction information;"
+    },
+    {
+      "type": "li",
+      "text": "online identifiers;"
+    },
+    {
+      "type": "li",
+      "text": "communications; and"
+    },
+    {
+      "type": "li",
+      "text": "other information that can reasonably be linked to a person."
+    },
+    {
+      "type": "h2",
+      "text": "4. Information We Collect"
+    },
+    {
+      "type": "p",
+      "text": "The information Venturo collects depends on how you use the Platform."
+    },
+    {
+      "type": "h2",
+      "text": "4.1 Account Information"
+    },
+    {
+      "type": "p",
+      "text": "When you create or manage a Venturo account, we may collect:"
+    },
+    {
+      "type": "li",
+      "text": "first name;"
+    },
+    {
+      "type": "li",
+      "text": "surname;"
+    },
+    {
+      "type": "li",
+      "text": "email address;"
+    },
+    {
+      "type": "li",
+      "text": "mobile number where provided;"
+    },
+    {
+      "type": "li",
+      "text": "profile photograph;"
+    },
+    {
+      "type": "li",
+      "text": "cover photograph;"
+    },
+    {
+      "type": "li",
+      "text": "login and account identifiers;"
+    },
+    {
+      "type": "li",
+      "text": "account creation date;"
+    },
+    {
+      "type": "li",
+      "text": "account status; and"
+    },
+    {
+      "type": "li",
+      "text": "authentication information."
+    },
+    {
+      "type": "p",
+      "text": "Passwords are handled through Venturo's authentication systems and should not be visible to Venturo personnel in plain text."
+    },
+    {
+      "type": "h2",
+      "text": "4.2 Profile & Preference Information"
+    },
+    {
+      "type": "p",
+      "text": "Venturo is designed to personalise activity discovery."
+    },
+    {
+      "type": "p",
+      "text": "We may therefore collect information that you provide about your interests & preferences, including:"
+    },
+    {
+      "type": "li",
+      "text": "activity interests;"
+    },
+    {
+      "type": "li",
+      "text": "preferred activity categories;"
+    },
+    {
+      "type": "li",
+      "text": "adventure preferences;"
+    },
+    {
+      "type": "li",
+      "text": "saved activities;"
+    },
+    {
+      "type": "li",
+      "text": "wishlist or bucket-list selections;"
+    },
+    {
+      "type": "li",
+      "text": "communities followed or joined;"
+    },
+    {
+      "type": "li",
+      "text": "favourite activities;"
+    },
+    {
+      "type": "li",
+      "text": "event interests;"
+    },
+    {
+      "type": "li",
+      "text": "discovery preferences; and"
+    },
+    {
+      "type": "li",
+      "text": "other choices you make within the Platform."
+    },
+    {
+      "type": "p",
+      "text": "This information helps Venturo recommend activities, events & communities that may be relevant to you."
+    },
+    {
+      "type": "h2",
+      "text": "4.3 Location Information"
+    },
+    {
+      "type": "p",
+      "text": "Venturo may use location information to provide features such as:"
+    },
+    {
+      "type": "li",
+      "text": "nearby activities;"
+    },
+    {
+      "type": "li",
+      "text": "distance information;"
+    },
+    {
+      "type": "li",
+      "text": "location-based discovery;"
+    },
+    {
+      "type": "li",
+      "text": "maps;"
+    },
+    {
+      "type": "li",
+      "text": "directions; and"
+    },
+    {
+      "type": "li",
+      "text": "recommendations relevant to an area."
+    },
+    {
+      "type": "p",
+      "text": "Where device location permission is required, Venturo will request permission through the applicable device or operating-system process."
+    },
+    {
+      "type": "p",
+      "text": "You can control device location permission through your device settings."
+    },
+    {
+      "type": "p",
+      "text": "If you choose not to provide precise device location, you may still be able to search or select locations manually where this functionality is available."
+    },
+    {
+      "type": "p",
+      "text": "Venturo will only use location information for purposes reasonably connected to the functionality described to you."
+    },
+    {
+      "type": "h2",
+      "text": "4.4 Membership Information"
+    },
+    {
+      "type": "p",
+      "text": "If you subscribe to Venturo Membership, we may process information such as:"
+    },
+    {
+      "type": "li",
+      "text": "your Venturo account identifier;"
+    },
+    {
+      "type": "li",
+      "text": "membership status;"
+    },
+    {
+      "type": "li",
+      "text": "subscription status;"
+    },
+    {
+      "type": "li",
+      "text": "subscription start date;"
+    },
+    {
+      "type": "li",
+      "text": "renewal or expiry information;"
+    },
+    {
+      "type": "li",
+      "text": "subscription source;"
+    },
+    {
+      "type": "li",
+      "text": "membership benefits used; and"
+    },
+    {
+      "type": "li",
+      "text": "transaction or subscription references."
+    },
+    {
+      "type": "p",
+      "text": "Venturo may receive confirmation from third-party subscription or payment providers that a payment or subscription is valid."
+    },
+    {
+      "type": "h2",
+      "text": "4.5 Payment Information"
+    },
+    {
+      "type": "p",
+      "text": "Where you make a payment to Venturo, we may process:"
+    },
+    {
+      "type": "li",
+      "text": "transaction reference;"
+    },
+    {
+      "type": "li",
+      "text": "amount paid;"
+    },
+    {
+      "type": "li",
+      "text": "date & time of payment;"
+    },
+    {
+      "type": "li",
+      "text": "transaction status;"
+    },
+    {
+      "type": "li",
+      "text": "payment method category;"
+    },
+    {
+      "type": "li",
+      "text": "refund status; and"
+    },
+    {
+      "type": "li",
+      "text": "information required for accounting, fraud prevention or customer support."
+    },
+    {
+      "type": "p",
+      "text": "Payments may be processed by third-party payment providers such as PayFast or, for applicable in-app subscriptions, through the relevant app marketplace."
+    },
+    {
+      "type": "p",
+      "text": "Venturo does not intend to store full payment-card numbers, card security codes or similar raw payment credentials where these are processed securely by the applicable payment provider."
+    },
+    {
+      "type": "p",
+      "text": "The payment provider may separately process personal information under its own privacy policy and terms."
+    },
+    {
+      "type": "h2",
+      "text": "5. App Store Subscriptions"
+    },
+    {
+      "type": "p",
+      "text": "Where Venturo Membership is purchased through an app marketplace such as Apple, the marketplace processes the payment under its own systems."
+    },
+    {
+      "type": "p",
+      "text": "Venturo may receive information required to determine whether the Venturo account has an active subscription."
+    },
+    {
+      "type": "p",
+      "text": "Subscription-management technology may also be used to verify subscription status & associate the entitlement with the correct Venturo account."
+    },
+    {
+      "type": "p",
+      "text": "Venturo does not receive the User's full Apple payment credentials."
+    },
+    {
+      "type": "h2",
+      "text": "6. Venturo Event Information"
+    },
+    {
+      "type": "p",
+      "text": "If you register for or attend a Venturo-operated event, we may collect information reasonably necessary to administer the event, such as:"
+    },
+    {
+      "type": "li",
+      "text": "name;"
+    },
+    {
+      "type": "li",
+      "text": "email address;"
+    },
+    {
+      "type": "li",
+      "text": "telephone number;"
+    },
+    {
+      "type": "li",
+      "text": "ticket or booking information;"
+    },
+    {
+      "type": "li",
+      "text": "attendance status;"
+    },
+    {
+      "type": "li",
+      "text": "emergency contact information where appropriate;"
+    },
+    {
+      "type": "li",
+      "text": "participation requirements; and"
+    },
+    {
+      "type": "li",
+      "text": "communications relating to the event."
+    },
+    {
+      "type": "p",
+      "text": "For certain activities, a User may voluntarily provide information relevant to safe participation."
+    },
+    {
+      "type": "p",
+      "text": "Where this information qualifies as special personal information, Venturo will process it only where there is an appropriate lawful basis and where it is reasonably necessary for the purpose for which it was provided."
+    },
+    {
+      "type": "h2",
+      "text": "7. User-Generated Content"
+    },
+    {
+      "type": "p",
+      "text": "Venturo may allow Users to upload or publish content such as:"
+    },
+    {
+      "type": "li",
+      "text": "profile photographs;"
+    },
+    {
+      "type": "li",
+      "text": "reviews;"
+    },
+    {
+      "type": "li",
+      "text": "ratings;"
+    },
+    {
+      "type": "li",
+      "text": "comments;"
+    },
+    {
+      "type": "li",
+      "text": "community posts;"
+    },
+    {
+      "type": "li",
+      "text": "photographs; and"
+    },
+    {
+      "type": "li",
+      "text": "other contributions."
+    },
+    {
+      "type": "p",
+      "text": "Some User-Generated Content may be visible to other Users or the public."
+    },
+    {
+      "type": "p",
+      "text": "Before publishing content, Users should avoid including personal information that they do not want others to see."
+    },
+    {
+      "type": "p",
+      "text": "Users should also avoid publishing another person's personal information without an appropriate reason or permission."
+    },
+    {
+      "type": "p",
+      "text": "Venturo may process User-Generated Content for moderation, platform operation, safety, support & enforcement of the Venturo Terms & Conditions."
+    },
+    {
+      "type": "h2",
+      "text": "8. Community Information"
+    },
+    {
+      "type": "p",
+      "text": "If you join or participate in a Venturo community, we may process information including:"
+    },
+    {
+      "type": "li",
+      "text": "which communities you join;"
+    },
+    {
+      "type": "li",
+      "text": "community activity;"
+    },
+    {
+      "type": "li",
+      "text": "posts or comments;"
+    },
+    {
+      "type": "li",
+      "text": "interactions with community content; and"
+    },
+    {
+      "type": "li",
+      "text": "reports or moderation information."
+    },
+    {
+      "type": "p",
+      "text": "Depending on the community design, certain information about your participation may be visible to other community members."
+    },
+    {
+      "type": "h2",
+      "text": "9. Business & Activity Provider Information"
+    },
+    {
+      "type": "p",
+      "text": "Where a person represents an activity business, venue, event organiser or other business using Venturo, we may collect:"
+    },
+    {
+      "type": "li",
+      "text": "representative name;"
+    },
+    {
+      "type": "li",
+      "text": "business role;"
+    },
+    {
+      "type": "li",
+      "text": "work email address;"
+    },
+    {
+      "type": "li",
+      "text": "telephone number;"
+    },
+    {
+      "type": "li",
+      "text": "business contact information;"
+    },
+    {
+      "type": "li",
+      "text": "communications with Venturo;"
+    },
+    {
+      "type": "li",
+      "text": "business account information;"
+    },
+    {
+      "type": "li",
+      "text": "listing information;"
+    },
+    {
+      "type": "li",
+      "text": "photographs & media submitted;"
+    },
+    {
+      "type": "li",
+      "text": "promotional arrangements;"
+    },
+    {
+      "type": "li",
+      "text": "Member Benefit information; and"
+    },
+    {
+      "type": "li",
+      "text": "transaction information relating to services purchased from Venturo."
+    },
+    {
+      "type": "p",
+      "text": "Some business information may already be publicly available."
+    },
+    {
+      "type": "p",
+      "text": "Venturo may use publicly available business information for legitimate directory, verification & business-contact purposes, subject to applicable law."
+    },
+    {
+      "type": "h2",
+      "text": "10. Information You Give Us Through Support"
+    },
+    {
+      "type": "p",
+      "text": "When you contact Venturo, we may process:"
+    },
+    {
+      "type": "li",
+      "text": "your contact details;"
+    },
+    {
+      "type": "li",
+      "text": "the content of your enquiry;"
+    },
+    {
+      "type": "li",
+      "text": "screenshots or files you provide;"
+    },
+    {
+      "type": "li",
+      "text": "relevant account information;"
+    },
+    {
+      "type": "li",
+      "text": "transaction information;"
+    },
+    {
+      "type": "li",
+      "text": "previous support communications; and"
+    },
+    {
+      "type": "li",
+      "text": "information reasonably required to investigate the issue."
+    },
+    {
+      "type": "p",
+      "text": "Support records may be retained where necessary for customer service, dispute resolution, fraud prevention, security or legal purposes."
+    },
+    {
+      "type": "h2",
+      "text": "11. Technical & Usage Information"
+    },
+    {
+      "type": "p",
+      "text": "When you use the Venturo Platform, certain technical information may be generated automatically."
+    },
+    {
+      "type": "p",
+      "text": "This may include:"
+    },
+    {
+      "type": "li",
+      "text": "device type;"
+    },
+    {
+      "type": "li",
+      "text": "operating system;"
+    },
+    {
+      "type": "li",
+      "text": "app version;"
+    },
+    {
+      "type": "li",
+      "text": "browser type;"
+    },
+    {
+      "type": "li",
+      "text": "IP address;"
+    },
+    {
+      "type": "li",
+      "text": "device or session identifiers;"
+    },
+    {
+      "type": "li",
+      "text": "login events;"
+    },
+    {
+      "type": "li",
+      "text": "error logs;"
+    },
+    {
+      "type": "li",
+      "text": "crash information;"
+    },
+    {
+      "type": "li",
+      "text": "security events;"
+    },
+    {
+      "type": "li",
+      "text": "pages or screens viewed;"
+    },
+    {
+      "type": "li",
+      "text": "feature usage;"
+    },
+    {
+      "type": "li",
+      "text": "referral information; and"
+    },
+    {
+      "type": "li",
+      "text": "approximate technical location derived from network information where applicable."
+    },
+    {
+      "type": "p",
+      "text": "We use this information to operate, secure, troubleshoot & improve the Platform."
+    },
+    {
+      "type": "h2",
+      "text": "12. Cookies & Similar Technologies"
+    },
+    {
+      "type": "p",
+      "text": "The Venturo website may use cookies or similar technologies."
+    },
+    {
+      "type": "p",
+      "text": "These may be used for:"
+    },
+    {
+      "type": "li",
+      "text": "keeping Users signed in;"
+    },
+    {
+      "type": "li",
+      "text": "remembering preferences;"
+    },
+    {
+      "type": "li",
+      "text": "maintaining security;"
+    },
+    {
+      "type": "li",
+      "text": "understanding website performance;"
+    },
+    {
+      "type": "li",
+      "text": "measuring Platform usage; and"
+    },
+    {
+      "type": "li",
+      "text": "supporting functionality."
+    },
+    {
+      "type": "p",
+      "text": "Where required, Venturo may provide Users with controls relating to optional cookies."
+    },
+    {
+      "type": "p",
+      "text": "Essential cookies required for security, authentication or core website operation may operate without optional marketing-cookie consent where legally permitted."
+    },
+    {
+      "type": "p",
+      "text": "If Venturo introduces advertising or marketing cookies, appropriate notices & controls should be provided."
+    },
+    {
+      "type": "h2",
+      "text": "13. Why We Process Personal Information"
+    },
+    {
+      "type": "p",
+      "text": "Venturo processes personal information for purposes including:"
+    },
+    {
+      "type": "li",
+      "text": "creating & managing accounts;"
+    },
+    {
+      "type": "li",
+      "text": "authenticating Users;"
+    },
+    {
+      "type": "li",
+      "text": "providing the Venturo Platform;"
+    },
+    {
+      "type": "li",
+      "text": "personalising recommendations;"
+    },
+    {
+      "type": "li",
+      "text": "showing relevant activities, events & communities;"
+    },
+    {
+      "type": "li",
+      "text": "enabling location-based discovery;"
+    },
+    {
+      "type": "li",
+      "text": "managing Membership;"
+    },
+    {
+      "type": "li",
+      "text": "confirming subscription status;"
+    },
+    {
+      "type": "li",
+      "text": "processing Venturo payments;"
+    },
+    {
+      "type": "li",
+      "text": "administering Venturo-operated events;"
+    },
+    {
+      "type": "li",
+      "text": "managing communities;"
+    },
+    {
+      "type": "li",
+      "text": "enabling reviews & other User-Generated Content;"
+    },
+    {
+      "type": "li",
+      "text": "communicating with Users;"
+    },
+    {
+      "type": "li",
+      "text": "responding to support requests;"
+    },
+    {
+      "type": "li",
+      "text": "preventing fraud & abuse;"
+    },
+    {
+      "type": "li",
+      "text": "protecting the Platform;"
+    },
+    {
+      "type": "li",
+      "text": "investigating security incidents;"
+    },
+    {
+      "type": "li",
+      "text": "improving features & Platform performance;"
+    },
+    {
+      "type": "li",
+      "text": "maintaining accounting & transaction records;"
+    },
+    {
+      "type": "li",
+      "text": "complying with legal obligations;"
+    },
+    {
+      "type": "li",
+      "text": "enforcing Venturo's Terms & Conditions; and"
+    },
+    {
+      "type": "li",
+      "text": "sending permitted marketing communications."
+    },
+    {
+      "type": "p",
+      "text": "Venturo will not process personal information in a way that is incompatible with the purpose for which it was collected unless there is an appropriate legal basis to do so."
+    },
+    {
+      "type": "h2",
+      "text": "14. Grounds for Processing"
+    },
+    {
+      "type": "p",
+      "text": "Depending on the circumstances, Venturo may process personal information where:"
+    },
+    {
+      "type": "li",
+      "text": "you have consented to the processing;"
+    },
+    {
+      "type": "li",
+      "text": "processing is necessary to perform an agreement with you;"
+    },
+    {
+      "type": "li",
+      "text": "processing is necessary to comply with a legal obligation;"
+    },
+    {
+      "type": "li",
+      "text": "processing protects a legitimate interest of the User;"
+    },
+    {
+      "type": "li",
+      "text": "processing is necessary to pursue Venturo's legitimate interests or those of a third party, subject to applicable law; or"
+    },
+    {
+      "type": "li",
+      "text": "another lawful basis recognised under POPIA applies."
+    },
+    {
+      "type": "p",
+      "text": "Venturo will use consent where consent is the appropriate legal basis."
+    },
+    {
+      "type": "p",
+      "text": "Where processing is based on consent, you may withdraw that consent subject to applicable law and any processing that is independently permitted on another lawful basis."
+    },
+    {
+      "type": "h2",
+      "text": "15. Personalised Recommendations"
+    },
+    {
+      "type": "p",
+      "text": "Venturo uses information such as:"
+    },
+    {
+      "type": "li",
+      "text": "your interests;"
+    },
+    {
+      "type": "li",
+      "text": "selected preferences;"
+    },
+    {
+      "type": "li",
+      "text": "saved activities;"
+    },
+    {
+      "type": "li",
+      "text": "previous Platform interactions;"
+    },
+    {
+      "type": "li",
+      "text": "location preferences; and"
+    },
+    {
+      "type": "li",
+      "text": "other discovery signals"
+    },
+    {
+      "type": "p",
+      "text": "to personalise recommendations."
+    },
+    {
+      "type": "p",
+      "text": "For example, Venturo may use these signals to decide which activities, events or communities appear higher in your personalised discovery experience."
+    },
+    {
+      "type": "p",
+      "text": "These recommendations are intended to reduce irrelevant results & improve discovery."
+    },
+    {
+      "type": "p",
+      "text": "Venturo's recommendation features are not intended to make automated decisions that produce legal or similarly significant effects on Users."
+    },
+    {
+      "type": "p",
+      "text": "Personalisation does not guarantee that every recommendation will be suitable, available or of interest to the User."
+    },
+    {
+      "type": "h2",
+      "text": "16. Direct Marketing"
+    },
+    {
+      "type": "p",
+      "text": "Venturo may send marketing communications about activities, events, membership offers, community updates, promotions or other Venturo news where permitted by law."
+    },
+    {
+      "type": "p",
+      "text": "Where consent is required, Venturo will request it separately."
+    },
+    {
+      "type": "p",
+      "text": "Marketing consent is optional and is not required simply to create a Venturo account or make a purchase."
+    },
+    {
+      "type": "p",
+      "text": "Users may withdraw or change their marketing preference using the unsubscribe functionality provided or by contacting Venturo."
+    },
+    {
+      "type": "p",
+      "text": "Opting out of marketing does not prevent Venturo from sending necessary service communications such as:"
+    },
+    {
+      "type": "li",
+      "text": "account-security messages;"
+    },
+    {
+      "type": "li",
+      "text": "booking confirmations;"
+    },
+    {
+      "type": "li",
+      "text": "payment information;"
+    },
+    {
+      "type": "li",
+      "text": "important subscription information;"
+    },
+    {
+      "type": "li",
+      "text": "event changes;"
+    },
+    {
+      "type": "li",
+      "text": "password or authentication messages; and"
+    },
+    {
+      "type": "li",
+      "text": "other communications necessary to provide the service."
+    },
+    {
+      "type": "h2",
+      "text": "17. Push Notifications"
+    },
+    {
+      "type": "p",
+      "text": "If you allow push notifications, Venturo may send notifications relating to:"
+    },
+    {
+      "type": "li",
+      "text": "account activity;"
+    },
+    {
+      "type": "li",
+      "text": "activities;"
+    },
+    {
+      "type": "li",
+      "text": "events;"
+    },
+    {
+      "type": "li",
+      "text": "communities;"
+    },
+    {
+      "type": "li",
+      "text": "membership;"
+    },
+    {
+      "type": "li",
+      "text": "saved interests; and"
+    },
+    {
+      "type": "li",
+      "text": "other relevant Platform features."
+    },
+    {
+      "type": "p",
+      "text": "Marketing push notifications will be handled in accordance with applicable marketing requirements."
+    },
+    {
+      "type": "p",
+      "text": "You can manage push-notification permissions through your device settings and, where available, Venturo settings."
+    },
+    {
+      "type": "h2",
+      "text": "18. Who We Share Information With"
+    },
+    {
+      "type": "p",
+      "text": "Venturo may share personal information with third parties where reasonably necessary to operate the Platform or comply with law."
+    },
+    {
+      "type": "p",
+      "text": "These categories may include:"
+    },
+    {
+      "type": "p",
+      "text": "Payment & subscription providers"
+    },
+    {
+      "type": "p",
+      "text": "To process payments, verify subscriptions, manage refunds or confirm membership status."
+    },
+    {
+      "type": "p",
+      "text": "Hosting, database & storage providers"
+    },
+    {
+      "type": "p",
+      "text": "To host Venturo systems, databases, files & media."
+    },
+    {
+      "type": "p",
+      "text": "Authentication & security providers"
+    },
+    {
+      "type": "p",
+      "text": "To manage accounts, login functionality, security & fraud prevention."
+    },
+    {
+      "type": "p",
+      "text": "Analytics & technical service providers"
+    },
+    {
+      "type": "p",
+      "text": "To understand performance, diagnose errors & improve the Platform."
+    },
+    {
+      "type": "p",
+      "text": "Mapping & location service providers"
+    },
+    {
+      "type": "p",
+      "text": "To support maps, location search, distance information & related functionality."
+    },
+    {
+      "type": "p",
+      "text": "Communication providers"
+    },
+    {
+      "type": "p",
+      "text": "To deliver email, notifications or other service communications."
+    },
+    {
+      "type": "p",
+      "text": "Professional advisers"
+    },
+    {
+      "type": "p",
+      "text": "Such as accountants, auditors, attorneys or other professional advisers where reasonably necessary."
+    },
+    {
+      "type": "p",
+      "text": "Regulators, authorities or law-enforcement bodies"
+    },
+    {
+      "type": "p",
+      "text": "Where disclosure is required or permitted by law."
+    },
+    {
+      "type": "p",
+      "text": "Activity Providers"
+    },
+    {
+      "type": "p",
+      "text": "Where information needs to be shared to fulfil a transaction, benefit or request and where the User has been appropriately informed."
+    },
+    {
+      "type": "p",
+      "text": "Venturo does not sell personal information to advertisers."
+    },
+    {
+      "type": "h2",
+      "text": "19. Service Providers & Operators"
+    },
+    {
+      "type": "p",
+      "text": "Third parties that process personal information on Venturo's behalf may act as operators for purposes of POPIA."
+    },
+    {
+      "type": "p",
+      "text": "Venturo expects operators handling personal information on its behalf to process that information appropriately, maintain reasonable safeguards & use the information only for authorised purposes."
+    },
+    {
+      "type": "p",
+      "text": "Key technologies used by Venturo may include third-party payment, subscription, mapping, authentication, database, hosting, storage, analytics & communication services."
+    },
+    {
+      "type": "p",
+      "text": "These providers may maintain their own privacy notices describing how they process information in their respective roles."
+    },
+    {
+      "type": "h2",
+      "text": "20. International Processing"
+    },
+    {
+      "type": "p",
+      "text": "Some of Venturo's technology or service providers may store or process information outside South Africa."
+    },
+    {
+      "type": "p",
+      "text": "Where personal information is transferred outside South Africa, Venturo will take reasonable steps to ensure that the transfer complies with applicable requirements under POPIA."
+    },
+    {
+      "type": "p",
+      "text": "This may include relying on appropriate contractual protections, applicable legal protections, consent where appropriate or another lawful basis for the transfer."
+    },
+    {
+      "type": "h2",
+      "text": "21. Information Security"
+    },
+    {
+      "type": "p",
+      "text": "Venturo takes reasonable technical & organisational measures to protect personal information against:"
+    },
+    {
+      "type": "li",
+      "text": "loss;"
+    },
+    {
+      "type": "li",
+      "text": "damage;"
+    },
+    {
+      "type": "li",
+      "text": "unauthorised destruction;"
+    },
+    {
+      "type": "li",
+      "text": "unlawful access;"
+    },
+    {
+      "type": "li",
+      "text": "unauthorised disclosure;"
+    },
+    {
+      "type": "li",
+      "text": "alteration; and"
+    },
+    {
+      "type": "li",
+      "text": "other unlawful processing."
+    },
+    {
+      "type": "p",
+      "text": "These measures may include appropriate authentication, access controls, security monitoring, encryption, restricted administrative access, backups & security procedures."
+    },
+    {
+      "type": "p",
+      "text": "No online system can be guaranteed to be completely secure."
+    },
+    {
+      "type": "p",
+      "text": "Venturo therefore reviews security risks & safeguards as its systems develop."
+    },
+    {
+      "type": "p",
+      "text": "Users also play an important role in account security and should protect their login credentials & notify Venturo if they suspect unauthorised account access."
+    },
+    {
+      "type": "h2",
+      "text": "22. Personal Information Security Compromises"
+    },
+    {
+      "type": "p",
+      "text": "If Venturo becomes aware of a security compromise involving personal information, Venturo will investigate the incident and take appropriate steps to contain & remediate it."
+    },
+    {
+      "type": "p",
+      "text": "Where notification is required under applicable law, Venturo will notify the Information Regulator and affected data subjects as required."
+    },
+    {
+      "type": "p",
+      "text": "Notifications may include information about:"
+    },
+    {
+      "type": "li",
+      "text": "what happened;"
+    },
+    {
+      "type": "li",
+      "text": "the information affected;"
+    },
+    {
+      "type": "li",
+      "text": "measures taken by Venturo;"
+    },
+    {
+      "type": "li",
+      "text": "steps Users may take to protect themselves; and"
+    },
+    {
+      "type": "li",
+      "text": "relevant contact information."
+    },
+    {
+      "type": "h2",
+      "text": "23. How Long We Keep Information"
+    },
+    {
+      "type": "p",
+      "text": "Venturo keeps personal information only for as long as reasonably necessary for the purpose for which it was collected or as required or permitted by law."
+    },
+    {
+      "type": "p",
+      "text": "Retention periods may depend on:"
+    },
+    {
+      "type": "li",
+      "text": "whether the User has an active account;"
+    },
+    {
+      "type": "li",
+      "text": "whether information is required to provide a service;"
+    },
+    {
+      "type": "li",
+      "text": "transaction & accounting requirements;"
+    },
+    {
+      "type": "li",
+      "text": "tax or financial-record obligations;"
+    },
+    {
+      "type": "li",
+      "text": "legal claims;"
+    },
+    {
+      "type": "li",
+      "text": "fraud or security investigations;"
+    },
+    {
+      "type": "li",
+      "text": "regulatory requirements; and"
+    },
+    {
+      "type": "li",
+      "text": "legitimate operational requirements."
+    },
+    {
+      "type": "p",
+      "text": "When information is no longer required, Venturo will delete, destroy, de-identify or otherwise handle it in accordance with applicable law & operational requirements."
+    },
+    {
+      "type": "h2",
+      "text": "24. Account Deletion"
+    },
+    {
+      "type": "p",
+      "text": "Users may request deletion of their Venturo account using the available in-app functionality or by contacting Venturo."
+    },
+    {
+      "type": "p",
+      "text": "Deleting an account may remove or disable access to information including:"
+    },
+    {
+      "type": "li",
+      "text": "profile details;"
+    },
+    {
+      "type": "li",
+      "text": "personal preferences;"
+    },
+    {
+      "type": "li",
+      "text": "saved activities;"
+    },
+    {
+      "type": "li",
+      "text": "bucket-list items;"
+    },
+    {
+      "type": "li",
+      "text": "community participation;"
+    },
+    {
+      "type": "li",
+      "text": "personalised settings; and"
+    },
+    {
+      "type": "li",
+      "text": "other account-linked functionality."
+    },
+    {
+      "type": "p",
+      "text": "Account deletion does not necessarily require immediate deletion of every record."
+    },
+    {
+      "type": "p",
+      "text": "Venturo may retain information where required or permitted for purposes such as:"
+    },
+    {
+      "type": "li",
+      "text": "financial records;"
+    },
+    {
+      "type": "li",
+      "text": "completed transactions;"
+    },
+    {
+      "type": "li",
+      "text": "refunds;"
+    },
+    {
+      "type": "li",
+      "text": "fraud prevention;"
+    },
+    {
+      "type": "li",
+      "text": "legal obligations;"
+    },
+    {
+      "type": "li",
+      "text": "disputes;"
+    },
+    {
+      "type": "li",
+      "text": "security records; or"
+    },
+    {
+      "type": "li",
+      "text": "legal claims."
+    },
+    {
+      "type": "p",
+      "text": "Information retained after account deletion will no longer be used for ordinary personalisation or marketing where such use is no longer appropriate."
+    },
+    {
+      "type": "h2",
+      "text": "25. Your Rights"
+    },
+    {
+      "type": "p",
+      "text": "Subject to applicable law, you may have the right to:"
+    },
+    {
+      "type": "li",
+      "text": "ask whether Venturo holds personal information about you;"
+    },
+    {
+      "type": "li",
+      "text": "request access to your personal information;"
+    },
+    {
+      "type": "li",
+      "text": "request correction of inaccurate information;"
+    },
+    {
+      "type": "li",
+      "text": "request deletion or destruction of information where appropriate;"
+    },
+    {
+      "type": "li",
+      "text": "object to certain processing;"
+    },
+    {
+      "type": "li",
+      "text": "withdraw consent where processing relies on consent;"
+    },
+    {
+      "type": "li",
+      "text": "object to direct marketing;"
+    },
+    {
+      "type": "li",
+      "text": "request information about how your information is processed; and"
+    },
+    {
+      "type": "li",
+      "text": "lodge a complaint with the Information Regulator."
+    },
+    {
+      "type": "p",
+      "text": "Venturo may need to verify your identity before acting on certain privacy requests."
+    },
+    {
+      "type": "p",
+      "text": "This protects personal information from being disclosed or altered at the request of an unauthorised person."
+    },
+    {
+      "type": "h2",
+      "text": "26. Correcting Your Information"
+    },
+    {
+      "type": "p",
+      "text": "Certain information may be updated directly through your Venturo profile or account settings."
+    },
+    {
+      "type": "p",
+      "text": "If information cannot be changed directly, you may contact Venturo to request correction."
+    },
+    {
+      "type": "p",
+      "text": "Venturo may retain a record of previous information where required for legal, transaction, fraud-prevention or audit purposes."
+    },
+    {
+      "type": "h2",
+      "text": "27. Children"
+    },
+    {
+      "type": "p",
+      "text": "Venturo is primarily designed for adults discovering activities, events & communities for themselves, their families or others."
+    },
+    {
+      "type": "p",
+      "text": "Adults may use Venturo to discover activities suitable for children."
+    },
+    {
+      "type": "p",
+      "text": "Venturo does not intentionally seek to create behavioural or marketing profiles directly from children where this would not be lawful."
+    },
+    {
+      "type": "p",
+      "text": "Where Venturo introduces functionality specifically involving the personal information of children, appropriate parental or guardian involvement and additional safeguards will be implemented where required by law."
+    },
+    {
+      "type": "p",
+      "text": "If you believe a child has provided personal information to Venturo inappropriately, please contact us."
+    },
+    {
+      "type": "h2",
+      "text": "28. Photographs & Event Media"
+    },
+    {
+      "type": "p",
+      "text": "Venturo-operated events may sometimes involve photography or video."
+    },
+    {
+      "type": "p",
+      "text": "Where event photography is planned, Venturo may notify attendees through event information, signage, event communications or another appropriate method."
+    },
+    {
+      "type": "p",
+      "text": "Where identifiable photographs or video are intended for marketing purposes, Venturo will consider the nature of the event, the context in which the media was captured & any consent or other lawful basis required."
+    },
+    {
+      "type": "p",
+      "text": "Attendees who have concerns about photography should contact Venturo or the event representative."
+    },
+    {
+      "type": "p",
+      "text": "Venturo will take reasonable steps to respect legitimate privacy concerns."
+    },
+    {
+      "type": "h2",
+      "text": "29. Public Reviews & Profiles"
+    },
+    {
+      "type": "p",
+      "text": "Certain information Users choose to publish may be visible to other Users."
+    },
+    {
+      "type": "p",
+      "text": "This may include:"
+    },
+    {
+      "type": "li",
+      "text": "display name;"
+    },
+    {
+      "type": "li",
+      "text": "profile photograph;"
+    },
+    {
+      "type": "li",
+      "text": "reviews;"
+    },
+    {
+      "type": "li",
+      "text": "ratings;"
+    },
+    {
+      "type": "li",
+      "text": "community posts; and"
+    },
+    {
+      "type": "li",
+      "text": "other information deliberately shared through public or community-facing features."
+    },
+    {
+      "type": "p",
+      "text": "Users should consider this before publishing information."
+    },
+    {
+      "type": "p",
+      "text": "Where possible, privacy settings or visibility controls may be provided for relevant features."
+    },
+    {
+      "type": "h2",
+      "text": "30. Third-Party Websites & Services"
+    },
+    {
+      "type": "p",
+      "text": "Venturo may provide links to third-party websites, booking platforms, businesses, maps or social-media services."
+    },
+    {
+      "type": "p",
+      "text": "When you leave the Venturo Platform and interact with another organisation, that organisation's privacy practices may apply."
+    },
+    {
+      "type": "p",
+      "text": "Venturo does not control the privacy practices of independent third parties."
+    },
+    {
+      "type": "p",
+      "text": "Users should review the relevant privacy information before providing personal information directly to another organisation."
+    },
+    {
+      "type": "h2",
+      "text": "31. Business Listings & Public Information"
+    },
+    {
+      "type": "p",
+      "text": "Venturo may collect factual information about businesses, activities & events from:"
+    },
+    {
+      "type": "li",
+      "text": "information supplied by the business;"
+    },
+    {
+      "type": "li",
+      "text": "publicly available business sources;"
+    },
+    {
+      "type": "li",
+      "text": "official websites;"
+    },
+    {
+      "type": "li",
+      "text": "publicly available contact information;"
+    },
+    {
+      "type": "li",
+      "text": "communications with the provider; and"
+    },
+    {
+      "type": "li",
+      "text": "other lawful sources."
+    },
+    {
+      "type": "p",
+      "text": "Venturo uses this information for directory, discovery, verification & business-contact purposes."
+    },
+    {
+      "type": "p",
+      "text": "Where the information identifies an individual rather than only a business, Venturo will process it in accordance with applicable privacy requirements."
+    },
+    {
+      "type": "h2",
+      "text": "32. Changes to this Privacy Policy"
+    },
+    {
+      "type": "p",
+      "text": "Venturo may update this Privacy Policy as its Platform, business, technology or legal obligations develop."
+    },
+    {
+      "type": "p",
+      "text": "The latest version will be made available through the Venturo website and, where appropriate, the mobile application."
+    },
+    {
+      "type": "p",
+      "text": "The date of the latest update will appear at the top of this Policy."
+    },
+    {
+      "type": "p",
+      "text": "Where a change materially affects how existing personal information is processed, Venturo will provide additional notice where appropriate or required."
+    },
+    {
+      "type": "h2",
+      "text": "33. Information Officer & Privacy Contact"
+    },
+    {
+      "type": "p",
+      "text": "Privacy enquiries, requests or objections may be directed to:"
+    },
+    {
+      "type": "p",
+      "text": "Information Officer / Privacy Contact"
+    },
+    {
+      "type": "p",
+      "text": "Viatori Ventures (Pty) Ltd trading as Venturo"
+    },
+    {
+      "type": "p",
+      "text": "Name: Herbert Smith (Founder)"
+    },
+    {
+      "type": "p",
+      "text": "Email: herb@venturo.co.za"
+    },
+    {
+      "type": "p",
+      "text": "Telephone: 063 401 9080"
+    },
+    {
+      "type": "p",
+      "text": "Address: 20 Lingerett Ave, Sunninghill, 2191"
+    },
+    {
+      "type": "h2",
+      "text": "34. Complaints"
+    },
+    {
+      "type": "p",
+      "text": "If you have a concern about how Venturo handles your personal information, please contact Venturo first so that we can investigate the matter."
+    },
+    {
+      "type": "p",
+      "text": "You also have the right to lodge a complaint with the South African Information Regulator."
+    },
+    {
+      "type": "p",
+      "text": "Information Regulator South Africa"
+    },
+    {
+      "type": "p",
+      "text": "Website: inforegulator.org.za"
+    },
+    {
+      "type": "p",
+      "text": "Telephone: 010 023 5200"
+    },
+    {
+      "type": "p",
+      "text": "Email: enquiries@inforegulator.org.za"
+    },
+    {
+      "type": "p",
+      "text": "The Information Regulator's contact information may change from time to time. Current information can be obtained directly from the Information Regulator."
+    },
+    {
+      "type": "h2",
+      "text": "35. Related Policies"
+    },
+    {
+      "type": "p",
+      "text": "This Privacy Policy should be read together with:"
+    },
+    {
+      "type": "li",
+      "text": "Venturo Terms & Conditions;"
+    },
+    {
+      "type": "li",
+      "text": "Venturo Refund & Cancellation Policy;"
+    },
+    {
+      "type": "li",
+      "text": "User-Generated Content / Community Guidelines;"
+    },
+    {
+      "type": "li",
+      "text": "Copyright & Intellectual Property Policy; and"
+    },
+    {
+      "type": "li",
+      "text": "any additional privacy notice presented for a specific feature or service."
+    }
+  ]
+}

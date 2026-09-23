@@ -25,6 +25,21 @@ export function SiteFooter() {
       <div className="colour-bar footer-bar" aria-hidden="true" />
       <p>Venturo · Activities · Events · Community</p>
       <p className="muted">Quality time is our love language.</p>
+      <p className="muted footer-links">
+        <a href="/policies/">Policies</a>
+        <span aria-hidden="true"> · </span>
+        <a href="/privacy_policy/">Privacy</a>
+        <span aria-hidden="true"> · </span>
+        <a href="/terms/">Terms</a>
+        <span aria-hidden="true"> · </span>
+        <a href="/refunds/">Refunds</a>
+        <span aria-hidden="true"> · </span>
+        <a href="/community-guidelines/">Community guidelines</a>
+        <span aria-hidden="true"> · </span>
+        <a href="/copyright/">Copyright</a>
+        <span aria-hidden="true"> · </span>
+        <a href="mailto:hello@venturo.co.za">hello@venturo.co.za</a>
+      </p>
     </footer>
   );
 }
