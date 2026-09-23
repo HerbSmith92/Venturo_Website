@@ -1,0 +1,578 @@
+{
+  "slug": "refunds",
+  "href": "/refunds/",
+  "title": "Venturo Refund & Cancellation Policy",
+  "summary": "This Refund & Cancellation Policy explains how cancellations, refunds & changes are handled for purchases made directly from Venturo.",
+  "meta": [
+    "Business: Viatori Ventures (Pty) Ltd trading as Venturo",
+    "Website: www.venturo.co.za",
+    "Country: South Africa",
+    "Effective date: 01 October 2025"
+  ],
+  "blocks": [
+    {
+      "type": "h2",
+      "text": "1. Purpose"
+    },
+    {
+      "type": "p",
+      "text": "This Refund & Cancellation Policy explains how cancellations, refunds & changes are handled for purchases made directly from Venturo."
+    },
+    {
+      "type": "p",
+      "text": "Different rules apply depending on whether the customer purchased:"
+    },
+    {
+      "type": "li",
+      "text": "a Venturo membership;"
+    },
+    {
+      "type": "li",
+      "text": "a ticket to a Venturo-operated event; or"
+    },
+    {
+      "type": "li",
+      "text": "an activity or experience supplied by an independent third-party provider."
+    },
+    {
+      "type": "p",
+      "text": "Nothing in this policy is intended to limit any rights that a customer may have under applicable South African law, including the Consumer Protection Act 68 of 2008 and the Electronic Communications and Transactions Act 25 of 2002."
+    },
+    {
+      "type": "h2",
+      "text": "2. Venturo Memberships"
+    },
+    {
+      "type": "p",
+      "text": "Venturo memberships purchased through the Venturo website provide access to membership features & benefits for the applicable subscription period."
+    },
+    {
+      "type": "p",
+      "text": "Cancelling a Membership"
+    },
+    {
+      "type": "p",
+      "text": "Customers may cancel the future renewal of their membership at any time."
+    },
+    {
+      "type": "p",
+      "text": "Unless otherwise required by law, cancellation stops the next renewal payment and the customer will continue to have access to their membership until the end of the period already paid for."
+    },
+    {
+      "type": "p",
+      "text": "Cancellation does not automatically create a refund for a subscription period that has already started."
+    },
+    {
+      "type": "p",
+      "text": "Immediate Activation"
+    },
+    {
+      "type": "p",
+      "text": "Where a customer requests that their Venturo membership be activated immediately following payment, Venturo may begin supplying the membership service immediately."
+    },
+    {
+      "type": "p",
+      "text": "Where applicable, the customer may be asked during checkout to acknowledge that they are requesting immediate activation of the service."
+    },
+    {
+      "type": "p",
+      "text": "Any statutory cancellation or cooling-off rights will continue to apply where required by law."
+    },
+    {
+      "type": "p",
+      "text": "Membership Refunds"
+    },
+    {
+      "type": "p",
+      "text": "Venturo may provide a full or partial refund where appropriate, including where:"
+    },
+    {
+      "type": "li",
+      "text": "a duplicate payment has been processed;"
+    },
+    {
+      "type": "li",
+      "text": "an incorrect amount has been charged;"
+    },
+    {
+      "type": "li",
+      "text": "a technical error has prevented the membership from being supplied;"
+    },
+    {
+      "type": "li",
+      "text": "Venturo is unable to provide the membership service purchased;"
+    },
+    {
+      "type": "li",
+      "text": "a refund is otherwise required under applicable law."
+    },
+    {
+      "type": "p",
+      "text": "Requests will be assessed according to the circumstances of the transaction."
+    },
+    {
+      "type": "h2",
+      "text": "3. Venturo-Operated Events"
+    },
+    {
+      "type": "p",
+      "text": "A Venturo-operated event is an event or experience organised & supplied by Venturo."
+    },
+    {
+      "type": "p",
+      "text": "The applicable event page will display the event date, time, location, ticket price, inclusions, exclusions & any event-specific cancellation conditions before the customer completes their purchase."
+    },
+    {
+      "type": "p",
+      "text": "Customer Cancellation"
+    },
+    {
+      "type": "p",
+      "text": "Customers may cancel an advance booking for a Venturo-operated event."
+    },
+    {
+      "type": "p",
+      "text": "Where a cancellation charge applies, Venturo will consider the circumstances required by applicable consumer law, including:"
+    },
+    {
+      "type": "li",
+      "text": "the nature of the event;"
+    },
+    {
+      "type": "li",
+      "text": "the amount of notice provided;"
+    },
+    {
+      "type": "li",
+      "text": "the reasonable possibility of filling the cancelled place;"
+    },
+    {
+      "type": "li",
+      "text": "costs already incurred in preparing for the attendee; and"
+    },
+    {
+      "type": "li",
+      "text": "the circumstances surrounding the cancellation."
+    },
+    {
+      "type": "p",
+      "text": "As a general guideline, Venturo intends to apply the following cancellation structure:"
+    },
+    {
+      "type": "p",
+      "text": "Notice Before Event"
+    },
+    {
+      "type": "p",
+      "text": "Standard Refund"
+    },
+    {
+      "type": "p",
+      "text": "7 days or more"
+    },
+    {
+      "type": "p",
+      "text": "Up to 100%"
+    },
+    {
+      "type": "p",
+      "text": "48 hours to less than 7 days"
+    },
+    {
+      "type": "p",
+      "text": "Up to 50%"
+    },
+    {
+      "type": "p",
+      "text": "Less than 48 hours"
+    },
+    {
+      "type": "p",
+      "text": "Normally non-refundable"
+    },
+    {
+      "type": "p",
+      "text": "Customer does not attend"
+    },
+    {
+      "type": "p",
+      "text": "Normally non-refundable"
+    },
+    {
+      "type": "p",
+      "text": "These percentages are guidelines rather than an attempt to override the customer's rights under applicable law."
+    },
+    {
+      "type": "p",
+      "text": "Venturo may reduce or waive a cancellation charge where the circumstances justify doing so."
+    },
+    {
+      "type": "h2",
+      "text": "4. Event Cancelled by Venturo"
+    },
+    {
+      "type": "p",
+      "text": "If Venturo cancels an event and does not provide a suitable replacement or rescheduled event, customers who purchased tickets directly from Venturo will be entitled to a refund of the amount paid to Venturo for the affected ticket."
+    },
+    {
+      "type": "p",
+      "text": "Venturo will notify affected customers using the contact information associated with the booking."
+    },
+    {
+      "type": "p",
+      "text": "Costs paid independently to third parties, including transport, accommodation or other personal expenses, are not payments received by Venturo and will generally need to be addressed with the relevant third-party supplier."
+    },
+    {
+      "type": "h2",
+      "text": "5. Event Rescheduled by Venturo"
+    },
+    {
+      "type": "p",
+      "text": "If an event is moved to a different date or materially different time, Venturo will notify ticket holders."
+    },
+    {
+      "type": "p",
+      "text": "Customers will ordinarily be offered the choice to:"
+    },
+    {
+      "type": "li",
+      "text": "retain their booking for the new event date;"
+    },
+    {
+      "type": "li",
+      "text": "transfer the ticket where transfers are permitted; or"
+    },
+    {
+      "type": "li",
+      "text": "request a refund within the period specified in the rescheduling notice."
+    },
+    {
+      "type": "p",
+      "text": "If the customer takes no action within the specified period, the booking may remain valid for the rescheduled event."
+    },
+    {
+      "type": "h2",
+      "text": "6. Weather, Safety & Circumstances Outside Venturo's Control"
+    },
+    {
+      "type": "p",
+      "text": "Some Venturo events take place outdoors or depend on conditions that may affect whether the event can safely proceed."
+    },
+    {
+      "type": "p",
+      "text": "Where weather, venue restrictions, safety concerns, government restrictions or another event outside Venturo's reasonable control affects an event, Venturo may:"
+    },
+    {
+      "type": "li",
+      "text": "change the starting time;"
+    },
+    {
+      "type": "li",
+      "text": "change the route or reasonable elements of the event;"
+    },
+    {
+      "type": "li",
+      "text": "move the event to another suitable date or location;"
+    },
+    {
+      "type": "li",
+      "text": "postpone the event; or"
+    },
+    {
+      "type": "li",
+      "text": "cancel the event where necessary."
+    },
+    {
+      "type": "p",
+      "text": "Where an event is cancelled or materially changed, Venturo will communicate the available refund, transfer or rescheduling options to affected customers, taking applicable consumer law into account."
+    },
+    {
+      "type": "p",
+      "text": "Safety will take priority when determining whether an activity can proceed."
+    },
+    {
+      "type": "h2",
+      "text": "7. Third-Party Activities & Experiences"
+    },
+    {
+      "type": "p",
+      "text": "Many activities displayed on Venturo are supplied by independent activity providers."
+    },
+    {
+      "type": "p",
+      "text": "Where the customer books & pays the activity provider directly, the transaction takes place between the customer and that provider."
+    },
+    {
+      "type": "p",
+      "text": "The provider's booking, cancellation & refund policy will apply."
+    },
+    {
+      "type": "p",
+      "text": "Venturo does not receive the customer's booking funds for these transactions and therefore cannot directly refund those funds."
+    },
+    {
+      "type": "p",
+      "text": "Customers should contact the relevant activity provider regarding:"
+    },
+    {
+      "type": "p",
+      "text": "booking changes;"
+    },
+    {
+      "type": "li",
+      "text": "cancellations;"
+    },
+    {
+      "type": "li",
+      "text": "refund requests;"
+    },
+    {
+      "type": "li",
+      "text": "no-shows;"
+    },
+    {
+      "type": "li",
+      "text": "provider cancellations; or"
+    },
+    {
+      "type": "li",
+      "text": "disputes concerning the activity supplied."
+    },
+    {
+      "type": "p",
+      "text": "Venturo may assist customers with identifying or contacting the relevant provider where reasonably possible."
+    },
+    {
+      "type": "h2",
+      "text": "8. Venturo Member Discounts"
+    },
+    {
+      "type": "p",
+      "text": "A Venturo membership may provide access to discounts or special offers from participating activity providers."
+    },
+    {
+      "type": "p",
+      "text": "Where the customer pays the activity provider directly, the provider's cancellation & refund rules continue to apply."
+    },
+    {
+      "type": "p",
+      "text": "Cancellation of an activity does not automatically create a refund of the customer's Venturo membership fee."
+    },
+    {
+      "type": "h2",
+      "text": "9. Venue Fees & Other Separate Payments"
+    },
+    {
+      "type": "p",
+      "text": "Some Venturo-operated events may involve additional fees payable directly to a third-party venue or service provider."
+    },
+    {
+      "type": "p",
+      "text": "Where a fee is payable separately, this will be disclosed before booking where reasonably possible."
+    },
+    {
+      "type": "p",
+      "text": "Payments made directly to another business are subject to that business's cancellation & refund conditions."
+    },
+    {
+      "type": "p",
+      "text": "Venturo can only directly refund amounts received by Venturo."
+    },
+    {
+      "type": "h2",
+      "text": "10. Ticket Transfers"
+    },
+    {
+      "type": "p",
+      "text": "Venturo may permit customers to transfer certain event tickets to another person."
+    },
+    {
+      "type": "p",
+      "text": "Where transfers are permitted, the customer may be required to provide the replacement attendee's details before the event."
+    },
+    {
+      "type": "p",
+      "text": "A transferred ticket remains subject to the same event rules, participation requirements & conditions as the original booking."
+    },
+    {
+      "type": "p",
+      "text": "Certain tickets may be non-transferable where required for security, capacity, identification or other operational reasons."
+    },
+    {
+      "type": "h2",
+      "text": "11. Refund Method"
+    },
+    {
+      "type": "p",
+      "text": "Approved refunds for transactions processed through PayFast will normally be processed using the applicable PayFast refund process."
+    },
+    {
+      "type": "p",
+      "text": "Where reasonably possible, refunds will be returned through the original payment method used for the transaction."
+    },
+    {
+      "type": "p",
+      "text": "Processing times after a refund has been initiated may depend on the payment provider, payment method & customer's financial institution."
+    },
+    {
+      "type": "p",
+      "text": "Venturo does not control bank processing times after a refund has been successfully submitted."
+    },
+    {
+      "type": "h2",
+      "text": "12. Payment Processing Fees"
+    },
+    {
+      "type": "p",
+      "text": "Where Venturo cancels an event or is unable to provide a service purchased directly from Venturo, Venturo will determine the customer's refund in accordance with this policy & applicable law."
+    },
+    {
+      "type": "p",
+      "text": "Where a customer voluntarily cancels a booking, reasonable costs already incurred in connection with the transaction or cancellation may be considered when determining any applicable cancellation charge, where permitted by law."
+    },
+    {
+      "type": "p",
+      "text": "Any such charge will be applied fairly & in accordance with applicable consumer protection requirements."
+    },
+    {
+      "type": "h2",
+      "text": "13. Duplicate & Incorrect Payments"
+    },
+    {
+      "type": "p",
+      "text": "Customers who believe they have been:"
+    },
+    {
+      "type": "li",
+      "text": "charged twice;"
+    },
+    {
+      "type": "li",
+      "text": "charged an incorrect amount; or"
+    },
+    {
+      "type": "li",
+      "text": "charged for a transaction they did not intend to complete"
+    },
+    {
+      "type": "li",
+      "text": "should contact Venturo as soon as reasonably possible."
+    },
+    {
+      "type": "p",
+      "text": "Venturo will investigate the payment records and, where an error is confirmed, take the appropriate corrective action."
+    },
+    {
+      "type": "h2",
+      "text": "14. Refund Processing"
+    },
+    {
+      "type": "p",
+      "text": "Once Venturo approves a refund, the refund will be submitted through the applicable payment provider."
+    },
+    {
+      "type": "p",
+      "text": "The time required for the refunded amount to appear in the customer's account may vary depending on the payment method & financial institution."
+    },
+    {
+      "type": "p",
+      "text": "A refund is considered initiated once Venturo has successfully submitted the refund through the applicable payment system."
+    },
+    {
+      "type": "h2",
+      "text": "15. Chargebacks & Payment Disputes"
+    },
+    {
+      "type": "p",
+      "text": "Customers are encouraged to contact Venturo before initiating a chargeback where the matter relates to a payment made directly to Venturo."
+    },
+    {
+      "type": "p",
+      "text": "This allows Venturo an opportunity to investigate the transaction and, where appropriate, process a cancellation or refund."
+    },
+    {
+      "type": "p",
+      "text": "This does not prevent a customer from exercising any lawful rights available to them through their bank, card issuer or payment provider."
+    },
+    {
+      "type": "h2",
+      "text": "16. Event-Specific Conditions"
+    },
+    {
+      "type": "p",
+      "text": "Certain events may have additional cancellation or refund conditions because of:"
+    },
+    {
+      "type": "li",
+      "text": "limited capacity;"
+    },
+    {
+      "type": "li",
+      "text": "third-party venue commitments;"
+    },
+    {
+      "type": "li",
+      "text": "equipment or supplier bookings;"
+    },
+    {
+      "type": "li",
+      "text": "advance costs;"
+    },
+    {
+      "type": "li",
+      "text": "special preparation requirements; or"
+    },
+    {
+      "type": "li",
+      "text": "the nature of the activity."
+    },
+    {
+      "type": "p",
+      "text": "Any material event-specific cancellation conditions will be disclosed to the customer before the booking is completed."
+    },
+    {
+      "type": "p",
+      "text": "Where there is a conflict between an event-specific condition and applicable consumer law, applicable law will prevail."
+    },
+    {
+      "type": "h2",
+      "text": "17. How to Request a Cancellation or Refund"
+    },
+    {
+      "type": "p",
+      "text": "Customers requesting a cancellation or refund should contact Venturo using the contact details published on www.venturo.co.za."
+    },
+    {
+      "type": "p",
+      "text": "The customer should provide sufficient information for Venturo to identify the transaction, including their name, email address, booking or transaction reference & reason for the request."
+    },
+    {
+      "type": "p",
+      "text": "Venturo may request additional information where reasonably necessary to verify the transaction."
+    },
+    {
+      "type": "h2",
+      "text": "18. Consumer Rights"
+    },
+    {
+      "type": "p",
+      "text": "This policy operates subject to applicable South African consumer protection legislation."
+    },
+    {
+      "type": "p",
+      "text": "Nothing contained in this policy excludes, restricts or waives a consumer right that cannot lawfully be excluded, restricted or waived."
+    },
+    {
+      "type": "h2",
+      "text": "19. Changes to This Policy"
+    },
+    {
+      "type": "p",
+      "text": "Venturo may update this Refund & Cancellation Policy from time to time."
+    },
+    {
+      "type": "p",
+      "text": "The policy applicable to a transaction will ordinarily be the version made available to the customer when the transaction was completed, subject to applicable law."
+    }
+  ]
+}
