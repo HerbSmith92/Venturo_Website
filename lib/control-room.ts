@@ -19,7 +19,7 @@ export {
 export type { ListingStatus, ListingAction, AuditEvent } from "@/lib/control-room-shared";
 export type { ListingDetail, QueueListing } from "@/lib/control-room-types";
 
-type CountArgs = { status?: ListingStatus };
+type CountArgs = { status?: string };
 
 async function countRows(table: string, filter?: CountArgs) {
   const supabase = await createClient();
@@ -31,16 +31,26 @@ async function countRows(table: string, filter?: CountArgs) {
 }
 
 export async function controlRoomStats() {
-  const [live, review, draft, archived, members, enquiries] = await Promise.all([
+  const [live, review, draft, archived, members, enquiries, eventsReview] = await Promise.all([
     countRows("directory_listings", { status: "approved" }),
     countRows("directory_listings", { status: "review" }),
     countRows("directory_listings", { status: "draft" }),
     countRows("directory_listings", { status: "archived" }),
     countRows("profiles"),
     countRows("enquiries"),
+    countRows("events", { status: "review" }),
   ]);
 
-  return { live, review, draft, archived, members, enquiries, listings: live + review + draft + archived };
+  return {
+    live,
+    review,
+    draft,
+    archived,
+    members,
+    enquiries,
+    eventsReview,
+    listings: live + review + draft + archived,
+  };
 }
 
 export async function loadQueue(status?: string, q?: string): Promise<QueueListing[]> {

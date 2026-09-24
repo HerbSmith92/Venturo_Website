@@ -312,14 +312,18 @@ export async function listAdminEvents(status?: EventStatus | "all"): Promise<Ven
   let query = supabase
     .from("events")
     .select(EVENT_SELECT)
-    .order("starts_at", { ascending: false });
+    .order("updated_at", { ascending: false });
 
   if (status && status !== "all") {
     query = query.eq("status", status);
   }
 
   const { data, error } = await query;
-  if (error || !data) return [];
+  if (error) {
+    console.error("[listAdminEvents]", error.message, error.details, error.hint);
+    return [];
+  }
+  if (!data) return [];
   return (data as EventRow[]).map(mapEvent);
 }
 
@@ -376,7 +380,6 @@ export type CreateEventInput = {
     quantity: number;
   }[];
   submitForReview?: boolean;
-  isStaff?: boolean;
 };
 
 export async function createEventDraft(userId: string, input: CreateEventInput) {
@@ -384,12 +387,7 @@ export async function createEventDraft(userId: string, input: CreateEventInput) 
   if (!supabase) throw new Error("Supabase is not connected.");
 
   const slug = await uniqueEventSlug(slugifyTitle(input.title));
-  const status: EventStatus =
-    input.isStaff && input.submitForReview
-      ? "approved"
-      : input.submitForReview
-        ? "review"
-        : "draft";
+  const status: EventStatus = input.submitForReview ? "review" : "draft";
 
   const { data: event, error } = await supabase
     .from("events")
@@ -642,18 +640,20 @@ export async function goLiveEvent(
   });
   if (ready) throw new Error(ready);
 
-  const nextStatus: EventStatus = staff ? "approved" : "review";
-  const { error } = await supabase
+  const { data: updated, error } = await supabase
     .from("events")
     .update({
-      status: nextStatus,
-      published_by: staff ? userId : null,
+      status: "review",
+      published_by: null,
       updated_at: new Date().toISOString(),
     })
-    .eq("id", eventId);
+    .eq("id", eventId)
+    .select("id, slug, status")
+    .maybeSingle();
   if (error) throw new Error(error.message);
+  if (!updated) throw new Error("Could not submit for Control Room.");
 
-  return { slug: event.slug, status: nextStatus };
+  return { slug: updated.slug as string, status: updated.status as EventStatus };
 }
 
 export async function getOrganiserSalesSummary(organiserId: string) {

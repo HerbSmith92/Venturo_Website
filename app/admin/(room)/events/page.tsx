@@ -40,7 +40,11 @@ export default async function AdminEventsPage({
       </div>
 
       {events.length === 0 ? (
-        <p className="notice">Nothing in this queue.</p>
+        <p className="notice">
+          {status === "review"
+            ? "Nothing waiting. Host submissions land here. Published events are under Live."
+            : "Nothing in this queue."}
+        </p>
       ) : (
         <div className="stack-list">
           {events.map((event) => (
