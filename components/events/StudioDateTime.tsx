@@ -1,5 +1,7 @@
 "use client";
 
+import { useEffect, useRef, useState } from "react";
+
 const MONTHS = [
   "January",
   "February",
@@ -17,13 +19,25 @@ const MONTHS = [
 
 const WEEKDAYS = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
 
+type Parts = {
+  year: number;
+  month: number;
+  day: number;
+  hour: number;
+  minute: number;
+};
+
 function pad(n: number) {
   return String(n).padStart(2, "0");
 }
 
-function parseLocal(value: string) {
+function emptyParts(): Parts {
+  return { year: 0, month: 0, day: 0, hour: -1, minute: -1 };
+}
+
+function parseLocal(value: string): Parts {
   const match = value.match(/^(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2})$/);
-  if (!match) return { year: 0, month: 0, day: 0, hour: -1, minute: -1 };
+  if (!match) return emptyParts();
   return {
     year: Number(match[1]),
     month: Number(match[2]),
@@ -31,6 +45,14 @@ function parseLocal(value: string) {
     hour: Number(match[4]),
     minute: Number(match[5]),
   };
+}
+
+function formatLocal(parts: Parts) {
+  return `${parts.year}-${pad(parts.month)}-${pad(parts.day)}T${pad(parts.hour)}:${pad(parts.minute)}`;
+}
+
+function isComplete(parts: Parts) {
+  return Boolean(parts.year && parts.month && parts.day && parts.hour >= 0 && parts.minute >= 0);
 }
 
 function daysInMonth(year: number, month: number) {
@@ -42,6 +64,11 @@ function weekdayName(year: number, month: number, day: number) {
   if (!year || !month || !day) return "Pick a date";
   const date = new Date(Date.UTC(year, month - 1, day, 10));
   return WEEKDAYS[date.getUTCDay()] ?? "Pick a date";
+}
+
+function parseField(key: keyof Parts, raw: string) {
+  if (raw === "") return key === "hour" || key === "minute" ? -1 : 0;
+  return Number(raw);
 }
 
 const thisYear = new Date().getFullYear();
@@ -58,7 +85,15 @@ export function StudioDateTime({
   value: string;
   onChange: (next: string) => void;
 }) {
-  const parts = parseLocal(value);
+  const [parts, setParts] = useState(() => parseLocal(value));
+  const emitted = useRef(value);
+
+  useEffect(() => {
+    if (value === emitted.current) return;
+    emitted.current = value;
+    setParts(parseLocal(value));
+  }, [value]);
+
   const maxDay = daysInMonth(parts.year, parts.month);
   const dayOptions = Array.from({ length: maxDay }, (_, i) => i + 1);
   const minuteOptions =
@@ -66,23 +101,17 @@ export function StudioDateTime({
       ? [...MINUTES, pad(parts.minute)].sort()
       : MINUTES;
 
-  function setPart(
-    key: "year" | "month" | "day" | "hour" | "minute",
-    raw: string,
-  ) {
-    const next = { ...parts };
-    next[key] = Number(raw);
+  function setPart(key: keyof Parts, raw: string) {
+    const next = { ...parts, [key]: parseField(key, raw) };
     if (next.year && next.month) {
       const cap = daysInMonth(next.year, next.month);
       if (next.day > cap) next.day = cap;
     }
-    if (!next.year || !next.month || !next.day || next.hour < 0 || next.minute < 0) {
-      onChange("");
-      return;
-    }
-    onChange(
-      `${next.year}-${pad(next.month)}-${pad(next.day)}T${pad(next.hour)}:${pad(next.minute)}`,
-    );
+    setParts(next);
+    if (!isComplete(next)) return;
+    const formatted = formatLocal(next);
+    emitted.current = formatted;
+    onChange(formatted);
   }
 
   const weekday = weekdayName(parts.year, parts.month, parts.day);
