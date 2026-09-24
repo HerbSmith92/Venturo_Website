@@ -8,8 +8,8 @@ export default async function ControlRoomHome() {
       <p className="eyebrow">Website, Directory & Memberships</p>
       <h1>Control Room</h1>
       <p className="lede muted">
-        Approve listings, feature Top Picks, & read enquiries. Publish is a
-        staff action — businesses cannot go live themselves.
+        Approve listings & member-hosted events, feature Top Picks, & read
+        enquiries. Publish is a staff action — hosts cannot go live themselves.
       </p>
       <div className="cr-stats">
         <a className="cr-stat" href="/admin/listings?status=approved">
@@ -19,6 +19,10 @@ export default async function ControlRoomHome() {
         <a className="cr-stat" href="/admin/listings?status=review">
           <span>In Review</span>
           <strong>{stats.review}</strong>
+        </a>
+        <a className="cr-stat" href="/admin/events">
+          <span>Events In Review</span>
+          <strong>{stats.eventsReview}</strong>
         </a>
         <a className="cr-stat" href="/admin/listings?status=draft">
           <span>Drafts</span>

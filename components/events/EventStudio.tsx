@@ -106,7 +106,6 @@ async function uploadEventImage(file: File, kind: EventImageKind) {
 
 export function EventStudio({
   event,
-  isStaff,
   hasPayout,
   commissionPct,
   bookingFeeCents,
@@ -427,7 +426,7 @@ export function EventStudio({
               disabled={pending !== null}
               onClick={() => void save("live")}
             >
-              {pending === "live" ? "Please Wait" : isStaff ? "Go Live" : "Submit To Review"}
+              {pending === "live" ? "Please Wait" : "Submit To Review"}
             </button>
           ) : null}
         </div>

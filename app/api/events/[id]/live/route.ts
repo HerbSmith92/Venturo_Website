@@ -36,9 +36,7 @@ export async function POST(
     return NextResponse.json({
       slug: live.slug,
       status: live.status,
-      ...(stayInPortal
-        ? {}
-        : { redirect: staff ? `/events/${live.slug}` : "/account/events" }),
+      ...(stayInPortal ? {} : { redirect: "/account/events" }),
     });
   } catch (error) {
     return NextResponse.json(
