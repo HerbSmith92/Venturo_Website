@@ -421,7 +421,7 @@ export async function createEventDraft(userId: string, input: CreateEventInput) 
       status,
       organiser_id: userId,
       created_by: userId,
-      published_by: status === "approved" ? userId : null,
+      published_by: null,
     })
     .select("id, slug")
     .single();
