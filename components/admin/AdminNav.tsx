@@ -5,6 +5,7 @@ import type { StaffSession } from "@/lib/auth";
 
 const NAV = [
   { href: "/admin", label: "Overview" },
+  { href: "/admin/analytics", label: "Analytics" },
   { href: "/admin/listings", label: "Directory" },
   { href: "/admin/guides", label: "Guides" },
   { href: "/admin/events", label: "Events" },

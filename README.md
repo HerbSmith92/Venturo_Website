@@ -19,12 +19,20 @@ Open [http://localhost:3000](http://localhost:3000).
 | --- | --- |
 | `NEXT_PUBLIC_SUPABASE_URL` | Auth + profiles |
 | `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY` | Browser/server Supabase client |
-| `REVENUECAT_SECRET_API_KEY` | One-shot backfill of App Store / Play Store entitlements into `member_access` |
+| `REVENUECAT_SECRET_API_KEY` | Backfill entitlements into `member_access` & Control Room Analytics charts |
+| `REVENUECAT_PROJECT_ID` | Needed for Analytics to pull RevenueCat overview / charts |
 | `REVENUECAT_ENTITLEMENT_ID` | Defaults to `subscription_monthly_1` (RevenueCat “Pro”) |
 | `REVENUECAT_WEBHOOK_AUTH` | Shared secret for `POST /api/revenuecat/webhook` (Authorization header) |
 | `REVENUECAT_WEBHOOK_ALLOW_SANDBOX` | Set `true` to honour sandbox events (off in production) |
 | `NEXT_PUBLIC_APP_STORE_URL` | Paid CTA |
 | `NEXT_PUBLIC_PLAY_STORE_URL` | Paid CTA |
+| `APP_STORE_CONNECT_ISSUER_ID` | Control Room iOS download totals |
+| `APP_STORE_CONNECT_KEY_ID` | Team API key id |
+| `APP_STORE_CONNECT_PRIVATE_KEY` | `.p8` PKCS8, newlines as `\\n` |
+| `APP_STORE_CONNECT_VENDOR_NUMBER` | App Store Connect Reports vendor number |
+| `GOOGLE_PLAY_PACKAGE_NAME` | Control Room Android install totals |
+| `GOOGLE_PLAY_REPORTS_BUCKET` | Play Console Download reports bucket (`pubsite_prod_rev_…`) |
+| `GOOGLE_PLAY_SERVICE_ACCOUNT_JSON` | Service account JSON with storage read on that bucket |
 | `SUPABASE_SERVICE_ROLE_KEY` | Server-only. Invite staff from Control Room |
 
 The mobile app should log the same Supabase user id into RevenueCat as `app_user_id`. After a store purchase, RevenueCat’s webhook updates `member_access`; the app must read **`member_access.subscribed`** for privileges, not `Purchases.customerInfo`.

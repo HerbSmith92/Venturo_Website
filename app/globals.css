@@ -1746,6 +1746,23 @@ fieldset.field {
   font-weight: 400;
 }
 
+.cr-analytics-charts {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 16px;
+  margin-top: 28px;
+}
+
+.cr-stats-analytics {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+@media (max-width: 900px) {
+  .cr-analytics-charts {
+    grid-template-columns: 1fr;
+  }
+}
+
 .cr-filters {
   display: flex;
   gap: 10px;
