@@ -1,5 +1,6 @@
 import { getCurrentUser } from "@/lib/auth";
 import { SiteFooter, SiteHeader } from "@/components/SiteChrome";
+import { SiteVisitBeacon } from "@/components/SiteVisitBeacon";
 
 export default async function PublicLayout({
   children,
@@ -10,6 +11,7 @@ export default async function PublicLayout({
 
   return (
     <>
+      <SiteVisitBeacon />
       <SiteHeader user={user} />
       {children}
       <SiteFooter />

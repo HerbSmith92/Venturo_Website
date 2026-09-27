@@ -9,6 +9,11 @@ import {
   revenueCatIsConfigured,
   revenueCatWebhookIsConfigured,
 } from "@/lib/brand";
+import {
+  androidApiConfigured,
+  iosApiConfigured,
+  revenueCatChartsConfigured,
+} from "@/lib/analytics-remote";
 import { isAdmin } from "@/lib/roles";
 import { getPublicSiteUrl } from "@/lib/site-url";
 
@@ -85,8 +90,24 @@ export default async function AdminSettingsPage() {
             </code>
           </li>
           <li>
-            RevenueCat API (backfill only):{" "}
-            <strong>{rcReady ? "Configured" : "Missing secret key"}</strong>
+            RevenueCat API (backfill + Analytics):{" "}
+            <strong>
+              {rcReady
+                ? revenueCatChartsConfigured()
+                  ? "Configured"
+                  : "Secret set — add REVENUECAT_PROJECT_ID for charts"
+                : "Missing secret key"}
+            </strong>
+          </li>
+          <li>
+            App Store Connect downloads:{" "}
+            <strong>{iosApiConfigured() ? "Ready" : "Missing Team API key / vendor number"}</strong>
+          </li>
+          <li>
+            Play Console downloads:{" "}
+            <strong>
+              {androidApiConfigured() ? "Ready" : "Missing reports bucket / service account"}
+            </strong>
           </li>
           <li>
             App Store link:{" "}
