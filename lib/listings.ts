@@ -355,6 +355,7 @@ export type PublicListingDetail = Listing & {
     memberPrice: number | null;
     inclusions: string | null;
     activityId: string | null;
+    appliesTo: string | null;
   }[];
 };
 
@@ -372,6 +373,7 @@ type DetailRow = LiveRow & {
     id: string;
     name: string;
     short_description: string | null;
+    description: string | null;
     duration_minutes: number | null;
     booking_required: boolean | null;
     sort_order: number | null;
@@ -392,6 +394,7 @@ type DetailRow = LiveRow & {
     inclusions: string | null;
     is_active: boolean | null;
     sort_order: number | null;
+    applies_to?: string | null;
   }[];
 };
 
@@ -432,11 +435,11 @@ export async function getPublicListingBySlug(
       listing_media ( public_url, is_cover, sort_order, alt_text ),
       listing_activity_kinds ( is_primary, activity_kinds ( key ) ),
       listing_activities!listing_activities_listing_id_fkey (
-        id, name, short_description, duration_minutes, booking_required, sort_order, status
+        id, name, short_description, description, duration_minutes, booking_required, sort_order, status
       ),
       operating_hours ( day_of_week, opens_at, closes_at, is_closed ),
       price_options (
-        id, listing_activity_id, name, standard_price, member_price, inclusions, is_active, sort_order
+        id, listing_activity_id, name, standard_price, member_price, inclusions, is_active, sort_order, applies_to
       )
     `,
     )
@@ -456,11 +459,11 @@ export async function getPublicListingBySlug(
       listing_media ( public_url, is_cover, sort_order, alt_text ),
       listing_activity_kinds ( is_primary, activity_kinds ( key ) ),
       listing_activities!listing_activities_listing_id_fkey (
-        id, name, short_description, duration_minutes, booking_required, sort_order, status
+        id, name, short_description, description, duration_minutes, booking_required, sort_order, status
       ),
       operating_hours ( day_of_week, opens_at, closes_at, is_closed ),
       price_options (
-        id, listing_activity_id, name, standard_price, member_price, inclusions, is_active, sort_order
+        id, listing_activity_id, name, standard_price, member_price, inclusions, is_active, sort_order, applies_to
       )
     `,
       )
@@ -514,7 +517,7 @@ export async function getPublicListingBySlug(
     .map((a) => ({
       id: a.id,
       name: a.name,
-      shortDescription: a.short_description,
+      shortDescription: (a.description ?? a.short_description ?? "").trim() || null,
       durationMinutes: a.duration_minutes,
       bookingRequired: Boolean(a.booking_required),
     }));
@@ -529,6 +532,7 @@ export async function getPublicListingBySlug(
       memberPrice: asNumber(p.member_price),
       inclusions: p.inclusions,
       activityId: p.listing_activity_id,
+      appliesTo: p.applies_to ?? null,
     }));
 
   return {

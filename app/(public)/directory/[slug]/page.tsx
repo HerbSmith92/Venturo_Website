@@ -9,6 +9,7 @@ import {
 } from "@/lib/listings";
 import { listPublicEvents } from "@/lib/events";
 import { formatDay, formatHours, formatRand } from "@/lib/control-room-shared";
+import { priceUnitLabel } from "@/lib/listing-draft";
 import { isSaved } from "@/lib/saves";
 import { createClient } from "@/lib/supabase/server";
 import { notFound } from "next/navigation";
@@ -229,45 +230,63 @@ export default async function ListingDetailPage({
             <div className="colour-bar" aria-hidden="true" />
             <p className="eyebrow">Prices</p>
             <h2>What It Costs</h2>
-            {!paid && listing.memberFromPrice !== null && (
-              <p className="notice">
-                Paid members unlock lower prices.{" "}
-                <a href="/join/subscribe">Subscribe with PayFast</a>, then come
-                back.
+            {listing.prices.some(
+              (price) =>
+                price.memberPrice !== null &&
+                price.standardPrice !== null &&
+                price.memberPrice < price.standardPrice,
+            ) ? (
+              <p className="listing-cost-hint">
+                Member prices are on.
+                {!paid ? (
+                  <>
+                    {" "}
+                    <a href="/join/subscribe">Subscribe with PayFast</a>.
+                  </>
+                ) : null}
               </p>
-            )}
+            ) : null}
             {listing.prices.length === 0 ? (
               <p className="muted">
                 From {formatFromPrice(listing.fromPrice)}. Full price list soon.
               </p>
             ) : (
-              <ul className="preview-ticket-list">
+              <ul className="listing-cost-list">
                 {listing.prices.map((price) => {
                   const memberDeal =
                     price.memberPrice !== null &&
                     price.standardPrice !== null &&
                     price.memberPrice < price.standardPrice;
+                  const unit = priceUnitLabel(price.appliesTo ?? "");
+                  const suffix = unit ? ` ${unit}` : "";
+                  const save =
+                    memberDeal && price.standardPrice !== null && price.memberPrice !== null
+                      ? price.standardPrice - price.memberPrice
+                      : null;
                   return (
-                    <li key={price.id}>
+                    <li className="listing-cost-card" key={price.id}>
                       <div>
                         <strong>{price.name}</strong>
-                        {price.inclusions ? (
-                          <p className="muted" style={{ margin: "4px 0 0" }}>
-                            {price.inclusions}
-                          </p>
+                        {save !== null && save > 0 ? (
+                          <p>Save {formatRand(save)}{suffix}</p>
+                        ) : null}
+                        {price.inclusions ? <p className="muted">{price.inclusions}</p> : null}
+                      </div>
+                      <div className="listing-cost-figures">
+                        <span>
+                          {price.standardPrice === 0
+                            ? "Free"
+                            : `${formatRand(price.standardPrice)}${suffix}`}
+                          <span className="listing-cost-chevron" aria-hidden="true" />
+                        </span>
+                        {memberDeal ? (
+                          <b>
+                            {price.memberPrice === 0
+                              ? "Free"
+                              : `${formatRand(price.memberPrice)}${suffix}`}
+                          </b>
                         ) : null}
                       </div>
-                      <span>
-                        {paid && memberDeal
-                          ? formatRand(price.memberPrice)
-                          : formatRand(price.standardPrice)}
-                        {paid && memberDeal ? (
-                          <span className="muted"> · was {formatRand(price.standardPrice)}</span>
-                        ) : null}
-                        {!paid && memberDeal ? (
-                          <span className="muted"> · members {formatRand(price.memberPrice)}</span>
-                        ) : null}
-                      </span>
                     </li>
                   );
                 })}
