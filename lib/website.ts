@@ -132,9 +132,9 @@ export async function loadHomeFeatures(): Promise<HomeFeatures> {
   const listingPool = ids.listing.length ? allListings : featured.length ? featured : allListings;
 
   return {
-    events: pick(events, ids.event, 6),
-    listings: pick(listingPool, ids.listing, 8),
-    communities: pick(communities, ids.community, 4),
-    guides: pick(guides, ids.guide, 3),
+    events: pick(events, ids.event, 12),
+    listings: pick(listingPool, ids.listing, 12),
+    communities: pick(communities, ids.community, 12),
+    guides: pick(guides, ids.guide, 12),
   };
 }

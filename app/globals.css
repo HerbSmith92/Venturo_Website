@@ -573,6 +573,38 @@ a.chip.active {
   gap: 12px;
 }
 
+.home-rail {
+  display: grid;
+  grid-auto-flow: column;
+  grid-auto-columns: calc((100% - 36px) / 4);
+  gap: 12px;
+  width: 100%;
+  max-width: 100%;
+  min-width: 0;
+  overflow-x: auto;
+  overscroll-behavior-x: contain;
+  scroll-snap-type: x mandatory;
+  padding-bottom: 10px;
+  scrollbar-width: thin;
+  scrollbar-color: color-mix(in srgb, var(--snow) 35%, transparent) transparent;
+  -webkit-overflow-scrolling: touch;
+}
+
+.home-rail > * {
+  scroll-snap-align: start;
+  min-width: 0;
+  height: 100%;
+}
+
+.home-rail::-webkit-scrollbar {
+  height: 8px;
+}
+
+.home-rail::-webkit-scrollbar-thumb {
+  background: color-mix(in srgb, var(--snow) 35%, transparent);
+  border-radius: 999px;
+}
+
 .card {
   display: block;
   background: color-mix(in srgb, var(--currant) 35%, var(--night));
@@ -4907,6 +4939,10 @@ label.check {
 }
 
 @media (max-width: 900px) {
+  .home-rail {
+    grid-auto-columns: calc((100% - 12px) / 2);
+  }
+
   .guide-grid {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
@@ -4931,6 +4967,10 @@ label.check {
 }
 
 @media (max-width: 560px) {
+  .home-rail {
+    grid-auto-columns: minmax(240px, 82%);
+  }
+
   .guide-grid,
   .cr-guide-item {
     grid-template-columns: 1fr;
