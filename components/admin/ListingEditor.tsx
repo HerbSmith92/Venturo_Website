@@ -371,6 +371,12 @@ export function ListingEditor({
                 </li>
               ))}
             </ul>
+            <div className="cr-rail-actions">
+              <button className="btn btn-secondary" type="button" onClick={onSave} disabled={pending}>
+                {pending ? "Saving…" : "Save Draft"}
+              </button>
+              <ListingActions listing={listing} />
+            </div>
           </div>
           <div className="cr-rail-card">
             <p className="cr-rail-title">Ready · {progress.percent}%</p>
@@ -1191,20 +1197,6 @@ export function ListingEditor({
         />
       </div>
 
-      <footer className="cr-sticky">
-        <div>
-          <strong>
-            {progress.ready ? "Ready for review" : `${progress.doneCount} of ${progress.total} complete`}
-          </strong>
-          <p className="muted">Photos, Cost cards, hours, map pin &amp; listing chips count.</p>
-        </div>
-        <div className="cr-sticky-actions">
-          <button className="btn btn-secondary" type="button" onClick={onSave} disabled={pending}>
-            {pending ? "Saving…" : "Save Draft"}
-          </button>
-          <ListingActions listing={listing} />
-        </div>
-      </footer>
     </div>
   );
 }
