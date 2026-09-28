@@ -78,8 +78,9 @@ export function DownloadSnapshotForm({
         </label>
       </div>
       <p className="muted">
-        Paste totals only if the APIs are not connected. Automatic pulls refresh
-        about every 6 hours, or tap Pull Store & RevenueCat.
+        Paste lifetime totals only if the APIs are not connected. Daily bars
+        come from store pulls, not this form. Automatic pulls refresh about
+        every 6 hours, or tap Pull Store & RevenueCat.
         {recordedAt ? ` Last saved ${formatClock(recordedAt)}.` : ""}
       </p>
       {error && <p className="error">{error}</p>}

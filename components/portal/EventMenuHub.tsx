@@ -20,6 +20,15 @@ export function EventMenuHub({ event }: { event: VenturoEvent }) {
           event.
         </p>
         <span className={`status-pill ${event.status}`}>{statusLabel(event.status)}</span>
+        <div className="hero-actions" style={{ marginTop: 12 }}>
+          {event.status === "approved" ? (
+            <a className="btn btn-secondary" href={`/events/${event.slug}`}>
+              Public Page
+            </a>
+          ) : (
+            <span className="muted">Preview opens on the public page once this is live.</span>
+          )}
+        </div>
       </div>
       <div className="event-menu-grid">
         {EVENT_MENU_ITEMS.map((item) => (

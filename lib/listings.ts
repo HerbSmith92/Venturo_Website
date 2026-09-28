@@ -25,6 +25,9 @@ export type Listing = {
   memberFromPrice: number | null;
   image: string;
   featured: boolean;
+  latitude: number | null;
+  longitude: number | null;
+  rating: number | null;
 };
 
 export const CATEGORIES: {
@@ -61,6 +64,10 @@ type LiveRow = {
   city: string | null;
   short_description: string | null;
   price_from: number | string | null;
+  latitude: number | string | null;
+  longitude: number | string | null;
+  is_suspended?: boolean | null;
+  publish_at?: string | null;
   is_featured: boolean | null;
   google_rating: number | string | null;
   listing_media?: { public_url: string | null; is_cover: boolean | null; sort_order: number | null }[];
@@ -125,17 +132,13 @@ function mapLiveRow(row: LiveRow): Listing {
       memberFromPrice !== null && memberFromPrice < fromListed ? memberFromPrice : null,
     image,
     featured: Boolean(row.is_featured),
+    latitude: asNumber(row.latitude),
+    longitude: asNumber(row.longitude),
+    rating: asNumber(row.google_rating),
   };
 }
 
-async function loadLiveListings(): Promise<Listing[] | null> {
-  const supabase = await createClient();
-  if (!supabase) return null;
-
-  const { data, error } = await supabase
-    .from("directory_listings")
-    .select(
-      `
+const LIVE_SELECT = `
       id,
       name,
       slug,
@@ -145,16 +148,50 @@ async function loadLiveListings(): Promise<Listing[] | null> {
       price_from,
       is_featured,
       google_rating,
+      latitude,
+      longitude,
+      is_suspended,
+      publish_at,
+      listing_media ( public_url, is_cover, sort_order ),
+      listing_activity_kinds ( is_primary, activity_kinds ( key ) ),
+      price_options ( standard_price, member_price, is_active )
+    `;
+
+function isPublicNow(row: { is_suspended?: boolean | null; publish_at?: string | null }) {
+  if (row.is_suspended) return false;
+  if (row.publish_at && new Date(row.publish_at).getTime() > Date.now()) return false;
+  return true;
+}
+
+async function loadLiveListings(): Promise<Listing[] | null> {
+  const supabase = await createClient();
+  if (!supabase) return null;
+
+  const first = await supabase
+    .from("directory_listings")
+    .select(LIVE_SELECT)
+    .eq("status", "approved")
+    .order("name");
+
+  const rows = first.error
+    ? (
+        await supabase
+          .from("directory_listings")
+          .select(
+            `
+      id, name, slug, suburb, city, short_description, price_from, is_featured, google_rating,
       listing_media ( public_url, is_cover, sort_order ),
       listing_activity_kinds ( is_primary, activity_kinds ( key ) ),
       price_options ( standard_price, member_price, is_active )
     `,
-    )
-    .eq("status", "approved")
-    .order("name");
+          )
+          .eq("status", "approved")
+          .order("name")
+      ).data
+    : first.data;
 
-  if (error || !data) return null;
-  return (data as LiveRow[]).map(mapLiveRow);
+  if (!rows) return null;
+  return (rows as LiveRow[]).filter(isPublicNow).map(mapLiveRow);
 }
 
 export async function featuredListings() {
@@ -206,6 +243,66 @@ export async function listingsByCategory(category?: string) {
   return listings.filter((listing) => listing.category === category);
 }
 
+export type DirectoryQuery = {
+  category?: string;
+  q?: string;
+  place?: string;
+  price?: string;
+  sort?: string;
+  lat?: string;
+  lng?: string;
+};
+
+function distanceKm(aLat: number, aLng: number, bLat: number, bLng: number) {
+  const toRad = (n: number) => (n * Math.PI) / 180;
+  const dLat = toRad(bLat - aLat);
+  const dLng = toRad(bLng - aLng);
+  const lat1 = toRad(aLat);
+  const lat2 = toRad(bLat);
+  const h =
+    Math.sin(dLat / 2) ** 2 +
+    Math.cos(lat1) * Math.cos(lat2) * Math.sin(dLng / 2) ** 2;
+  return 6371 * 2 * Math.asin(Math.min(1, Math.sqrt(h)));
+}
+
+export async function searchDirectory(query: DirectoryQuery) {
+  let listings = await listingsByCategory(query.category);
+  const words = (query.q ?? "").trim().toLowerCase();
+  const place = (query.place ?? "").trim().toLowerCase();
+  if (words) {
+    listings = listings.filter((listing) =>
+      `${listing.name} ${listing.vibe} ${listing.area} ${listing.city}`.toLowerCase().includes(words),
+    );
+  }
+  if (place) {
+    listings = listings.filter((listing) =>
+      `${listing.area} ${listing.city}`.toLowerCase().includes(place),
+    );
+  }
+  const maxPrice = Number(query.price);
+  if (Number.isFinite(maxPrice) && maxPrice > 0) {
+    listings = listings.filter((listing) => listing.fromPrice === 0 || listing.fromPrice <= maxPrice);
+  }
+  const lat = Number(query.lat);
+  const lng = Number(query.lng);
+  const origin = Number.isFinite(lat) && Number.isFinite(lng) ? { lat, lng } : null;
+  const sort = query.sort ?? (origin ? "distance" : "name");
+  const scored = listings.map((listing) => ({
+    listing,
+    km:
+      origin && listing.latitude !== null && listing.longitude !== null
+        ? distanceKm(origin.lat, origin.lng, listing.latitude, listing.longitude)
+        : null,
+  }));
+  scored.sort((a, b) => {
+    if (sort === "price") return a.listing.fromPrice - b.listing.fromPrice;
+    if (sort === "rating") return (b.listing.rating ?? 0) - (a.listing.rating ?? 0);
+    if (sort === "distance") return (a.km ?? 9999) - (b.km ?? 9999);
+    return a.listing.name.localeCompare(b.listing.name);
+  });
+  return scored.map((row) => row.listing);
+}
+
 export function formatFromPrice(rand: number) {
   if (rand === 0) return "Free";
   return `From R ${rand.toFixed(2)}`;
@@ -235,6 +332,8 @@ export type PublicListingDetail = Listing & {
   bookingRequired: boolean;
   indoorOutdoor: string | null;
   googleRating: number | null;
+  phone: string | null;
+  mapsUrl: string | null;
   media: { url: string; alt: string | null }[];
   hours: {
     dayOfWeek: number;
@@ -316,12 +415,18 @@ export async function getPublicListingBySlug(
       price_from,
       is_featured,
       google_rating,
+      latitude,
+      longitude,
+      is_suspended,
+      publish_at,
       website_url,
       booking_url,
       street_address_1,
       street_address_2,
       province,
       postal_code,
+      phone,
+      maps_url,
       booking_required,
       indoor_outdoor,
       listing_media ( public_url, is_cover, sort_order, alt_text ),
@@ -339,9 +444,41 @@ export async function getPublicListingBySlug(
     .eq("status", "approved")
     .maybeSingle();
 
-  if (error || !data) return null;
+  let rowData = data;
+  if (error && /is_suspended|publish_at|phone|maps_url/.test(error.message)) {
+    const second = await supabase
+      .from("directory_listings")
+      .select(
+        `
+      id, name, slug, suburb, city, short_description, description, price_from, is_featured, google_rating,
+      website_url, booking_url, street_address_1, street_address_2, province, postal_code,
+      booking_required, indoor_outdoor,
+      listing_media ( public_url, is_cover, sort_order, alt_text ),
+      listing_activity_kinds ( is_primary, activity_kinds ( key ) ),
+      listing_activities!listing_activities_listing_id_fkey (
+        id, name, short_description, duration_minutes, booking_required, sort_order, status
+      ),
+      operating_hours ( day_of_week, opens_at, closes_at, is_closed ),
+      price_options (
+        id, listing_activity_id, name, standard_price, member_price, inclusions, is_active, sort_order
+      )
+    `,
+      )
+      .eq("slug", slug)
+      .eq("status", "approved")
+      .maybeSingle();
+    if (second.error || !second.data) return null;
+    rowData = second.data;
+  } else if (error || !data) {
+    return null;
+  }
+  if (!rowData) return null;
 
-  const row = data as DetailRow;
+  const row = rowData as DetailRow & {
+    phone?: string | null;
+    maps_url?: string | null;
+  };
+  if (!isPublicNow(row)) return null;
   const base = mapLiveRow(row);
   const media = [...(row.listing_media ?? [])]
     .sort((a, b) => {
@@ -399,6 +536,8 @@ export async function getPublicListingBySlug(
     bookingRequired: Boolean(row.booking_required),
     indoorOutdoor: row.indoor_outdoor,
     googleRating: asNumber(row.google_rating),
+    phone: row.phone ?? null,
+    mapsUrl: row.maps_url ?? null,
     media: media.length ? media : [{ url: base.image, alt: base.name }],
     hours,
     activities,

@@ -59,15 +59,35 @@ export async function loadQueue(status?: string, q?: string): Promise<QueueListi
 
   let query = supabase
     .from("directory_listings")
-    .select("id, name, branch_name, slug, suburb, city, status, is_featured, price_from, updated_at")
+    .select(
+      "id, name, branch_name, slug, suburb, city, status, is_featured, is_suspended, review_note, publish_at, price_from, updated_at",
+    )
     .order("updated_at", { ascending: false })
     .limit(200);
 
-  if (status && isListingStatus(status)) query = query.eq("status", status);
+  if (status === "suspended") query = query.eq("is_suspended", true);
+  else if (status === "scheduled") {
+    query = query.eq("status", "approved").eq("is_suspended", false).gt("publish_at", new Date().toISOString());
+  } else if (status && isListingStatus(status)) {
+    query = query.eq("status", status);
+    if (status === "approved") query = query.eq("is_suspended", false);
+  }
   if (q?.trim()) query = query.ilike("name", `%${q.trim()}%`);
 
   const { data, error } = await query;
-  if (error || !data) return [];
+  if (error) {
+    if (!/is_suspended|review_note|publish_at/.test(error.message)) return [];
+    let fallback = supabase
+      .from("directory_listings")
+      .select("id, name, branch_name, slug, suburb, city, status, is_featured, price_from, updated_at")
+      .order("updated_at", { ascending: false })
+      .limit(200);
+    if (status && isListingStatus(status)) fallback = fallback.eq("status", status);
+    if (q?.trim()) fallback = fallback.ilike("name", `%${q.trim()}%`);
+    const second = await fallback;
+    return (second.data ?? []) as QueueListing[];
+  }
+  if (!data) return [];
   return data as QueueListing[];
 }
 
@@ -79,7 +99,7 @@ export async function loadListing(id: string): Promise<ListingDetail | null> {
     .from("directory_listings")
     .select(
       `
-      id, business_id, name, branch_name, slug, suburb, city, status, is_featured, price_from, updated_at,
+      id, business_id, name, branch_name, slug, suburb, city, status, is_featured, is_suspended, review_note, publish_at, price_from, updated_at,
       short_description, description, phone, email, website_url, booking_url,
       street_address_1, street_address_2, province, postal_code,
       latitude, longitude, maps_url,

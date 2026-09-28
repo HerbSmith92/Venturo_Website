@@ -56,47 +56,83 @@ export default async function PortalEventsPage() {
           No events yet. Create one above &amp; the door tools unlock when it goes live.
         </p>
       ) : (
-        <div className="host-event-list">
-          {events.map((event) => {
-            const stats = statsById.get(event.id);
-            const canDoor = event.status === "approved" || event.status === "cancelled";
-            return (
-              <article key={event.id} className="host-event-card">
-                <EventCard
-                  event={event}
-                  href={portalEventHref(event.id)}
-                  showMemberPrice
-                  imageBadge={
-                    event.status !== "approved" ? (
-                      <span className={`card-status-badge ${event.status}`}>
-                        {statusLabel(event.status)}
-                      </span>
-                    ) : undefined
-                  }
-                >
-                  {stats ? (
-                    <p className="card-meta">
-                      {stats.scannedGuests} scanned · {stats.remainingGuests} still to come ·{" "}
-                      {stats.totalGuests} on the list
-                    </p>
-                  ) : null}
-                </EventCard>
-                <div className="host-event-actions">
-                  {canDoor ? (
-                    <a className="btn btn-primary" href={companionEventHref(event.id)}>
-                      Open Door
-                    </a>
-                  ) : (
-                    <span className="muted door-locked">Door unlocks when live</span>
-                  )}
-                  <a className="btn btn-secondary" href={portalEventHref(event.id)}>
-                    Menu
-                  </a>
+        <>
+          {(
+            [
+              {
+                title: "Drafts & In Review",
+                rows: events.filter((event) => event.status === "draft" || event.status === "review" || event.status === "rejected"),
+              },
+              {
+                title: "Published & Upcoming",
+                rows: events.filter(
+                  (event) =>
+                    event.status === "approved" && new Date(event.endsAt).getTime() >= Date.now(),
+                ),
+              },
+              {
+                title: "Past & Cancelled",
+                rows: events.filter(
+                  (event) =>
+                    event.status === "cancelled" ||
+                    (event.status === "approved" && new Date(event.endsAt).getTime() < Date.now()),
+                ),
+              },
+            ] as const
+          ).map((group) =>
+            group.rows.length === 0 ? null : (
+              <section key={group.title} style={{ marginTop: 28 }}>
+                <h2>{group.title}</h2>
+                <div className="host-event-list">
+                  {group.rows.map((event) => {
+                    const stats = statsById.get(event.id);
+                    const canDoor = event.status === "approved" || event.status === "cancelled";
+                    return (
+                      <article key={event.id} className="host-event-card">
+                        <EventCard
+                          event={event}
+                          href={portalEventHref(event.id)}
+                          showMemberPrice
+                          imageBadge={
+                            event.status !== "approved" ? (
+                              <span className={`card-status-badge ${event.status}`}>
+                                {statusLabel(event.status)}
+                              </span>
+                            ) : undefined
+                          }
+                        >
+                          {stats ? (
+                            <p className="card-meta">
+                              {stats.scannedGuests} checked in · {stats.remainingGuests} still to come ·{" "}
+                              {stats.totalGuests} on the list
+                            </p>
+                          ) : null}
+                        </EventCard>
+                        <div className="host-event-actions">
+                          {event.status === "approved" ? (
+                            <a className="btn btn-secondary" href={`/events/${event.slug}`}>
+                              Public Page
+                            </a>
+                          ) : null}
+                          {canDoor ? (
+                            <a className="btn btn-primary" href={companionEventHref(event.id)}>
+                              Open Companion
+                            </a>
+                          ) : (
+                            <span className="muted door-locked">Door unlocks when live</span>
+                          )}
+                          <a className="btn btn-secondary" href={portalEventHref(event.id)}>
+                            Menu
+                          </a>
+                        </div>
+                      </article>
+                    );
+                  })}
                 </div>
-              </article>
-            );
-          })}
-        </div>
+              </section>
+            ),
+          )}
+        </>
       )}
     </main>
   );

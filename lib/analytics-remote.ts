@@ -4,7 +4,7 @@ import { johannesburgDay } from "@/lib/portal-home";
 import { createServiceClient } from "@/lib/supabase/admin";
 
 const STALE_MS = 6 * 60 * 60 * 1000;
-const FETCH_MS = 10_000;
+const FETCH_MS = 20_000;
 
 export type RemoteSource = "api" | "manual" | "none";
 
@@ -19,6 +19,7 @@ export type RevenueCatOverview = {
 
 export type RemoteMetric = {
   value: number | null;
+  today: number | null;
   source: RemoteSource;
   error: string | null;
   fetchedAt: string | null;
@@ -43,7 +44,7 @@ type CacheRow = {
 };
 
 function blankMetric(): RemoteMetric {
-  return { value: null, source: "none", error: null, fetchedAt: null };
+  return { value: null, today: null, source: "none", error: null, fetchedAt: null };
 }
 
 function blankRemote(): RemoteAnalytics {
@@ -137,12 +138,94 @@ function numberFromRow(row: Record<string, string>, names: string[]) {
   return 0;
 }
 
-async function fetchIosDownloads(): Promise<RemoteMetric> {
-  if (!iosApiConfigured()) {
-    return { value: null, source: "none", error: null, fetchedAt: null };
+type DayCount = { day: string; downloads: number };
+
+type DownloadPull = {
+  total: number | null;
+  today: number;
+  days: DayCount[];
+};
+
+function monthStamp(delta = 0) {
+  const now = new Date();
+  const d = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth() - delta, 1));
+  return {
+    yyyymm: `${d.getUTCFullYear()}${String(d.getUTCMonth() + 1).padStart(2, "0")}`,
+    yearMonth: `${d.getUTCFullYear()}-${String(d.getUTCMonth() + 1).padStart(2, "0")}`,
+  };
+}
+
+function parseReportDay(raw: string) {
+  const value = raw.trim();
+  if (/^\d{4}-\d{2}-\d{2}$/.test(value)) return value;
+  const match = value.match(/^(\d{1,2})\/(\d{1,2})\/(\d{2,4})$/);
+  if (!match) return null;
+  const month = match[1].padStart(2, "0");
+  const day = match[2].padStart(2, "0");
+  const year = match[3].length === 2 ? `20${match[3]}` : match[3];
+  return `${year}-${month}-${day}`;
+}
+
+function downloadFromRow(row: Record<string, string>) {
+  return numberFromRow(row, [
+    "First-Time Downloads",
+    "First Time Downloads",
+    "Daily User Installs",
+    "Daily Device Installs",
+    "Units",
+    "Total Downloads",
+  ]);
+}
+
+function mergeDays(rows: DayCount[]) {
+  const map = new Map<string, number>();
+  for (const row of rows) {
+    if (!row.day) continue;
+    map.set(row.day, (map.get(row.day) ?? 0) + row.downloads);
   }
+  return [...map.entries()]
+    .map(([day, downloads]) => ({ day, downloads }))
+    .sort((a, b) => a.day.localeCompare(b.day));
+}
+
+async function saveDownloadDays(platform: "ios" | "android", days: DayCount[]) {
+  const supabase = createServiceClient();
+  if (!supabase || days.length === 0) return;
+  const { error } = await supabase.from("store_download_days").upsert(
+    days.map((row) => ({
+      platform,
+      day: row.day,
+      downloads: row.downloads,
+    })),
+    { onConflict: "platform,day" },
+  );
+  if (error) console.error("[store_download_days]", platform, error.message);
+}
+
+async function appleReport(token: string, filters: Record<string, string>) {
+  const params = new URLSearchParams();
+  for (const [key, value] of Object.entries(filters)) {
+    params.set(`filter[${key}]`, value);
+  }
+  const response = await timedFetch(
+    `https://api.appstoreconnect.apple.com/v1/salesReports?${params.toString()}`,
+    { headers: { Authorization: `Bearer ${token}` } },
+  );
+  if (!response.ok) {
+    const body = await response.text();
+    throw new Error(`App Store Connect ${response.status}: ${body.slice(0, 180)}`);
+  }
+  const buf = Buffer.from(await response.arrayBuffer());
+  try {
+    return gunzipSync(buf).toString("utf8");
+  } catch {
+    return buf.toString("utf8");
+  }
+}
+
+function appleToken() {
   const now = Math.floor(Date.now() / 1000);
-  const token = signJwt(
+  return signJwt(
     { alg: "ES256", kid: env("APP_STORE_CONNECT_KEY_ID"), typ: "JWT" },
     {
       iss: env("APP_STORE_CONNECT_ISSUER_ID"),
@@ -153,36 +236,72 @@ async function fetchIosDownloads(): Promise<RemoteMetric> {
     env("APP_STORE_CONNECT_PRIVATE_KEY"),
     "ES256",
   );
+}
+
+async function fetchIosLifetime(token: string, vendor: string) {
+  let total = 0;
+  let found = false;
   const year = new Date().getUTCFullYear();
-  const params = new URLSearchParams({
-    "filter[frequency]": "YEARLY",
-    "filter[reportDate]": String(year),
-    "filter[reportSubType]": "SUMMARY",
-    "filter[reportType]": "INSTALLS",
-    "filter[vendorNumber]": env("APP_STORE_CONNECT_VENDOR_NUMBER"),
-    "filter[version]": "1_1",
-  });
-  const response = await timedFetch(
-    `https://api.appstoreconnect.apple.com/v1/salesReports?${params.toString()}`,
-    { headers: { Authorization: `Bearer ${token}` } },
-  );
-  if (!response.ok) {
-    const body = await response.text();
-    throw new Error(`App Store Connect ${response.status}: ${body.slice(0, 180)}`);
+  for (const reportYear of [year, year - 1]) {
+    try {
+      const text = await appleReport(token, {
+        frequency: "YEARLY",
+        reportDate: String(reportYear),
+        reportSubType: "SUMMARY",
+        reportType: "INSTALLS",
+        vendorNumber: vendor,
+        version: "1_0",
+      });
+      for (const row of parseTsv(text)) {
+        total += numberFromRow(row, ["First-Time Downloads", "Units"]);
+        found = true;
+      }
+    } catch {
+      // Current-year summary can be empty until Apple closes the first window.
+    }
   }
-  const buf = Buffer.from(await response.arrayBuffer());
-  let text: string;
-  try {
-    text = gunzipSync(buf).toString("utf8");
-  } catch {
-    text = buf.toString("utf8");
+  return found ? total : null;
+}
+
+async function fetchIosDownloads(): Promise<DownloadPull> {
+  if (!iosApiConfigured()) {
+    return { total: null, today: 0, days: [] };
   }
-  const rows = parseTsv(text);
-  const total = rows.reduce((sum, row) => {
-    const first = numberFromRow(row, ["First-Time Downloads", "First Time Downloads", "Total Downloads", "Units"]);
-    return sum + first;
-  }, 0);
-  return { value: total, source: "api", error: null, fetchedAt: new Date().toISOString() };
+  const token = appleToken();
+  const vendor = env("APP_STORE_CONNECT_VENDOR_NUMBER");
+  const days: DayCount[] = [];
+  let lastError = "No iOS install report.";
+  for (const delta of [0, 1]) {
+    const { yearMonth } = monthStamp(delta);
+    try {
+      const text = await appleReport(token, {
+        frequency: "MONTHLY",
+        reportDate: yearMonth,
+        reportSubType: "DETAILED",
+        reportType: "INSTALLS",
+        vendorNumber: vendor,
+        version: "1_2",
+      });
+      for (const row of parseTsv(text)) {
+        const day = parseReportDay(row.Date ?? row.date ?? "");
+        if (!day) continue;
+        days.push({ day, downloads: downloadFromRow(row) });
+      }
+    } catch (error) {
+      lastError = error instanceof Error ? error.message : "iOS pull failed.";
+    }
+  }
+  const merged = mergeDays(days);
+  if (!merged.length) throw new Error(lastError);
+  const today = johannesburgDay();
+  const todayCount = merged.find((row) => row.day === today)?.downloads ?? 0;
+  const lifetime = await fetchIosLifetime(token, vendor);
+  await saveDownloadDays("ios", merged);
+  return {
+    total: lifetime ?? merged.reduce((sum, row) => sum + row.downloads, 0),
+    today: todayCount,
+    days: merged,
+  };
 }
 
 function decodePlayCsv(buf: Buffer) {
@@ -240,20 +359,18 @@ async function googleAccessToken() {
   return payload.access_token;
 }
 
-async function fetchAndroidDownloads(): Promise<RemoteMetric> {
+async function fetchAndroidDownloads(): Promise<DownloadPull> {
   if (!androidApiConfigured()) {
-    return { value: null, source: "none", error: null, fetchedAt: null };
+    return { total: null, today: 0, days: [] };
   }
   const token = await googleAccessToken();
   const bucket = env("GOOGLE_PLAY_REPORTS_BUCKET").replace(/^gs:\/\//, "");
   const pkg = env("GOOGLE_PLAY_PACKAGE_NAME");
-  const now = new Date();
-  const months = [0, 1].map((delta) => {
-    const d = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth() - delta, 1));
-    return `${d.getUTCFullYear()}${String(d.getUTCMonth() + 1).padStart(2, "0")}`;
-  });
+  const days: DayCount[] = [];
+  let total: number | null = null;
   let lastError = "Play report not found.";
-  for (const yyyymm of months) {
+  for (const delta of [0, 1]) {
+    const { yyyymm } = monthStamp(delta);
     const object = `stats/installs/installs_${pkg}_${yyyymm}_overview.csv`;
     const url = `https://storage.googleapis.com/storage/v1/b/${encodeURIComponent(bucket)}/o/${encodeURIComponent(object)}?alt=media`;
     const response = await timedFetch(url, { headers: { Authorization: `Bearer ${token}` } });
@@ -262,13 +379,20 @@ async function fetchAndroidDownloads(): Promise<RemoteMetric> {
       continue;
     }
     const rows = parseCsv(decodePlayCsv(Buffer.from(await response.arrayBuffer())));
-    const latest = [...rows].reverse().find((row) => numberFromRow(row, ["Total User Installs", "Current User Installs"]));
-    const value = latest
-      ? numberFromRow(latest, ["Total User Installs", "Current User Installs"])
-      : 0;
-    return { value, source: "api", error: null, fetchedAt: new Date().toISOString() };
+    for (const row of rows) {
+      const day = parseReportDay(row.Date ?? row.date ?? "");
+      if (!day) continue;
+      days.push({ day, downloads: numberFromRow(row, ["Daily User Installs", "Daily Device Installs"]) });
+      const lifetime = numberFromRow(row, ["Total User Installs", "Current User Installs"]);
+      if (lifetime > (total ?? 0)) total = lifetime;
+    }
   }
-  throw new Error(lastError);
+  const merged = mergeDays(days);
+  if (!merged.length) throw new Error(lastError);
+  const today = johannesburgDay();
+  const todayCount = merged.find((row) => row.day === today)?.downloads ?? 0;
+  await saveDownloadDays("android", merged);
+  return { total: total ?? merged.reduce((sum, row) => sum + row.downloads, 0), today: todayCount, days: merged };
 }
 
 function metricValue(
@@ -358,8 +482,11 @@ async function writeCache(key: string, payload: Record<string, unknown>, source:
 function rowToMetric(row: CacheRow | undefined): RemoteMetric {
   if (!row) return blankMetric();
   const value = Number(row.payload.value);
+  const todayRaw = row.payload.today;
+  const today = Number(todayRaw);
   return {
     value: Number.isFinite(value) ? value : null,
+    today: todayRaw === null || todayRaw === undefined || !Number.isFinite(today) ? null : today,
     source: (row.source as RemoteSource) || "none",
     error: row.error,
     fetchedAt: row.fetched_at,
@@ -378,20 +505,20 @@ export async function refreshRemoteAnalytics(force = false): Promise<RemoteAnaly
   if (force || (!cacheIsFresh(existing.ios.fetchedAt) && iosApiConfigured())) {
     jobs.push(
       fetchIosDownloads()
-        .then((metric) => writeCache("ios", { value: metric.value }, "api", null))
+        .then((pull) => writeCache("ios", { value: pull.total, today: pull.today }, "api", null))
         .catch((error) =>
-          writeCache("ios", { value: existing.ios.value }, existing.ios.source, error instanceof Error ? error.message : "iOS pull failed."),
+          writeCache("ios", { value: existing.ios.value, today: existing.ios.today }, existing.ios.source, error instanceof Error ? error.message : "iOS pull failed."),
         ),
     );
   }
   if (force || (!cacheIsFresh(existing.android.fetchedAt) && androidApiConfigured())) {
     jobs.push(
       fetchAndroidDownloads()
-        .then((metric) => writeCache("android", { value: metric.value }, "api", null))
+        .then((pull) => writeCache("android", { value: pull.total, today: pull.today }, "api", null))
         .catch((error) =>
           writeCache(
             "android",
-            { value: existing.android.value },
+            { value: existing.android.value, today: existing.android.today },
             existing.android.source,
             error instanceof Error ? error.message : "Android pull failed.",
           ),
@@ -464,7 +591,7 @@ export async function loadRemoteAnalyticsFromCache(): Promise<RemoteAnalytics> {
 
 export async function saveManualDownloads(ios: number, android: number) {
   await Promise.all([
-    writeCache("ios", { value: ios }, "manual", null),
-    writeCache("android", { value: android }, "manual", null),
+    writeCache("ios", { value: ios, today: null }, "manual", null),
+    writeCache("android", { value: android, today: null }, "manual", null),
   ]);
 }

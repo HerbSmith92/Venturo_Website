@@ -1,3 +1,4 @@
+import { AnalyticsKeysGuide } from "@/components/admin/AnalyticsKeysGuide";
 import { CatalogEditor } from "@/components/admin/CatalogEditor";
 import { FeeSettingsForm } from "@/components/admin/FeeSettingsForm";
 import { getStaffSession } from "@/lib/auth";
@@ -126,6 +127,8 @@ export default async function AdminSettingsPage() {
           in Vercel env.
         </p>
       </article>
+
+      <AnalyticsKeysGuide className="plan" />
 
       <article className="plan" style={{ marginTop: 20 }}>
         <p className="eyebrow">Platform Fees</p>
