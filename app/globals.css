@@ -4120,6 +4120,76 @@ label.check {
   margin: 8px 0 16px;
 }
 
+.listing-cost-hint {
+  margin: 0 0 14px;
+  color: color-mix(in srgb, var(--snow) 62%, transparent);
+  font-size: 14px;
+}
+
+.listing-cost-hint a {
+  color: var(--canary);
+}
+
+.listing-cost-list {
+  list-style: none;
+  padding: 0;
+  margin: 16px 0 0;
+  display: grid;
+  gap: 8px;
+}
+
+.listing-cost-card {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 14px;
+  border-radius: 14px;
+  border: 1px solid color-mix(in srgb, var(--canary) 72%, transparent);
+  background: color-mix(in srgb, var(--night) 35%, transparent);
+}
+
+.listing-cost-card strong {
+  display: block;
+  font-size: 15px;
+  font-weight: 500;
+}
+
+.listing-cost-card p {
+  margin: 4px 0 0;
+  font-size: 13px;
+  color: color-mix(in srgb, var(--snow) 72%, transparent);
+}
+
+.listing-cost-figures {
+  flex: 0 0 auto;
+  display: grid;
+  gap: 2px;
+  text-align: right;
+}
+
+.listing-cost-figures span {
+  display: inline-flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 6px;
+  font-size: 14px;
+}
+
+.listing-cost-figures b {
+  color: var(--canary);
+  font-size: 14px;
+  font-weight: 600;
+}
+
+.listing-cost-chevron {
+  width: 7px;
+  height: 7px;
+  border-right: 1.5px solid color-mix(in srgb, var(--snow) 70%, transparent);
+  border-bottom: 1.5px solid color-mix(in srgb, var(--snow) 70%, transparent);
+  transform: rotate(45deg) translateY(-2px);
+}
+
 .preview-ticket-list {
   list-style: none;
   padding: 0;

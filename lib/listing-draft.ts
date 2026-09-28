@@ -563,7 +563,7 @@ export function draftToPayload(draft: ListingDraft) {
     activities: draft.activities.map((activity, activityIndex) => ({
       id: activity.id || null,
       name: activity.name,
-      short_description: activity.short_description,
+      short_description: activity.description.trim() || activity.short_description,
       description: activity.description,
       duration_minutes: activity.duration_minutes,
       minimum_age: activity.minimum_age,
