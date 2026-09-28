@@ -63,7 +63,7 @@ export default async function HomePage() {
             The calendar is warming up. <a href="/event-host">Host on Venturo</a>.
           </p>
         ) : (
-          <div className="grid">
+          <div className="home-rail">
             {features.events.map((event) => (
               <EventCard key={event.id} event={event} showMemberPrice={paid} />
             ))}
@@ -81,7 +81,7 @@ export default async function HomePage() {
             See All Listings
           </a>
         </div>
-        <div className="grid">
+        <div className="home-rail">
           {features.listings.map((listing) => (
             <ListingCard
               key={listing.id}
@@ -122,7 +122,7 @@ export default async function HomePage() {
         {features.communities.length === 0 ? (
           <p className="muted">Communities appear here once Control Room publishes them.</p>
         ) : (
-          <div className="grid">
+          <div className="home-rail">
             {features.communities.map((community) => (
               <a key={community.id} className="card" href={`/communities/${community.slug}`}>
                 <div className="card-body">
@@ -150,7 +150,7 @@ export default async function HomePage() {
               See All Guides
             </a>
           </div>
-          <div className="guide-grid">
+          <div className="home-rail">
             {features.guides.map((guide) => (
               <GuideCard key={guide.id} guide={guide} />
             ))}
