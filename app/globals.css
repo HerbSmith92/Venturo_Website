@@ -247,6 +247,14 @@ select {
   background: color-mix(in srgb, var(--snow) 8%, transparent);
 }
 
+.nav-drawer-label {
+  margin: 10px 10px 0;
+  font-size: 11px;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--canary);
+}
+
 .taste-stack,
 .taste-row {
   min-width: 0;
@@ -4388,6 +4396,18 @@ label.check {
 .site-footer {
   padding: 32px 0 48px;
   color: color-mix(in srgb, var(--snow) 70%, transparent);
+}
+
+.footer-group {
+  margin-top: 16px;
+}
+
+.footer-heading {
+  margin: 0 0 4px;
+  font-size: 11px;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--canary);
 }
 
 .footer-links {

@@ -27,22 +27,16 @@ export async function SiteFooter() {
       <div className="colour-bar footer-bar" aria-hidden="true" />
       <p>Venturo · Activities · Events · Community</p>
       <p className="muted">Quality time is our love language.</p>
+      <nav className="footer-group" aria-label="Here To Help">
+        <p className="footer-heading">Here To Help</p>
+        <p className="muted footer-links">
+          <a href="/support">Support</a>
+          <span aria-hidden="true"> · </span>
+          <a href="/legal-documents">Legal Documents</a>
+        </p>
+      </nav>
       <p className="muted footer-links">
         <a href="/about">About</a>
-        <span aria-hidden="true"> · </span>
-        <a href="/help">Help & Contact</a>
-        <span aria-hidden="true"> · </span>
-        <a href="/policies/">Privacy & Terms</a>
-        <span aria-hidden="true"> · </span>
-        <a href="/privacy_policy/">Privacy</a>
-        <span aria-hidden="true"> · </span>
-        <a href="/terms/">Terms</a>
-        <span aria-hidden="true"> · </span>
-        <a href="/refunds/">Refunds</a>
-        <span aria-hidden="true"> · </span>
-        <a href="/community-guidelines/">Community guidelines</a>
-        <span aria-hidden="true"> · </span>
-        <a href="/copyright/">Copyright</a>
         <span aria-hidden="true"> · </span>
         <a href={copy.appStoreUrl}>App Store</a>
         <span aria-hidden="true"> · </span>

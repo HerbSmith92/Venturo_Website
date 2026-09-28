@@ -83,21 +83,27 @@ export function PolicyDocumentView({ policy }: { policy: PolicyDocument }) {
         ) : null}
         <div className="policy-doc">{blocks(policy)}</div>
         <p className="policy-back">
-          <a href="/policies/">All policies</a>
+          <a href="/legal-documents">Legal Documents</a>
         </p>
       </section>
     </main>
   );
 }
 
-export function PolicyIndex() {
+export function PolicyIndex({
+  eyebrow = "Policies",
+  title = "Venturo policies",
+}: {
+  eyebrow?: string;
+  title?: string;
+} = {}) {
   return (
     <main>
       <section className="shell section">
-        <p className="eyebrow">Policies</p>
-        <h1>Venturo policies</h1>
+        <p className="eyebrow">{eyebrow}</p>
+        <h1>{title}</h1>
         <p className="lede muted">
-          The same documents apply on venturo.co.za and in the Venturo app.
+          The same documents apply on the website and in the app.
         </p>
         <div className="policy-index">
           {index.map((policy) => (
