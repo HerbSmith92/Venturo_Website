@@ -47,7 +47,7 @@ export function ListingActions({ listing }: { listing: ListingDetail }) {
           <input type="hidden" name="action" value="draft" />
           <label className="field">
             <span>Reason for changes</span>
-            <textarea name="note" required rows={3} placeholder="What should change before this can go live?" />
+            <textarea name="note" required rows={2} placeholder="What should change before this can go live?" />
           </label>
           <button className="btn btn-secondary" type="submit">
             Request Changes
@@ -82,7 +82,7 @@ export function ListingActions({ listing }: { listing: ListingDetail }) {
           <input type="hidden" name="action" value="archive" />
           <label className="field">
             <span>Reason for rejection</span>
-            <textarea name="note" required rows={3} placeholder="Why this listing cannot go live." />
+            <textarea name="note" required rows={2} placeholder="Why this listing cannot go live." />
           </label>
           <button className="btn btn-secondary" type="submit">
             Reject & Archive

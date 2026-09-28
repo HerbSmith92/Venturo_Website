@@ -1916,7 +1916,7 @@ fieldset.field {
 }
 
 .cr-main:has(.cr-editor-page) {
-  padding: 24px 20px 120px;
+  padding: 24px 20px 32px;
 }
 
 .cr-editor-page {
@@ -1969,6 +1969,8 @@ fieldset.field {
   gap: 12px;
   position: sticky;
   top: 16px;
+  max-height: calc(100vh - 32px);
+  overflow-y: auto;
 }
 
 .cr-rail-card {
@@ -1984,6 +1986,45 @@ fieldset.field {
   text-transform: uppercase;
   color: var(--canary);
   margin-bottom: 12px;
+}
+
+.cr-rail-actions {
+  display: grid;
+  gap: 8px;
+  margin-top: 14px;
+  padding-top: 14px;
+  border-top: 1px solid color-mix(in srgb, var(--snow) 12%, transparent);
+}
+
+.cr-rail-actions form,
+.cr-rail-actions .cr-action-note,
+.cr-rail-actions .btn {
+  width: 100%;
+  min-width: 0;
+}
+
+.cr-rail-actions .btn {
+  min-height: 36px;
+  padding: 6px 10px;
+  font-size: 14px;
+}
+
+.cr-rail-actions .field {
+  margin-bottom: 0;
+  gap: 4px;
+}
+
+.cr-rail-actions .field input,
+.cr-rail-actions .field textarea {
+  min-height: 36px;
+  padding: 8px 10px;
+  font-size: 13px;
+}
+
+.cr-rail-actions .notice {
+  margin: 0;
+  padding: 8px 10px;
+  font-size: 13px;
 }
 
 .cr-status-legend,
