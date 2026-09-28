@@ -468,7 +468,15 @@ export async function getPublicListingBySlug(
       .eq("status", "approved")
       .maybeSingle();
     if (second.error || !second.data) return null;
-    rowData = second.data;
+    rowData = {
+      ...second.data,
+      latitude: null,
+      longitude: null,
+      is_suspended: false,
+      publish_at: null,
+      phone: null,
+      maps_url: null,
+    };
   } else if (error || !data) {
     return null;
   }
