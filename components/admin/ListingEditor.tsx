@@ -2,11 +2,8 @@
 
 import { useMemo, useRef, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
-import {
-  deleteListingPhoto,
-  saveListingDraft,
-  uploadListingPhoto,
-} from "@/app/admin/actions";
+import { deleteListingPhoto, saveListingDraft } from "@/app/admin/actions";
+import { createClient } from "@/lib/supabase/client";
 import { ListingActions } from "@/components/admin/ListingActions";
 import { ListingAppPreview } from "@/components/admin/ListingAppPreview";
 import type { ListingDetail } from "@/lib/control-room-types";
@@ -36,6 +33,86 @@ import {
   type ListingDraft,
   type StepKey,
 } from "@/lib/listing-draft";
+
+const PHOTO_LIMIT = 10 * 1024 * 1024;
+const PHOTO_CONCURRENCY = 4;
+
+function photoExt(file: File) {
+  const fromName = file.name.split(".").pop()?.toLowerCase();
+  if (fromName && ["jpg", "jpeg", "png", "webp", "gif"].includes(fromName)) {
+    return fromName === "jpeg" ? "jpg" : fromName;
+  }
+  if (file.type === "image/png") return "png";
+  if (file.type === "image/webp") return "webp";
+  if (file.type === "image/gif") return "gif";
+  return "jpg";
+}
+
+function photoContentType(file: File, ext: string) {
+  if (file.type.startsWith("image/")) return file.type;
+  if (ext === "png") return "image/png";
+  if (ext === "webp") return "image/webp";
+  if (ext === "gif") return "image/gif";
+  return "image/jpeg";
+}
+
+async function uploadOnePhoto(
+  listingId: string,
+  file: File,
+  sortOrder: number,
+  makeCover: boolean,
+): Promise<DraftMedia | string> {
+  const allowed = file.type.startsWith("image/") || /\.(jpe?g|png|webp|gif)$/i.test(file.name);
+  if (!allowed || /heic|heif/i.test(file.type) || /\.heic$/i.test(file.name)) {
+    return `${file.name}: use a JPEG, PNG, WebP, or GIF.`;
+  }
+  if (file.size === 0) return `${file.name}: that file is empty.`;
+  if (file.size > PHOTO_LIMIT) return `${file.name}: keep it under 10 MB.`;
+
+  const supabase = createClient();
+  if (!supabase) return "Could not reach photo storage.";
+
+  const ext = photoExt(file);
+  const storageKey = `${listingId}/${crypto.randomUUID()}.${ext}`;
+  const { error: uploadError } = await supabase.storage.from("listing-media").upload(storageKey, file, {
+    cacheControl: "3600",
+    contentType: photoContentType(file, ext),
+    upsert: false,
+  });
+  if (uploadError) return `${file.name}: ${uploadError.message}`;
+
+  const {
+    data: { publicUrl },
+  } = supabase.storage.from("listing-media").getPublicUrl(storageKey);
+
+  const { data: row, error: insertError } = await supabase
+    .from("listing_media")
+    .insert({
+      listing_id: listingId,
+      media_type: "image",
+      storage_key: storageKey,
+      public_url: publicUrl,
+      alt_text: file.name.replace(/\.[^.]+$/, "").slice(0, 120) || null,
+      copyright_status: "owned",
+      is_cover: makeCover,
+      sort_order: sortOrder,
+    })
+    .select("id, public_url, is_cover, sort_order, alt_text")
+    .single();
+
+  if (insertError || !row) {
+    await supabase.storage.from("listing-media").remove([storageKey]);
+    return `${file.name}: ${insertError?.message ?? "Could not save the photo."}`;
+  }
+
+  return {
+    id: row.id as string,
+    public_url: row.public_url as string,
+    alt_text: (row.alt_text as string | null) ?? "",
+    is_cover: Boolean(row.is_cover),
+    sort_order: (row.sort_order as number) ?? sortOrder,
+  };
+}
 
 function toggleId(ids: string[], id: string, max?: number) {
   if (ids.includes(id)) return ids.filter((item) => item !== id);
@@ -67,6 +144,7 @@ export function ListingEditor({
   const [saveNotice, setSaveNotice] = useState<string | null>(null);
   const [pending, startTransition] = useTransition();
   const [photoPending, setPhotoPending] = useState(false);
+  const [photoStatus, setPhotoStatus] = useState<string | null>(null);
 
   const progress = completeness(draft);
   const legend = statusLegend(listing.status);
@@ -253,40 +331,62 @@ export function ListingEditor({
   }
 
   async function onUploadFiles(files: FileList | null) {
-    if (!files?.length) return;
+    const list = Array.from(files ?? []);
+    if (!list.length) return;
     setPhotoPending(true);
+    setPhotoStatus(`Uploading 0 of ${list.length}`);
     setSaveError(null);
-    try {
-      for (const file of Array.from(files)) {
-        const formData = new FormData();
-        formData.set("file", file);
-        const result = await uploadListingPhoto(listing.id, formData);
-        if (!result.ok) {
-          setSaveError(result.error);
-          break;
-        }
-        setDraft((current) => {
-          const nextMedia: DraftMedia[] = [
-            ...current.media,
-            {
-              id: result.media.id,
-              public_url: result.media.public_url,
-              alt_text: result.media.alt_text,
-              is_cover: result.media.is_cover,
-              sort_order: result.media.sort_order,
-            },
-          ];
-          return {
-            ...current,
-            media: nextMedia,
-            cover_media_id: result.media.is_cover
-              ? result.media.id
-              : current.cover_media_id || result.media.id,
-          };
-        });
+    const visible = draft.media.filter((row) => !row._delete);
+    const startOrder = visible.reduce((max, row) => Math.max(max, row.sort_order ?? 0), -1) + 1;
+    const needCover = !visible.some((row) => row.is_cover);
+    const jobs = list.map((file, index) => ({
+      file,
+      sortOrder: startOrder + index,
+      makeCover: needCover && index === 0,
+    }));
+    const uploaded: DraftMedia[] = [];
+    const failures: string[] = [];
+    let cursor = 0;
+    let finished = 0;
+
+    async function worker() {
+      while (cursor < jobs.length) {
+        const job = jobs[cursor];
+        cursor += 1;
+        const result = await uploadOnePhoto(listing.id, job.file, job.sortOrder, job.makeCover);
+        finished += 1;
+        setPhotoStatus(`Uploading ${finished} of ${list.length}`);
+        if (typeof result === "string") failures.push(result);
+        else uploaded.push(result);
       }
+    }
+
+    try {
+      await Promise.all(
+        Array.from({ length: Math.min(PHOTO_CONCURRENCY, jobs.length) }, () => worker()),
+      );
+      if (uploaded.length) {
+        const added = [...uploaded].sort((a, b) => a.sort_order - b.sort_order);
+        setDraft((current) => ({
+          ...current,
+          media: [...current.media, ...added],
+          cover_media_id:
+            added.find((row) => row.is_cover)?.id ??
+            (current.cover_media_id || added[0]?.id || current.cover_media_id),
+        }));
+      }
+      if (failures.length) {
+        setSaveError(
+          failures.length === list.length
+            ? failures.join(" ")
+            : `${uploaded.length} of ${list.length} photos added. ${failures.join(" ")}`,
+        );
+      }
+    } catch (error) {
+      setSaveError(error instanceof Error ? error.message : "Could not upload those photos.");
     } finally {
       setPhotoPending(false);
+      setPhotoStatus(null);
       if (fileRef.current) fileRef.current.value = "";
     }
   }
@@ -1140,7 +1240,7 @@ export function ListingEditor({
                 disabled={photoPending}
                 onClick={() => fileRef.current?.click()}
               >
-                {photoPending ? "Working…" : "Add Photos"}
+                {photoStatus ?? "Add Photos"}
               </button>
             </div>
           </section>
