@@ -9,6 +9,7 @@ import { createClient } from "@/lib/supabase/server";
 
 const LIVE_WINDOW_MS = 5 * 60 * 1000;
 const CHART_DAYS = 7;
+const DOWNLOAD_CHART_DAYS = 30;
 
 export type ControlRoomAnalytics = {
   onSiteNow: number;
@@ -25,6 +26,12 @@ export type ControlRoomAnalytics = {
   membersApp: number;
   iosDownloads: number;
   androidDownloads: number;
+  iosToday: number;
+  androidToday: number;
+  ios7d: number;
+  android7d: number;
+  iosSeries: DayPoint[];
+  androidSeries: DayPoint[];
   downloadsRecordedAt: string | null;
   iosSource: string;
   androidSource: string;
@@ -59,14 +66,20 @@ function blankAnalytics(): ControlRoomAnalytics {
     membersApp: 0,
     iosDownloads: 0,
     androidDownloads: 0,
+    iosToday: 0,
+    androidToday: 0,
+    ios7d: 0,
+    android7d: 0,
+    iosSeries: emptySeries(DOWNLOAD_CHART_DAYS),
+    androidSeries: emptySeries(DOWNLOAD_CHART_DAYS),
     downloadsRecordedAt: null,
     iosSource: "none",
     androidSource: "none",
     iosError: null,
     androidError: null,
     remote: {
-      ios: { value: null, source: "none", error: null, fetchedAt: null },
-      android: { value: null, source: "none", error: null, fetchedAt: null },
+      ios: { value: null, today: null, source: "none", error: null, fetchedAt: null },
+      android: { value: null, today: null, source: "none", error: null, fetchedAt: null },
       revenueCat: {
         activeSubscriptions: null,
         activeTrials: null,
@@ -83,7 +96,7 @@ function blankAnalytics(): ControlRoomAnalytics {
 }
 
 export function formatAnalyticsCount(n: number) {
-  return new Intl.NumberFormat("en-ZA").format(n);
+  return new Intl.NumberFormat("en-ZA").format(Number.isFinite(n) ? n : 0);
 }
 
 export function formatAnalyticsMoney(value: number | null, currency = "USD") {
@@ -126,6 +139,8 @@ export async function loadControlRoomAnalytics(): Promise<ControlRoomAnalytics> 
     payfastRes,
     appRes,
     downloadsRes,
+    iosDaysRes,
+    androidDaysRes,
   ] = await Promise.all([
     supabase
       .from("site_visit_days")
@@ -158,6 +173,18 @@ export async function loadControlRoomAnalytics(): Promise<ControlRoomAnalytics> 
       .select("ios_downloads, android_downloads, recorded_at")
       .order("recorded_at", { ascending: false })
       .limit(1),
+    supabase
+      .from("store_download_days")
+      .select("day, downloads")
+      .eq("platform", "ios")
+      .gte("day", shiftDay(today, -(DOWNLOAD_CHART_DAYS - 1)))
+      .lte("day", today),
+    supabase
+      .from("store_download_days")
+      .select("day, downloads")
+      .eq("platform", "android")
+      .gte("day", shiftDay(today, -(DOWNLOAD_CHART_DAYS - 1)))
+      .lte("day", today),
   ]);
 
   const visitorMap = new Map<string, number>();
@@ -179,8 +206,27 @@ export async function loadControlRoomAnalytics(): Promise<ControlRoomAnalytics> 
   const snapshot = downloadsRes.data?.[0];
   const visitsToday = visitorMap.get(today) ?? 0;
   const pageviewsToday = pageviewMap.get(today) ?? 0;
-  const iosDownloads = remote.ios.value ?? Number(snapshot?.ios_downloads) ?? 0;
-  const androidDownloads = remote.android.value ?? Number(snapshot?.android_downloads) ?? 0;
+  const iosMap = new Map<string, number>();
+  const androidMap = new Map<string, number>();
+  for (const row of iosDaysRes.data ?? []) iosMap.set(String(row.day), Number(row.downloads) || 0);
+  for (const row of androidDaysRes.data ?? []) androidMap.set(String(row.day), Number(row.downloads) || 0);
+  const iosSeries = emptySeries(DOWNLOAD_CHART_DAYS).map((point) => ({
+    day: point.day,
+    value: iosMap.get(point.day) ?? 0,
+  }));
+  const androidSeries = emptySeries(DOWNLOAD_CHART_DAYS).map((point) => ({
+    day: point.day,
+    value: androidMap.get(point.day) ?? 0,
+  }));
+  const start7Day = shiftDay(today, -6);
+  const iosToday = remote.ios.today ?? iosMap.get(today) ?? 0;
+  const androidToday = remote.android.today ?? androidMap.get(today) ?? 0;
+  const ios7d = iosSeries.filter((point) => point.day >= start7Day).reduce((sum, point) => sum + point.value, 0);
+  const android7d = androidSeries.filter((point) => point.day >= start7Day).reduce((sum, point) => sum + point.value, 0);
+  const snapshotIos = Number(snapshot?.ios_downloads);
+  const snapshotAndroid = Number(snapshot?.android_downloads);
+  const iosDownloads = remote.ios.value ?? (Number.isFinite(snapshotIos) ? snapshotIos : 0);
+  const androidDownloads = remote.android.value ?? (Number.isFinite(snapshotAndroid) ? snapshotAndroid : 0);
 
   return {
     onSiteNow: liveRes.count ?? 0,
@@ -203,6 +249,12 @@ export async function loadControlRoomAnalytics(): Promise<ControlRoomAnalytics> 
     membersApp: appRes.count ?? 0,
     iosDownloads,
     androidDownloads,
+    iosToday,
+    androidToday,
+    ios7d,
+    android7d,
+    iosSeries,
+    androidSeries,
     downloadsRecordedAt: remote.ios.fetchedAt ?? remote.android.fetchedAt ?? snapshot?.recorded_at ?? null,
     iosSource: remote.ios.source,
     androidSource: remote.android.source,

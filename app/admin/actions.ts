@@ -206,6 +206,15 @@ export async function deleteListingPhoto(listingId: string, mediaId: string) {
   return { ok: true as const };
 }
 
+/** datetime-local values are Johannesburg wall time (SAST, UTC+2). */
+function sastLocalToIso(value: string) {
+  const match = value.match(/^(\d{4}-\d{2}-\d{2})T(\d{2}:\d{2})/);
+  if (!match) return null;
+  const date = new Date(`${match[1]}T${match[2]}:00+02:00`);
+  if (Number.isNaN(date.getTime())) return null;
+  return date.toISOString();
+}
+
 export async function applyListingAction(formData: FormData) {
   await requireAdmin();
   const supabase = await createClient();
@@ -221,11 +230,16 @@ export async function applyListingAction(formData: FormData) {
     featuredRaw === null || featuredRaw === ""
       ? null
       : String(featuredRaw) === "true";
+  const note = String(formData.get("note") ?? "").trim();
+  const publishRaw = String(formData.get("publish_at") ?? "").trim();
+  const publishAt = publishRaw ? sastLocalToIso(publishRaw) : null;
 
   const { error } = await supabase.rpc("admin_apply_listing_action", {
     p_listing_id: id,
     p_action: action,
     p_featured: featured,
+    p_note: note || null,
+    p_publish_at: publishAt,
   });
 
   if (error) {

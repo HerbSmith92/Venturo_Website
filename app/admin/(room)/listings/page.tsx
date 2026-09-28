@@ -9,11 +9,13 @@ import {
 } from "@/lib/control-room";
 import { isAdmin } from "@/lib/roles";
 
-const TABS: { id: "" | ListingStatus; label: string }[] = [
+const TABS: { id: "" | ListingStatus | "scheduled" | "suspended"; label: string }[] = [
   { id: "", label: "All" },
   { id: "review", label: "In Review" },
-  { id: "draft", label: "Draft" },
+  { id: "draft", label: "Changes Requested" },
+  { id: "scheduled", label: "Scheduled" },
   { id: "approved", label: "Live" },
+  { id: "suspended", label: "Suspended" },
   { id: "archived", label: "Archived" },
 ];
 
@@ -31,8 +33,8 @@ export default async function ListingsQueuePage({
       <p className="eyebrow">Directory Queue</p>
       <h1>Listings</h1>
       <p className="lede muted">
-        Edit, approve & publish, request changes, or archive. Admin override
-        always wins.
+        Edit, approve now or on a date, request changes with a reason, suspend,
+        or archive. A live listing is what the website and the app show.
       </p>
       {error && <p className="error">{error}</p>}
       {admin && (
@@ -101,7 +103,12 @@ export default async function ListingsQueuePage({
                 </td>
                 <td>
                   <span className={`cr-pill status-${listing.status}`}>
-                    {listingStatusLabel(listing.status)}
+                    {listingStatusLabel(listing.status, {
+                      suspended: Boolean(listing.is_suspended),
+                      scheduled:
+                        Boolean(listing.publish_at) &&
+                        new Date(listing.publish_at ?? "").getTime() > Date.now(),
+                    })}
                   </span>
                 </td>
                 <td>{formatRand(listing.price_from)}</td>

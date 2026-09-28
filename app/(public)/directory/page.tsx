@@ -1,16 +1,26 @@
 import { CategoryChips } from "@/components/CategoryChips";
+import { DirectorySearch } from "@/components/DirectorySearch";
 import { ListingCard } from "@/components/ListingCard";
 import { getCurrentUser } from "@/lib/auth";
-import { listingsByCategory } from "@/lib/listings";
+import { searchDirectory } from "@/lib/listings";
 
 export default async function DirectoryPage({
   searchParams,
 }: {
-  searchParams: Promise<{ category?: string }>;
+  searchParams: Promise<{
+    category?: string;
+    q?: string;
+    place?: string;
+    price?: string;
+    sort?: string;
+    lat?: string;
+    lng?: string;
+  }>;
 }) {
-  const { category = "all" } = await searchParams;
+  const query = await searchParams;
+  const category = query.category ?? "all";
   const user = await getCurrentUser();
-  const listings = await listingsByCategory(category);
+  const listings = await searchDirectory({ ...query, category });
   const paid = user?.plan === "paid";
 
   return (
@@ -21,71 +31,40 @@ export default async function DirectoryPage({
         </p>
         <h1>Find Places To Go & Things To Do</h1>
         <p className="lede muted">
-          {user
-            ? `Hey ${user.firstName}. ${paid ? "Paid benefits are on." : "You are on Free — book events, upgrade in the app for discounts."}`
-            : "Log in or sign up to save a profile. Paid members unlock curated discovery in the app."}
+          The same live places the Venturo app shows. Save one and it stays on your profile.
         </p>
-        <div className="hero-actions" style={{ marginBottom: 28 }}>
-          {user ? (
-            <a className="btn btn-primary" href="/account">
-              View Profile
-            </a>
-          ) : (
-            <>
-              <a className="btn btn-primary" href="/signup">
-                Sign Up Free
-              </a>
-              <a className="btn btn-secondary" href="/login">
-                Log In
-              </a>
-            </>
-          )}
-          <a className="btn btn-secondary" href="/directory/claim">
-            Claim A Listing
-          </a>
-        </div>
+        <DirectorySearch
+          q={query.q ?? ""}
+          place={query.place ?? ""}
+          price={query.price ?? ""}
+          sort={query.sort ?? ""}
+          category={category}
+        />
         <CategoryChips active={category} />
-        <div className="grid">
-          {listings.map((listing) => (
-            <ListingCard
-              key={listing.id}
-              listing={listing}
-              href={`/directory/${listing.slug}`}
-              showMemberPrice={paid}
-            />
-          ))}
-        </div>
-      </section>
-
-      {!paid && (
-        <section className="section gate">
-          <div
-            className="grid"
-            style={{ filter: "blur(2px)", pointerEvents: "none" }}
-          >
-            {listings.slice(0, 4).map((listing) => (
+        {listings.length === 0 ? (
+          <p className="notice">Nothing matches that search. Try a wider place or clear the price.</p>
+        ) : (
+          <div className="grid">
+            {listings.map((listing) => (
               <ListingCard
-                key={`locked-${listing.id}`}
+                key={listing.id}
                 listing={listing}
-                href="/join"
+                href={`/directory/${listing.slug}`}
+                showMemberPrice={paid}
               />
             ))}
           </div>
-          <div className="gate-overlay">
-            <div>
-              <h2>Curated Discovery Is For Paid Members</h2>
-              <p className="lede">
-                Personal recommendations & exclusive discounts unlock with a
-                PayFast membership — or an app-store subscription once the apps
-                are live.
-              </p>
-              <a className="btn btn-primary" href="/join/subscribe">
-                Subscribe With PayFast
-              </a>
-            </div>
-          </div>
-        </section>
-      )}
+        )}
+        {!paid ? (
+          <p className="notice" style={{ marginTop: 24 }}>
+            Member prices unlock with a subscription.{" "}
+            <a href={user ? "/join/subscribe" : "/join"}>See membership</a>.
+          </p>
+        ) : null}
+        <p style={{ marginTop: 20 }}>
+          <a href="/list-your-business">List your business</a>
+        </p>
+      </section>
     </main>
   );
 }

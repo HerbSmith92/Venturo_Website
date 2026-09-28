@@ -208,28 +208,64 @@ export async function getPlatformFees(): Promise<PlatformFees> {
 export async function listPublicEvents(options?: {
   category?: string;
   limit?: number;
+  when?: "upcoming" | "weekend" | "past";
+  price?: "free" | "paid";
 }): Promise<VenturoEvent[]> {
   const supabase = await createClient();
   if (!supabase) return [];
 
+  const when = options?.when ?? "upcoming";
   let query = supabase
     .from("events")
     .select(EVENT_SELECT)
     .eq("status", "approved")
-    .eq("visibility", "public")
-    .gte("ends_at", new Date().toISOString())
-    .order("starts_at", { ascending: true });
+    .eq("visibility", "public");
+
+  if (when === "past") {
+    query = query.lt("ends_at", new Date().toISOString()).order("starts_at", { ascending: false });
+  } else {
+    query = query.gte("ends_at", new Date().toISOString()).order("starts_at", { ascending: true });
+  }
 
   if (options?.category && options.category !== "all") {
     query = query.eq("category", options.category);
   }
-  if (options?.limit) {
+  if (options?.limit && when === "upcoming" && !options.price) {
     query = query.limit(options.limit);
   }
 
   const { data, error } = await query;
   if (error || !data) return [];
-  return (data as EventRow[]).map(mapEvent);
+  let events = (data as EventRow[]).map(mapEvent);
+
+  if (when === "weekend") {
+    const start = nextWeekendStart();
+    const end = start + 2 * 24 * 60 * 60 * 1000;
+    events = events.filter((event) => {
+      const stamp = new Date(event.startsAt).getTime();
+      return stamp >= start && stamp < end;
+    });
+  }
+  if (options?.price === "free") {
+    events = events.filter((event) => (event.fromPriceCents ?? 0) === 0);
+  }
+  if (options?.price === "paid") {
+    events = events.filter((event) => (event.fromPriceCents ?? 0) > 0);
+  }
+  if (options?.limit) events = events.slice(0, options.limit);
+  return events;
+}
+
+function nextWeekendStart() {
+  const now = new Date();
+  const sast = new Date(now.getTime() + 2 * 60 * 60 * 1000);
+  const day = sast.getUTCDay();
+  let offset = (6 - day + 7) % 7;
+  if (day === 0) offset = -1;
+  const saturday = new Date(
+    Date.UTC(sast.getUTCFullYear(), sast.getUTCMonth(), sast.getUTCDate() + offset, -2, 0, 0),
+  );
+  return saturday.getTime();
 }
 
 export async function featuredEvents(limit = 6): Promise<VenturoEvent[]> {

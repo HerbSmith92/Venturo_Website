@@ -1,63 +1,34 @@
-"use client";
-
-import { useState } from "react";
+import { submitClaim } from "@/app/member-actions";
 
 export function ClaimRequestButton({
+  listingId,
   listingName,
   listingSlug,
-  userEmail,
-  userName,
+  signedIn,
 }: {
+  listingId: string;
   listingName: string;
   listingSlug: string;
-  userEmail?: string;
-  userName?: string;
+  signedIn: boolean;
 }) {
-  const [pending, setPending] = useState(false);
-  const [done, setDone] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-
-  async function onClick() {
-    if (!userEmail) {
-      setError("Log in with an email to request a claim.");
-      return;
-    }
-    setPending(true);
-    setError(null);
-    const form = new FormData();
-    form.set("kind", "business");
-    form.set("name", userName || userEmail.split("@")[0] || "Member");
-    form.set("email", userEmail);
-    form.set("businessName", listingName);
-    form.set(
-      "message",
-      `Claim request for listing "${listingName}" (slug: ${listingSlug}). Please verify business ownership.`,
+  if (!signedIn) {
+    return (
+      <a className="btn btn-primary" href={`/login?next=/directory/claim?q=${encodeURIComponent(listingName)}`}>
+        Log In To Claim
+      </a>
     );
-    const response = await fetch("/api/contact", { method: "POST", body: form });
-    setPending(false);
-    if (!response.ok) {
-      const payload = (await response.json().catch(() => ({}))) as { error?: string };
-      setError(payload.error ?? "Could not send claim request.");
-      return;
-    }
-    setDone(true);
-  }
-
-  if (done) {
-    return <p className="notice">Claim request sent to Control Room.</p>;
   }
 
   return (
-    <div>
-      <button
-        type="button"
-        className="btn btn-primary"
-        disabled={pending || !userEmail}
-        onClick={onClick}
-      >
-        {pending ? "Please Wait" : "Request Claim"}
+    <form action={submitClaim} className="field">
+      <input type="hidden" name="listing_id" value={listingId} />
+      <input type="hidden" name="listing_name" value={listingName} />
+      <input type="hidden" name="listing_slug" value={listingSlug} />
+      <span>How can we verify this is yours?</span>
+      <textarea name="evidence" required rows={3} placeholder="Your role, website, or a number we can call." />
+      <button className="btn btn-primary" type="submit">
+        Request Claim
       </button>
-      {error && <p className="error">{error}</p>}
-    </div>
+    </form>
   );
 }

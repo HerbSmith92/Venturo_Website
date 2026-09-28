@@ -1,6 +1,7 @@
 import { EventMap } from "@/components/EventMap";
 import { EventPageHero } from "@/components/events/EventPageHero";
 import { EventViewBeacon } from "@/components/events/EventViewBeacon";
+import { SaveForm } from "@/components/SaveForm";
 import { TicketCheckoutForm } from "@/components/TicketCheckoutForm";
 import { getCurrentUser } from "@/lib/auth";
 import {
@@ -10,6 +11,7 @@ import {
   getEventBySlug,
   getPlatformFees,
 } from "@/lib/events";
+import { isSaved } from "@/lib/saves";
 import { notFound } from "next/navigation";
 
 export default async function EventDetailPage({
@@ -26,12 +28,20 @@ export default async function EventDetailPage({
 
   const user = await getCurrentUser();
   const fees = await getPlatformFees();
+  const saved = user ? await isSaved(user.id, "event", event.id) : false;
   const canView =
     event.status === "approved" ||
+    event.status === "cancelled" ||
     event.organiserId === user?.id ||
     user?.role === "admin" ||
     user?.role === "editor";
   if (!canView) notFound();
+
+  const past = Boolean(event.endsAt) && new Date(event.endsAt).getTime() < Date.now();
+  const soldOut =
+    event.ticketTypes.length > 0 &&
+    event.ticketTypes.every((ticket) => ticket.quantity - ticket.soldCount <= 0);
+  const freeEvent = (event.fromPriceCents ?? 0) === 0;
 
   const address = eventAddressText(event);
   const ticketsReady = event.status === "approved" && event.ticketTypes.length > 0;
@@ -63,13 +73,25 @@ export default async function EventDetailPage({
             {event.city ? ` · ${event.city}` : ""}
           </strong>
         </div>
-        {ticketsReady ? (
+        {event.status === "cancelled" ? (
+          <span className="btn btn-secondary" aria-disabled="true">
+            Cancelled
+          </span>
+        ) : past ? (
+          <span className="btn btn-secondary" aria-disabled="true">
+            Past Event
+          </span>
+        ) : soldOut ? (
+          <span className="btn btn-secondary" aria-disabled="true">
+            Sold Out
+          </span>
+        ) : ticketsReady ? (
           <a className="btn btn-primary" href="#tickets">
-            Buy Tickets
+            {freeEvent ? "Free RSVP" : "Buy Tickets"}
           </a>
         ) : (
           <span className="btn btn-secondary" aria-disabled="true">
-            Coming Soon
+            Sales Closed
           </span>
         )}
       </div>
@@ -151,6 +173,7 @@ export default async function EventDetailPage({
             <div className="colour-bar" aria-hidden="true" />
             <p className="eyebrow">Tickets</p>
             <h2>Claim Your Spot</h2>
+            <SaveForm kind="event" targetId={event.id} saved={saved} next={`/events/${event.slug}`} />
             <p className="muted">
               {event.membersOnly
                 ? "This event is for Venturo members. Not on Paid yet? Join at checkout—membership plus your ticket in one payment."
@@ -158,6 +181,10 @@ export default async function EventDetailPage({
             </p>
             {event.status === "cancelled" ? (
               <p className="error">This event is cancelled. Tickets are closed.</p>
+            ) : past ? (
+              <p className="notice">This event has passed.</p>
+            ) : soldOut ? (
+              <p className="notice">Sold out.</p>
             ) : event.status !== "approved" ? (
               <p className="notice">Tickets unlock once the event is approved.</p>
             ) : event.ticketTypes.length === 0 ? (

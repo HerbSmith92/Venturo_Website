@@ -1,3 +1,5 @@
+import { saveReview } from "@/app/member-actions";
+import { SaveForm } from "@/components/SaveForm";
 import { getCurrentUser } from "@/lib/auth";
 import {
   categoryColour,
@@ -5,7 +7,10 @@ import {
   formatFromPrice,
   getPublicListingBySlug,
 } from "@/lib/listings";
+import { listPublicEvents } from "@/lib/events";
 import { formatDay, formatHours, formatRand } from "@/lib/control-room-shared";
+import { isSaved } from "@/lib/saves";
+import { createClient } from "@/lib/supabase/server";
 import { notFound } from "next/navigation";
 
 export default async function ListingDetailPage({
@@ -19,6 +24,27 @@ export default async function ListingDetailPage({
 
   const user = await getCurrentUser();
   const paid = user?.plan === "paid";
+  const supabase = await createClient();
+  const [saved, reviewResult, related] = await Promise.all([
+    user ? isSaved(user.id, "listing", listing.id) : Promise.resolve(false),
+    supabase
+      ? supabase
+          .from("listing_reviews")
+          .select("id, author_name, rating, body, created_at")
+          .eq("listing_id", listing.id)
+          .order("created_at", { ascending: false })
+      : Promise.resolve({ data: [] }),
+    listPublicEvents({ limit: 12 }),
+  ]);
+  const reviews = (reviewResult.data ?? []) as {
+    id: string;
+    author_name: string;
+    rating: number;
+    body: string;
+  }[];
+  const relatedEvents = related.filter(
+    (event) => listing.city && event.city && event.city.toLowerCase() === listing.city.toLowerCase(),
+  ).slice(0, 3);
   const colour = categoryColour(listing.category);
   const address = [
     listing.streetAddress1,
@@ -56,6 +82,27 @@ export default async function ListingDetailPage({
                 ) : (
                   <span className="member-price">Paid members save</span>
                 ))}
+            </div>
+            <div className="hero-actions" style={{ marginTop: 16 }}>
+              <SaveForm
+                kind="listing"
+                targetId={listing.id}
+                saved={saved}
+                next={`/directory/${listing.slug}`}
+              />
+              <a className="btn btn-secondary" href={`/directory/claim?q=${encodeURIComponent(listing.name)}`}>
+                Claim Listing
+              </a>
+              {listing.phone ? (
+                <a className="btn btn-secondary" href={`tel:${listing.phone}`}>
+                  Call
+                </a>
+              ) : null}
+              {listing.mapsUrl ? (
+                <a className="btn btn-secondary" href={listing.mapsUrl}>
+                  Get Directions
+                </a>
+              ) : null}
             </div>
           </div>
         </div>
@@ -119,6 +166,63 @@ export default async function ListingDetailPage({
                 Back To Directory
               </a>
             </p>
+
+            <div style={{ marginTop: 32 }}>
+              <p className="eyebrow">Reviews</p>
+              <h2>What People Said</h2>
+              {reviews.length === 0 ? <p className="muted">No reviews yet.</p> : null}
+              <ul className="stack-list">
+                {reviews.map((review) => (
+                  <li key={review.id}>
+                    <strong>
+                      {review.author_name} · {review.rating}/5
+                    </strong>
+                    <p>{review.body}</p>
+                  </li>
+                ))}
+              </ul>
+              {user ? (
+                <form action={saveReview} className="cr-panel" style={{ marginTop: 16 }}>
+                  <input type="hidden" name="listing_id" value={listing.id} />
+                  <input type="hidden" name="slug" value={listing.slug} />
+                  <label className="field">
+                    <span>Rating</span>
+                    <select name="rating" defaultValue="5">
+                      <option value="5">5</option>
+                      <option value="4">4</option>
+                      <option value="3">3</option>
+                      <option value="2">2</option>
+                      <option value="1">1</option>
+                    </select>
+                  </label>
+                  <label className="field">
+                    <span>Your note</span>
+                    <textarea name="body" required rows={3} />
+                  </label>
+                  <button className="btn btn-primary" type="submit">
+                    Write A Review
+                  </button>
+                </form>
+              ) : (
+                <p>
+                  <a href={`/login?next=/directory/${listing.slug}`}>Log in to write a review</a>
+                </p>
+              )}
+            </div>
+
+            {relatedEvents.length > 0 ? (
+              <div style={{ marginTop: 32 }}>
+                <p className="eyebrow">Nearby</p>
+                <h2>Related Events</h2>
+                <ul>
+                  {relatedEvents.map((event) => (
+                    <li key={event.id}>
+                      <a href={`/events/${event.slug}`}>{event.title}</a>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            ) : null}
           </article>
 
           <aside className="event-ticket-panel">

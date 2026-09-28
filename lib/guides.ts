@@ -257,3 +257,15 @@ export async function getPublicGuideBySlug(slug: string): Promise<PublicGuide | 
 }
 
 export { formatFromPrice, categoryColour, categoryLabel };
+
+export async function listGuideEventIds(guideId: string) {
+  const supabase = await createClient();
+  if (!supabase) return [];
+  const { data, error } = await supabase
+    .from("curated_guide_events")
+    .select("event_id, sort_order")
+    .eq("guide_id", guideId)
+    .order("sort_order");
+  if (error || !data) return [];
+  return data.map((row) => row.event_id as string);
+}

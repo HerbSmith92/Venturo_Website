@@ -120,6 +120,9 @@ function mapToListing(row: ScoreableRow): Listing {
       memberFromPrice !== null && memberFromPrice < fromListed ? memberFromPrice : null,
     image,
     featured: Boolean(row.is_featured),
+    latitude: null,
+    longitude: null,
+    rating: null,
   };
 }
 
@@ -201,8 +204,9 @@ async function loadScoreableListings(): Promise<ScoreableRow[]> {
       short_description,
       price_from,
       is_featured,
-      latitude,
-      longitude,
+      google_rating,
+      is_suspended,
+      publish_at,
       listing_media ( public_url, is_cover, sort_order ),
       listing_activity_kinds ( is_primary, activity_kinds ( key ) ),
       listing_interests ( interest_id ),
@@ -214,8 +218,35 @@ async function loadScoreableListings(): Promise<ScoreableRow[]> {
     .eq("status", "approved")
     .order("name");
 
-  if (error || !data) return [];
-  return data as ScoreableRow[];
+  if (error || !data) {
+    if (!error || !/is_suspended|publish_at/.test(error.message)) return [];
+    const second = await supabase
+      .from("directory_listings")
+      .select(
+        `
+      id, name, slug, suburb, city, short_description, price_from, is_featured, google_rating,
+      latitude, longitude,
+      listing_media ( public_url, is_cover, sort_order ),
+      listing_activity_kinds ( is_primary, activity_kinds ( key ) ),
+      listing_interests ( interest_id ),
+      listing_personas ( persona_id ),
+      listing_activity_scales ( is_primary, activity_scales ( rank ) ),
+      price_options ( standard_price, member_price, is_active )
+    `,
+      )
+      .eq("status", "approved")
+      .order("name");
+    if (second.error || !second.data) return [];
+    return second.data as unknown as ScoreableRow[];
+  }
+  const rows = data as unknown as Array<
+    ScoreableRow & { is_suspended?: boolean | null; publish_at?: string | null }
+  >;
+  return rows.filter((row) => {
+    if (row.is_suspended) return false;
+    if (row.publish_at && new Date(row.publish_at).getTime() > Date.now()) return false;
+    return true;
+  });
 }
 
 async function loadHomeCoords(placeId: string | null) {

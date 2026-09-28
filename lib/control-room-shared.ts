@@ -1,7 +1,15 @@
 export const LISTING_STATUSES = ["draft", "review", "approved", "archived"] as const;
 export type ListingStatus = (typeof LISTING_STATUSES)[number];
 
-export const LISTING_ACTIONS = ["approve", "review", "draft", "archive", "feature"] as const;
+export const LISTING_ACTIONS = [
+  "approve",
+  "review",
+  "draft",
+  "archive",
+  "feature",
+  "suspend",
+  "unsuspend",
+] as const;
 export type ListingAction = (typeof LISTING_ACTIONS)[number];
 
 export function isListingStatus(value: string): value is ListingStatus {
@@ -12,10 +20,13 @@ export function isListingAction(value: string): value is ListingAction {
   return LISTING_ACTIONS.includes(value as ListingAction);
 }
 
-export function listingStatusLabel(status: string) {
+export function listingStatusLabel(status: string, flags?: { suspended?: boolean; scheduled?: boolean }) {
+  if (flags?.suspended) return "Suspended";
+  if (flags?.scheduled) return "Scheduled";
   if (status === "approved") return "Live";
   if (status === "review") return "In Review";
   if (status === "archived") return "Archived";
+  if (status === "draft") return "Changes Requested";
   return "Draft";
 }
 

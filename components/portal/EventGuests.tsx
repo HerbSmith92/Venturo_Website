@@ -122,7 +122,7 @@ export function EventGuests({
           <h2>Who&apos;s On The List</h2>
         </div>
         <a className="btn btn-primary" href={companionEventHref(event.id)}>
-          Open Door
+          Open Companion
         </a>
         <button className="btn btn-secondary" type="button" onClick={() => exportPdf()}>
           Export PDF
@@ -148,12 +148,13 @@ export function EventGuests({
             <th>Email</th>
             <th>Ticket</th>
             <th>Door</th>
+            <th>Ticket code</th>
           </tr>
         </thead>
         <tbody>
           {filtered.length === 0 ? (
             <tr>
-              <td colSpan={5} className="muted">
+                <td colSpan={6} className="muted">
                 Nobody on this list yet.
               </td>
             </tr>
@@ -165,6 +166,11 @@ export function EventGuests({
                 <td>{guest.guestEmail || "—"}</td>
                 <td>{guest.ticketTypeName}</td>
                 <td>{guest.isScanned ? "Scanned" : "Still to come"}</td>
+                <td>
+                  <button className="linkish" type="button" onClick={() => void copy(guest.code)}>
+                    Copy code
+                  </button>
+                </td>
               </tr>
             ))
           )}

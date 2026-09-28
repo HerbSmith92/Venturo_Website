@@ -9,6 +9,9 @@ export type QueueListing = {
   city: string | null;
   status: ListingStatus;
   is_featured: boolean;
+  is_suspended?: boolean;
+  review_note?: string | null;
+  publish_at?: string | null;
   price_from: number | string | null;
   updated_at: string;
 };

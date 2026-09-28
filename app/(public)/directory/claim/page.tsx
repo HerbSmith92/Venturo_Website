@@ -5,9 +5,9 @@ import { listingsByCategory } from "@/lib/listings";
 export default async function ClaimListingPage({
   searchParams,
 }: {
-  searchParams: Promise<{ q?: string }>;
+  searchParams: Promise<{ q?: string; done?: string; error?: string }>;
 }) {
-  const { q = "" } = await searchParams;
+  const { q = "", done, error } = await searchParams;
   const user = await getCurrentUser();
   const listings = await listingsByCategory("all");
   const query = q.trim().toLowerCase();
@@ -41,6 +41,8 @@ export default async function ClaimListingPage({
           />
         </form>
 
+        {done ? <p className="notice">Claim sent. Control Room will review the evidence.</p> : null}
+        {error ? <p className="error">{error}</p> : null}
         {!user && (
           <p className="notice">
             You&apos;ll need a Free profile to start a claim.{" "}
@@ -62,10 +64,10 @@ export default async function ClaimListingPage({
                 </a>
                 {user ? (
                   <ClaimRequestButton
+                    listingId={listing.id}
                     listingName={listing.name}
                     listingSlug={listing.slug}
-                    userEmail={user.email}
-                    userName={user.firstName}
+                    signedIn
                   />
                 ) : (
                   <a
@@ -81,8 +83,7 @@ export default async function ClaimListingPage({
         </div>
 
         <p className="muted" style={{ marginTop: 24 }}>
-          Claim requests land in Control Room Enquiries. Full Activity Manager
-          editing unlocks after you&apos;re verified as a business owner.
+          Claim requests land in Control Room. A live listing still needs staff to publish it.
         </p>
       </section>
     </main>

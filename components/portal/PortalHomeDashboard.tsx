@@ -101,7 +101,10 @@ export function PortalHomeDashboard({
     <main className="portal-home">
       <p className="eyebrow">Event Host</p>
       <h1>Home, {firstName}</h1>
-      <p className="lede muted">Tickets, views &amp; revenue for the window you pick.</p>
+      <p className="lede muted">
+        Tickets, views &amp; revenue for the window you pick. Counts come from the same orders the
+        website and the app sell.
+      </p>
 
       <CreateEventPrompt hasEvents={data.events.length > 0} />
 

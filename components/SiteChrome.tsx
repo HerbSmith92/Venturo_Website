@@ -1,5 +1,6 @@
 import type { CurrentUser } from "@/lib/auth";
 import { SiteHeaderNav } from "@/components/SiteHeaderNav";
+import { loadWebsiteCopy } from "@/lib/website";
 
 export function SiteHeader({ user }: { user: CurrentUser | null }) {
   return (
@@ -19,14 +20,19 @@ export function SiteHeader({ user }: { user: CurrentUser | null }) {
   );
 }
 
-export function SiteFooter() {
+export async function SiteFooter() {
+  const copy = await loadWebsiteCopy();
   return (
     <footer className="site-footer shell">
       <div className="colour-bar footer-bar" aria-hidden="true" />
       <p>Venturo · Activities · Events · Community</p>
       <p className="muted">Quality time is our love language.</p>
       <p className="muted footer-links">
-        <a href="/policies/">Policies</a>
+        <a href="/about">About</a>
+        <span aria-hidden="true"> · </span>
+        <a href="/help">Help & Contact</a>
+        <span aria-hidden="true"> · </span>
+        <a href="/policies/">Privacy & Terms</a>
         <span aria-hidden="true"> · </span>
         <a href="/privacy_policy/">Privacy</a>
         <span aria-hidden="true"> · </span>
@@ -38,7 +44,11 @@ export function SiteFooter() {
         <span aria-hidden="true"> · </span>
         <a href="/copyright/">Copyright</a>
         <span aria-hidden="true"> · </span>
-        <a href="mailto:hello@venturo.co.za">hello@venturo.co.za</a>
+        <a href={copy.appStoreUrl}>App Store</a>
+        <span aria-hidden="true"> · </span>
+        <a href={copy.playStoreUrl}>Google Play</a>
+        <span aria-hidden="true"> · </span>
+        <a href={`mailto:${copy.helpEmail}`}>{copy.helpEmail}</a>
       </p>
     </footer>
   );

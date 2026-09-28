@@ -2,7 +2,6 @@
 
 import { useEffect, useId, useRef, useState } from "react";
 import type { CurrentUser } from "@/lib/auth";
-import { EVENT_HOST } from "@/lib/portal";
 
 export function SiteHeaderNav({ user }: { user: CurrentUser | null }) {
   const [open, setOpen] = useState(false);
@@ -29,7 +28,7 @@ export function SiteHeaderNav({ user }: { user: CurrentUser | null }) {
   }, [open]);
 
   const profileLabel =
-    user?.firstName && user.firstName !== "there" ? user.firstName : "Profile";
+    user?.firstName && user.firstName !== "there" ? user.firstName : "My Venturo";
 
   return (
     <div className="nav-bar" ref={rootRef}>
@@ -37,18 +36,22 @@ export function SiteHeaderNav({ user }: { user: CurrentUser | null }) {
         <a className="btn btn-ghost" href="/directory">
           Directory
         </a>
-        <a className="btn btn-ghost" href="/guides">
-          Guides
-        </a>
         <a className="btn btn-ghost" href="/events">
           Events
         </a>
         <a className="btn btn-ghost" href="/communities">
           Communities
         </a>
+        <a className="btn btn-ghost" href="/guides">
+          Guides
+        </a>
       </nav>
 
-      {!user && (
+      {user ? (
+        <a className="btn btn-primary nav-signup" href="/account">
+          {profileLabel}
+        </a>
+      ) : (
         <a className="btn btn-primary nav-signup" href="/signup">
           Sign Up
         </a>
@@ -69,15 +72,15 @@ export function SiteHeaderNav({ user }: { user: CurrentUser | null }) {
 
       {open && (
         <div className="nav-drawer-panel" id={panelId}>
-          <nav className="nav-drawer-links" aria-label="Account menu">
+          <nav className="nav-drawer-links" aria-label="Site menu">
             <div className="nav-drawer-public">
               <a href="/directory">Directory</a>
-              <a href="/guides">Guides</a>
               <a href="/events">Events</a>
               <a href="/communities">Communities</a>
+              <a href="/guides">Guides</a>
             </div>
-            <a href="/admin">Admin</a>
-            <a href={EVENT_HOST}>Event Host</a>
+            <a href="/list-your-business">List Your Business</a>
+            <a href="/events/create">Create An Event</a>
             {user ? (
               <>
                 <a href="/account">{profileLabel}</a>
