@@ -81,6 +81,10 @@ export function SiteHeaderNav({ user }: { user: CurrentUser | null }) {
             </div>
             <a href="/list-your-business">List Your Business</a>
             <a href="/events/create">Create An Event</a>
+            <p className="nav-drawer-label">Here To Help</p>
+            <a href="/support">Support</a>
+            <a href="/legal-documents">Legal Documents</a>
+            <a href="/admin">Admin</a>
             {user ? (
               <>
                 <a href="/account">{profileLabel}</a>
