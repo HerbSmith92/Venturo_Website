@@ -14,10 +14,15 @@ export type QueueListing = {
   publish_at?: string | null;
   price_from: number | string | null;
   updated_at: string;
+  cover_url?: string | null;
+  interest?: string | null;
+  interest_key?: string | null;
+  author?: string | null;
 };
 
 export type PriceAppliesTo =
   | "person"
+  | "couple"
   | "adult"
   | "child"
   | "pensioner"
@@ -46,6 +51,10 @@ export type ListingPriceOption = {
   valid_from: string | null;
   valid_until: string | null;
   is_active: boolean | null;
+  show_on_from?: boolean | null;
+  minimum_group_size?: number | null;
+  discount_rand?: number | string | null;
+  discount_percent?: number | string | null;
   sort_order: number | null;
 };
 
@@ -61,6 +70,8 @@ export type ListingActivity = {
   booking_required: boolean;
   sort_order: number | null;
   status: string;
+  show_on_discover?: boolean | null;
+  show_on_from?: boolean | null;
 };
 
 export type ListingMedia = {
@@ -70,6 +81,7 @@ export type ListingMedia = {
   sort_order: number | null;
   alt_text: string | null;
   storage_key?: string | null;
+  is_pending?: boolean | null;
 };
 
 export type ListingDetail = QueueListing & {
@@ -89,10 +101,15 @@ export type ListingDetail = QueueListing & {
   maps_url: string | null;
   booking_required: boolean;
   indoor_outdoor: string | null;
+  interest_keywords: string | null;
+  persona_keywords: string | null;
   google_rating: number | string | null;
   google_review_count: number | string | null;
   authorised_to_submit: boolean;
   image_rights_granted: boolean;
+  terms_accepted: boolean;
+  pending_payload: unknown | null;
+  pending_state: "draft" | "review" | null;
   published_at: string | null;
   last_verified_at: string | null;
   businesses:
@@ -121,6 +138,9 @@ export type ListingDetail = QueueListing & {
     opens_at: string | null;
     closes_at: string | null;
     is_closed: boolean;
+    vacation_opens_at?: string | null;
+    vacation_closes_at?: string | null;
+    vacation_is_closed?: boolean;
   }[];
   price_options: ListingPriceOption[];
   listing_personas: { persona_id: string; is_primary: boolean }[];

@@ -33,6 +33,7 @@ type MediaRow = {
   public_url: string | null;
   is_cover: boolean | null;
   sort_order: number | null;
+  is_pending?: boolean | null;
 };
 
 type KindRow = {
@@ -65,12 +66,12 @@ const LISTING_SELECT = `
   id, name, slug, suburb, city, street_address_1, street_address_2, postal_code,
   short_description, price_from, status,
   indoor_outdoor, booking_required,
-  listing_media ( public_url, is_cover, sort_order ),
+  listing_media ( public_url, is_cover, sort_order, is_pending ),
   listing_activity_kinds ( is_primary, activity_kinds ( key, title ) )
 `;
 
 function coverFromMedia(media: MediaRow[] | undefined) {
-  const sorted = [...(media ?? [])].sort((a, b) => {
+  const sorted = [...(media ?? [])].filter((item) => !item.is_pending).sort((a, b) => {
     if (a.is_cover !== b.is_cover) return a.is_cover ? -1 : 1;
     return (a.sort_order ?? 0) - (b.sort_order ?? 0);
   });

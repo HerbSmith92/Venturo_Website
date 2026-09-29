@@ -1,5 +1,6 @@
 import { requireStaff } from "@/lib/auth";
 import { AdminNav } from "@/components/admin/AdminNav";
+import { Suspense } from "react";
 
 export default async function ControlRoomLayout({
   children,
@@ -10,7 +11,9 @@ export default async function ControlRoomLayout({
 
   return (
     <div className="cr-shell">
-      <AdminNav user={user} />
+      <Suspense fallback={null}>
+        <AdminNav user={user} />
+      </Suspense>
       <div className="cr-main">{children}</div>
     </div>
   );

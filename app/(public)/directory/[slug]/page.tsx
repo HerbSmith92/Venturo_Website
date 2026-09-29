@@ -149,11 +149,15 @@ export default async function ListingDetailPage({
                         ) : null}
                       </div>
                       <span className="muted">
-                        {activity.durationMinutes
-                          ? `${activity.durationMinutes} min`
-                          : activity.bookingRequired
-                            ? "Book ahead"
-                            : "Drop in"}
+                        {activity.fromAmount !== null
+                          ? activity.fromAmount === 0
+                            ? "From Free"
+                            : `From ${formatRand(activity.fromAmount)}`
+                          : activity.durationMinutes
+                            ? `${activity.durationMinutes} min`
+                            : activity.bookingRequired
+                              ? "Book ahead"
+                              : "Drop in"}
                       </span>
                     </li>
                   ))}

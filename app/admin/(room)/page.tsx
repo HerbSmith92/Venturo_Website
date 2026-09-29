@@ -8,7 +8,7 @@ export default async function ControlRoomHome() {
       <p className="eyebrow">Staff</p>
       <h1>Control Room</h1>
       <p className="lede muted">
-        Directory and Events are the two desks. The public site is being rebuilt one screen at a time.
+        Directory, Events, and Community are the desks. Open a heading to reach its screens.
       </p>
       <div className="cr-board">
         <h2>Directory</h2>
@@ -18,11 +18,11 @@ export default async function ControlRoomHome() {
             <strong>{stats.live}</strong>
           </a>
           <a className="cr-stat" href="/admin/listings?status=review">
-            <span>In Review</span>
+            <span>New Listings Requested</span>
             <strong>{stats.review}</strong>
           </a>
           <a className="cr-stat" href="/admin/listings?status=draft">
-            <span>Drafts</span>
+            <span>Changes Requested</span>
             <strong>{stats.draft}</strong>
           </a>
           <a className="cr-stat" href="/admin/listings?status=archived">

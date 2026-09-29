@@ -28,7 +28,12 @@ type ScoreableRow = {
   is_featured: boolean | null;
   latitude: number | string | null;
   longitude: number | string | null;
-  listing_media?: { public_url: string | null; is_cover: boolean | null; sort_order: number | null }[];
+  listing_media?: {
+    public_url: string | null;
+    is_cover: boolean | null;
+    sort_order: number | null;
+    is_pending?: boolean | null;
+  }[];
   listing_activity_kinds?: {
     is_primary: boolean | null;
     activity_kinds?: { key: string | null } | { key: string | null }[] | null;
@@ -89,7 +94,7 @@ function mapToListing(row: ScoreableRow): Listing {
   const category: CategoryId =
     rawKey && categoryIds.has(rawKey as CategoryId) ? (rawKey as CategoryId) : "adventure";
 
-  const media = [...(row.listing_media ?? [])].sort((a, b) => {
+  const media = [...(row.listing_media ?? [])].filter((item) => !item.is_pending).sort((a, b) => {
     if (a.is_cover !== b.is_cover) return a.is_cover ? -1 : 1;
     return (a.sort_order ?? 0) - (b.sort_order ?? 0);
   });
@@ -207,7 +212,7 @@ async function loadScoreableListings(): Promise<ScoreableRow[]> {
       google_rating,
       is_suspended,
       publish_at,
-      listing_media ( public_url, is_cover, sort_order ),
+      listing_media ( public_url, is_cover, sort_order, is_pending ),
       listing_activity_kinds ( is_primary, activity_kinds ( key ) ),
       listing_interests ( interest_id ),
       listing_personas ( persona_id ),
@@ -226,7 +231,7 @@ async function loadScoreableListings(): Promise<ScoreableRow[]> {
         `
       id, name, slug, suburb, city, short_description, price_from, is_featured, google_rating,
       latitude, longitude,
-      listing_media ( public_url, is_cover, sort_order ),
+      listing_media ( public_url, is_cover, sort_order, is_pending ),
       listing_activity_kinds ( is_primary, activity_kinds ( key ) ),
       listing_interests ( interest_id ),
       listing_personas ( persona_id ),

@@ -1,30 +1,31 @@
 "use client";
 
-import { useMemo, useRef, useState, useTransition } from "react";
+import { useEffect, useRef, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
-import { deleteListingPhoto, saveListingDraft } from "@/app/admin/actions";
+import { applyListingAction, deleteListingPhoto, saveListingDraft } from "@/app/admin/actions";
 import { createClient } from "@/lib/supabase/client";
-import { ListingActions } from "@/components/admin/ListingActions";
 import { ListingAppPreview } from "@/components/admin/ListingAppPreview";
 import type { ListingDetail } from "@/lib/control-room-types";
 import {
-  formatClock,
+  auditChanges,
+  formatAuditWhen,
   formatDay,
-  formatRand,
   listingStatusLabel,
   type AuditEvent,
 } from "@/lib/control-room-shared";
 import {
   APPLIES_TO_OPTIONS,
-  PRICE_CATEGORY_OPTIONS,
-  WHO_COMES_PERSONAS,
+  EDITOR_STEPS,
+  INTEREST_CHIPS,
+  SUB_APPLIES_OPTIONS,
   activeMedia,
   auditLabel,
-  completeness,
   emptyActivity,
   emptyPrice,
-  listingToDraft,
-  statusLegend,
+  derivedMemberPrice,
+  draftWithPending,
+  interestIdsFromKeywords,
+  stepComplete,
   type DraftActivity,
   type DraftMedia,
   type DraftPrice,
@@ -61,6 +62,7 @@ async function uploadOnePhoto(
   file: File,
   sortOrder: number,
   makeCover: boolean,
+  holdBack: boolean,
 ): Promise<DraftMedia | string> {
   const allowed = file.type.startsWith("image/") || /\.(jpe?g|png|webp|gif)$/i.test(file.name);
   if (!allowed || /heic|heif/i.test(file.type) || /\.heic$/i.test(file.name)) {
@@ -94,10 +96,11 @@ async function uploadOnePhoto(
       public_url: publicUrl,
       alt_text: file.name.replace(/\.[^.]+$/, "").slice(0, 120) || null,
       copyright_status: "owned",
-      is_cover: makeCover,
+      is_cover: holdBack ? false : makeCover,
+      is_pending: holdBack,
       sort_order: sortOrder,
     })
-    .select("id, public_url, is_cover, sort_order, alt_text")
+    .select("id, public_url, is_cover, sort_order, alt_text, is_pending")
     .single();
 
   if (insertError || !row) {
@@ -110,6 +113,7 @@ async function uploadOnePhoto(
     public_url: row.public_url as string,
     alt_text: (row.alt_text as string | null) ?? "",
     is_cover: Boolean(row.is_cover),
+    is_pending: Boolean(row.is_pending),
     sort_order: (row.sort_order as number) ?? sortOrder,
   };
 }
@@ -120,6 +124,117 @@ function toggleId(ids: string[], id: string, max?: number) {
   return [...ids, id];
 }
 
+function normaliseTime(raw: string) {
+  const trimmed = raw.trim();
+  if (!trimmed || trimmed === "--:--") return "";
+  const clock = trimmed.match(/^(\d{1,2})[:.](\d{1,2})$/);
+  let hour: number;
+  let minute: number;
+  if (clock) {
+    hour = Number(clock[1]);
+    minute = Number(clock[2]);
+  } else if (/^\d{1,4}$/.test(trimmed)) {
+    if (trimmed.length <= 2) {
+      hour = Number(trimmed);
+      minute = 0;
+    } else if (trimmed.length === 3) {
+      hour = Number(trimmed.slice(0, 1));
+      minute = Number(trimmed.slice(1));
+    } else {
+      hour = Number(trimmed.slice(0, 2));
+      minute = Number(trimmed.slice(2));
+    }
+  } else {
+    return null;
+  }
+  if (hour > 23 || minute > 59) return null;
+  return `${String(hour).padStart(2, "0")}:${String(minute).padStart(2, "0")}`;
+}
+
+function TimeField({
+  value,
+  disabled,
+  label,
+  onChange,
+}: {
+  value: string;
+  disabled: boolean;
+  label: string;
+  onChange: (value: string) => void;
+}) {
+  const [text, setText] = useState(value);
+
+  useEffect(() => {
+    setText(value);
+  }, [value]);
+
+  return (
+    <input
+      className="cr-time-input"
+      type="text"
+      inputMode="numeric"
+      autoComplete="off"
+      aria-label={label}
+      disabled={disabled}
+      placeholder="--:--"
+      value={text}
+      onChange={(event) => {
+        const raw = event.target.value;
+        if (!raw.trim()) {
+          setText("");
+          if (value) onChange("");
+          return;
+        }
+        const complete = /^\d{4}$/.test(raw) || /^\d{1,2}[:.]\d{2}$/.test(raw);
+        if (!complete) {
+          setText(raw);
+          return;
+        }
+        const next = normaliseTime(raw);
+        if (next === null) {
+          setText(raw);
+          return;
+        }
+        setText(next);
+        if (next !== value) onChange(next);
+      }}
+      onBlur={() => {
+        const next = normaliseTime(text);
+        if (next === null) {
+          setText(value);
+          return;
+        }
+        setText(next);
+        if (next !== value) onChange(next);
+      }}
+    />
+  );
+}
+
+const PROVINCES = [
+  "Eastern Cape",
+  "Free State",
+  "Gauteng",
+  "KwaZulu-Natal",
+  "Limpopo",
+  "Mpumalanga",
+  "North West",
+  "Northern Cape",
+  "Western Cape",
+];
+
+function appliesChoices(current: string) {
+  const choices: { value: string; label: string }[] = SUB_APPLIES_OPTIONS.map((option) => ({
+    value: option.value,
+    label: option.label,
+  }));
+  if (current && !choices.some((option) => option.value === current)) {
+    const known = APPLIES_TO_OPTIONS.find((option) => option.value === current);
+    choices.push({ value: current, label: known?.label ?? current });
+  }
+  return choices;
+}
+
 export function ListingEditor({
   listing,
   catalog,
@@ -127,6 +242,7 @@ export function ListingEditor({
   audit,
   notice,
   error,
+  canApprove = false,
 }: {
   listing: ListingDetail;
   catalog: EditorCatalog;
@@ -134,57 +250,51 @@ export function ListingEditor({
   audit: AuditEvent[];
   notice?: string;
   error?: string;
+  canApprove?: boolean;
 }) {
   const router = useRouter();
   const fileRef = useRef<HTMLInputElement>(null);
   const dragMediaId = useRef<string | null>(null);
-  const [draft, setDraft] = useState(() => listingToDraft(listing));
-  const [interestQuery, setInterestQuery] = useState("");
+  const [draft, setDraft] = useState(() => draftWithPending(listing, catalog));
   const [saveError, setSaveError] = useState<string | null>(null);
   const [saveNotice, setSaveNotice] = useState<string | null>(null);
   const [pending, startTransition] = useTransition();
   const [photoPending, setPhotoPending] = useState(false);
+  const [photoDrag, setPhotoDrag] = useState(false);
   const [photoStatus, setPhotoStatus] = useState<string | null>(null);
+  const [openSteps, setOpenSteps] = useState<Partial<Record<StepKey, boolean>>>({});
+  const [activeStep, setActiveStep] = useState<StepKey>("business");
+  const [openAuditId, setOpenAuditId] = useState<string | null>(null);
 
-  const progress = completeness(draft);
-  const legend = statusLegend(listing.status);
+  function stepOpen(key: StepKey) {
+    return openSteps[key] !== false;
+  }
+
+  function toggleStep(key: StepKey) {
+    setActiveStep(key);
+    setOpenSteps((current) => ({ ...current, [key]: current[key] === false }));
+  }
+
+  function jump(key: StepKey) {
+    setActiveStep(key);
+    setOpenSteps((current) => ({ ...current, [key]: true }));
+    window.setTimeout(() => {
+      document.getElementById(`step-${key}`)?.scrollIntoView({ behavior: "smooth", block: "start" });
+    }, 0);
+  }
+
+  const scheduled =
+    listing.status === "approved" &&
+    Boolean(listing.publish_at) &&
+    new Date(listing.publish_at ?? "").getTime() > Date.now();
+  const statusText = listingStatusLabel(listing.status, {
+    suspended: Boolean(listing.is_suspended),
+    scheduled,
+  });
+  const editsSaved = listing.status === "approved" && listing.pending_state === "draft";
+  const editsWaiting = listing.status === "approved" && listing.pending_state === "review";
+  const canSubmit = listing.status === "draft" || editsSaved;
   const media = activeMedia(draft);
-
-  const whoComes = useMemo(() => {
-    return WHO_COMES_PERSONAS.map((item) => {
-      const persona = catalog.personas.find((row) => row.title === item.title);
-      return persona ? { ...item, id: persona.id } : null;
-    }).filter((row): row is { title: string; label: string; id: string } => Boolean(row));
-  }, [catalog.personas]);
-
-  const selectedInterests = useMemo(
-    () => catalog.interests.filter((item) => draft.interest_ids.includes(item.id)),
-    [catalog.interests, draft.interest_ids],
-  );
-
-  const interestResults = useMemo(() => {
-    const q = interestQuery.trim().toLowerCase();
-    const primaryKindId = draft.kind_ids[0];
-    const primaryKind = catalog.kinds.find((kind) => kind.id === primaryKindId);
-
-    if (q.length >= 1) {
-      return catalog.interests
-        .filter(
-          (item) =>
-            item.title.toLowerCase().includes(q) ||
-            item.kind_title.toLowerCase().includes(q),
-        )
-        .slice(0, 24);
-    }
-
-    if (primaryKind) {
-      return catalog.interests
-        .filter((item) => item.kind_key === primaryKind.key)
-        .slice(0, 16);
-    }
-
-    return [];
-  }, [catalog.interests, catalog.kinds, draft.kind_ids, interestQuery]);
 
   function patch(partial: Partial<ListingDraft>) {
     setDraft((current) => ({ ...current, ...partial }));
@@ -239,10 +349,6 @@ export function ListingEditor({
     setSaveNotice(null);
   }
 
-  function jump(key: StepKey) {
-    document.getElementById(`step-${key}`)?.scrollIntoView({ behavior: "smooth", block: "start" });
-  }
-
   function onSave() {
     setSaveError(null);
     startTransition(async () => {
@@ -251,7 +357,11 @@ export function ListingEditor({
         setSaveError(result.error);
         return;
       }
-      setSaveNotice("Draft saved.");
+      setSaveNotice(
+        listing.status === "approved"
+          ? "Edits saved. The live listing stays as it is until an admin approves."
+          : "Draft saved.",
+      );
       router.refresh();
     });
   }
@@ -259,21 +369,15 @@ export function ListingEditor({
   function addActivity() {
     setDraft((current) => ({
       ...current,
-      activities: [
-        ...current.activities,
-        emptyActivity(`Activity ${current.activities.length + 1}`, current.activities.length),
-      ],
+      activities: [...current.activities, emptyActivity("", current.activities.length)],
     }));
   }
 
   function removeActivity(clientKey: string) {
-    setDraft((current) => {
-      const next = current.activities.filter((row) => row.clientKey !== clientKey);
-      return {
-        ...current,
-        activities: next.length ? next : [emptyActivity(current.name || "General", 0)],
-      };
-    });
+    setDraft((current) => ({
+      ...current,
+      activities: current.activities.filter((row) => row.clientKey !== clientKey),
+    }));
   }
 
   function addPrice(activityKey: string) {
@@ -294,10 +398,9 @@ export function ListingEditor({
       ...current,
       activities: current.activities.map((activity) => {
         if (activity.clientKey !== activityKey) return activity;
-        const prices = activity.prices.filter((price) => price.clientKey !== priceKey);
         return {
           ...activity,
-          prices: prices.length ? prices : [emptyPrice(0)],
+          prices: activity.prices.filter((price) => price.clientKey !== priceKey),
         };
       }),
     }));
@@ -353,7 +456,13 @@ export function ListingEditor({
       while (cursor < jobs.length) {
         const job = jobs[cursor];
         cursor += 1;
-        const result = await uploadOnePhoto(listing.id, job.file, job.sortOrder, job.makeCover);
+        const result = await uploadOnePhoto(
+          listing.id,
+          job.file,
+          job.sortOrder,
+          job.makeCover,
+          listing.status === "approved",
+        );
         finished += 1;
         setPhotoStatus(`Uploading ${finished} of ${list.length}`);
         if (typeof result === "string") failures.push(result);
@@ -392,6 +501,22 @@ export function ListingEditor({
   }
 
   async function onDeletePhoto(mediaId: string) {
+    const target = draft.media.find((row) => row.id === mediaId);
+    if (listing.status === "approved" && !target?.is_pending) {
+      setDraft((current) => {
+        const next = current.media.map((row) =>
+          row.id === mediaId ? { ...row, _delete: true } : row,
+        );
+        const visible = next.filter((row) => !row._delete);
+        const coverStill = visible.find((row) => row.id === current.cover_media_id);
+        return {
+          ...current,
+          media: next,
+          cover_media_id: coverStill?.id ?? visible[0]?.id ?? "",
+        };
+      });
+      return;
+    }
     setPhotoPending(true);
     setSaveError(null);
     const result = await deleteListingPhoto(listing.id, mediaId);
@@ -413,21 +538,92 @@ export function ListingEditor({
 
   return (
     <div className="cr-editor-page">
+      <aside className="cr-edit-nav" aria-label="Edit listing">
+        <a className="cr-edit-spine" href="/admin">
+          <span className="cr-edit-spine-mark" aria-hidden="true" />
+          <span>Control Panel</span>
+        </a>
+        <div className="cr-edit-nav-body">
+          <a className="cr-edit-brand" href="/admin/listings" aria-label="Directory listings">
+            <img src="/brand/logos/venturo-horizontal-simple-light.svg" alt="Venturo" />
+          </a>
+          <p className="cr-edit-title">Directory</p>
+          <p className="cr-edit-current">Edit Listing</p>
+          <p className="cr-edit-group">Content</p>
+          <p className="cr-edit-section">Directory</p>
+          <nav className="cr-edit-steps">
+            {EDITOR_STEPS.map((step) => (
+              <button
+                key={step.key}
+                type="button"
+                className={[
+                  activeStep === step.key ? "active" : "",
+                  stepComplete(draft, step.key) ? "done" : "",
+                ]
+                  .filter(Boolean)
+                  .join(" ") || undefined}
+                aria-current={activeStep === step.key ? "true" : undefined}
+                onClick={() => jump(step.key)}
+              >
+                {step.label}
+              </button>
+            ))}
+          </nav>
+          <div className="cr-edit-actions">
+            <button className="btn cr-save" type="button" onClick={onSave} disabled={pending}>
+              {pending ? "Saving…" : "Save Draft"}
+            </button>
+            <form action={applyListingAction}>
+              <input type="hidden" name="id" value={listing.id} />
+              <input type="hidden" name="action" value="review" />
+              <button className="btn" type="submit" disabled={!canSubmit || pending}>
+                Submit for Approval
+              </button>
+            </form>
+            {editsWaiting && canApprove ? (
+              <form action={applyListingAction}>
+                <input type="hidden" name="id" value={listing.id} />
+                <input type="hidden" name="action" value="approve" />
+                <button className="btn" type="submit" disabled={pending}>
+                  Approve changes
+                </button>
+              </form>
+            ) : null}
+            <form action={applyListingAction}>
+              <input type="hidden" name="id" value={listing.id} />
+              <input type="hidden" name="action" value="feature" />
+              <input type="hidden" name="featured" value={listing.is_featured ? "false" : "true"} />
+              <button className={listing.is_featured ? "btn is-on" : "btn"} type="submit">
+                Featured Candidate
+              </button>
+            </form>
+            {listing.slug ? (
+              <a className="btn" href={`/admin/listings/${listing.id}/poster`} target="_blank" rel="noreferrer">
+                Print Partner Poster
+              </a>
+            ) : null}
+          </div>
+          <div
+            className={
+              listing.status === "approved" && !listing.is_suspended
+                ? "cr-edit-status is-live"
+                : "cr-edit-status"
+            }
+          >
+            <p>Listing Status</p>
+            <p>{statusText}</p>
+            {editsSaved ? <p>Edits saved</p> : null}
+            {editsWaiting ? <p>Waiting for approval</p> : null}
+            {listing.is_featured ? <p>Featured candidate</p> : null}
+          </div>
+        </div>
+      </aside>
+      <div className="cr-editor-stage">
       <header className="cr-editor-head">
         <div>
-          <p className="eyebrow">
-            <a href="/admin/listings">Directory</a> · {listingStatusLabel(listing.status)}
-            {listing.is_featured ? " · Top Pick" : ""}
-          </p>
-          <h1>Editing: {draft.name || listing.name}</h1>
-          <p className="lede muted">
-            {draft.business_name || "Business"}
-            {draft.branch_name ? ` · ${draft.branch_name}` : ""}
-          </p>
+          <p className="cr-editor-kicker">Directory Listings</p>
+          <h1>Editing {draft.business_name || draft.name || "Business"}</h1>
         </div>
-        <a className="btn btn-secondary" href="/admin/listings">
-          Back To Queue
-        </a>
       </header>
 
       {(error || saveError) && <p className="error">{error || saveError}</p>}
@@ -447,795 +643,592 @@ export function ListingEditor({
         </div>
       )}
 
-      <div className="cr-jump">
-        {progress.steps.map((step) => (
-          <button
-            key={step.key}
-            type="button"
-            className={step.done ? "cr-jump-chip done" : "cr-jump-chip"}
-            onClick={() => jump(step.key)}
-          >
-            {step.label}
-          </button>
-        ))}
-      </div>
-
       <div className="cr-editor">
-        <aside className="cr-rail">
-          <div className="cr-rail-card">
-            <p className="cr-rail-title">Listing Status</p>
-            <ul className="cr-status-legend">
-              {legend.map((item) => (
-                <li key={item.id} className={item.active ? "active" : undefined}>
-                  {item.label}
-                </li>
-              ))}
-            </ul>
-            <div className="cr-rail-actions">
-              <button className="btn btn-secondary" type="button" onClick={onSave} disabled={pending}>
-                {pending ? "Saving…" : "Save Draft"}
-              </button>
-              {listing.slug ? (
-                <a
-                  className="btn btn-secondary"
-                  href={`/admin/listings/${listing.id}/poster`}
-                  target="_blank"
-                  rel="noreferrer"
-                >
-                  Print Partner Poster
-                </a>
-              ) : null}
-              <ListingActions listing={listing} />
-            </div>
-          </div>
-          <div className="cr-rail-card">
-            <p className="cr-rail-title">Ready · {progress.percent}%</p>
-            <ul className="cr-progress">
-              {progress.steps.map((step) => (
-                <li key={step.key} className={step.done ? "done" : "todo"}>
-                  <button type="button" onClick={() => jump(step.key)}>
-                    <span aria-hidden="true">{step.done ? "✓" : step.number}</span>
-                    {step.label}
-                  </button>
-                </li>
-              ))}
-            </ul>
-          </div>
-        </aside>
-
         <div className="cr-paper">
-          <section className="cr-step" id="step-contact">
+          <section className={stepOpen("business") ? "cr-step is-open" : "cr-step"} id="step-business">
             <h2>
-              <span>1</span> Social & Contact
+              <button type="button" className="cr-step-toggle" aria-expanded={stepOpen("business")} onClick={() => toggleStep("business")}>
+                <em>The Listing</em>
+                <i className="cr-step-caret" aria-hidden="true" />
+              </button>
             </h2>
-            <p className="muted cr-step-help">
-              These fill the Social Media icon row on Discover: website, email, camera, Facebook,
-              phone.
-            </p>
-            <div className="cr-grid-2">
-              <label className="field">
-                <span>Email</span>
-                <input
-                  type="email"
-                  value={draft.email}
-                  onChange={(e) => patch({ email: e.target.value })}
-                />
-              </label>
-              <label className="field">
-                <span>Phone</span>
-                <input
-                  type="tel"
-                  value={draft.phone}
-                  onChange={(e) => patch({ phone: e.target.value })}
-                />
-              </label>
-            </div>
-            <label className="field">
-              <span>Website</span>
+            <label className="field cr-quiet">
+              <span className="sr-only">Business Name</span>
               <input
-                type="url"
-                value={draft.website_url}
-                onChange={(e) => patch({ website_url: e.target.value })}
+                value={draft.name}
+                placeholder="Business Name"
+                aria-label="Business Name"
+                onChange={(e) => patch({ name: e.target.value })}
               />
             </label>
-            <p className="cr-subhead">Social Handles</p>
-            <div className="cr-grid-3">
-              {draft.social.map((row) => (
-                <label className="field" key={row.platform}>
-                  <span>{row.platform === "instagram" ? "Instagram" : row.platform === "facebook" ? "Facebook" : "TikTok"}</span>
-                  <input
-                    value={row.handle}
-                    onChange={(e) => patchSocial(row.platform, e.target.value)}
-                    placeholder="@handle"
-                  />
-                </label>
-              ))}
-            </div>
-          </section>
-
-          <section className="cr-step" id="step-business">
-            <h2>
-              <span>2</span> The Listing
-            </h2>
-            <p className="muted cr-step-help">
-              Listing Name, Description, and Indoor / Outdoor are what members see under Info.
-            </p>
-            <label className="field">
-              <span>Listing Name</span>
-              <input value={draft.name} onChange={(e) => patch({ name: e.target.value })} />
-              <small className="cr-field-hint">Discover title. Shown in Social Gothic, uppercase.</small>
-            </label>
-            <div className="cr-grid-2">
-              <label className="field">
-                <span>Main Business Name</span>
+            <div className="cr-known-row">
+              <label className="field cr-quiet">
+                <span className="sr-only">Business Known As</span>
                 <input
                   value={draft.business_name}
+                  placeholder="Business Known As (Optional)"
+                  aria-label="Business Known As"
                   onChange={(e) => patch({ business_name: e.target.value })}
                 />
               </label>
-              <label className="field">
-                <span>Branch Name</span>
+              <label className="field cr-quiet">
+                <span className="sr-only">Branch</span>
                 <input
                   value={draft.branch_name}
+                  placeholder="Branch"
+                  aria-label="Branch"
                   onChange={(e) => patch({ branch_name: e.target.value })}
-                  placeholder="Optional"
                 />
               </label>
             </div>
-            <label className="field">
-              <span>Description</span>
+            <p className="cr-about-label">About</p>
+            <label className="field cr-quiet cr-long">
               <textarea
                 rows={6}
                 value={draft.description}
+                placeholder="Long Description"
+                aria-label="Long Description"
                 onChange={(e) => patch({ description: e.target.value })}
               />
-              <small className="cr-field-hint">The Info tab write-up. See More appears after a long paragraph.</small>
             </label>
-            <label className="field">
-              <span>Directory Card Blurb</span>
+            <label className="field cr-quiet cr-short">
               <textarea
-                rows={2}
+                rows={4}
                 value={draft.short_description}
+                placeholder="Short Description"
+                aria-label="Short Description"
                 onChange={(e) => patch({ short_description: e.target.value })}
-              />
-              <small className="cr-field-hint">Search cards &amp; People Also Searched For. Not the full listing copy.</small>
-            </label>
-            <label className="field">
-              <span>Organisation Note</span>
-              <textarea
-                rows={3}
-                value={draft.business_description}
-                onChange={(e) => patch({ business_description: e.target.value })}
-              />
-              <small className="cr-field-hint">Staff only. Not shown on Discover.</small>
-            </label>
-            <div className="cr-grid-2">
-              <label className="field">
-                <span>Indoor / Outdoor</span>
-                <select
-                  value={draft.indoor_outdoor}
-                  onChange={(e) =>
-                    patch({
-                      indoor_outdoor: e.target.value as ListingDraft["indoor_outdoor"],
-                    })
-                  }
-                >
-                  <option value="">Not set</option>
-                  <option value="indoor">Indoor</option>
-                  <option value="outdoor">Outdoor</option>
-                  <option value="both">Both</option>
-                </select>
-                <small className="cr-field-hint">Shows as listing chips next to the category.</small>
-              </label>
-              <label className="field checkbox">
-                <span>Booking</span>
-                <label>
-                  <input
-                    type="checkbox"
-                    checked={draft.booking_required}
-                    onChange={(e) => patch({ booking_required: e.target.checked })}
-                  />
-                  Booking required
-                </label>
-              </label>
-            </div>
-            <label className="field">
-              <span>Booking Link</span>
-              <input
-                type="url"
-                value={draft.booking_url}
-                onChange={(e) => patch({ booking_url: e.target.value })}
               />
             </label>
           </section>
 
-          <section className="cr-step" id="step-hours">
+          <section className={stepOpen("location") ? "cr-step is-open" : "cr-step"} id="step-location">
             <h2>
-              <span>3</span> Hours &amp; Map
+              <button type="button" className="cr-step-toggle" aria-expanded={stepOpen("location")} onClick={() => toggleStep("location")}>
+                <em>Location</em>
+                <i className="cr-step-caret" aria-hidden="true" />
+              </button>
             </h2>
-            <p className="muted cr-step-help">
-              Operating Hours include Public Holiday. The map pin uses the street address or coordinates.
-            </p>
             <div className="cr-grid-2">
-              <label className="field">
-                <span>Street Address</span>
+              <label className="field cr-quiet">
+                <span className="sr-only">Street Address</span>
                 <input
                   value={draft.street_address_1}
+                  placeholder="Street Address"
+                  aria-label="Street Address"
                   onChange={(e) => patch({ street_address_1: e.target.value })}
                 />
               </label>
-              <label className="field">
-                <span>Address Line 2</span>
+              <label className="field cr-quiet">
+                <span className="sr-only">Address Line 2</span>
                 <input
                   value={draft.street_address_2}
+                  placeholder="Address Line 2"
+                  aria-label="Address Line 2"
                   onChange={(e) => patch({ street_address_2: e.target.value })}
                 />
               </label>
-              <label className="field">
-                <span>Suburb</span>
+              <label className="field cr-quiet">
+                <span className="sr-only">Suburb</span>
                 <input
                   value={draft.suburb}
+                  placeholder="Suburb"
+                  aria-label="Suburb"
                   onChange={(e) => patch({ suburb: e.target.value })}
                 />
               </label>
-              <label className="field">
-                <span>City</span>
-                <input value={draft.city} onChange={(e) => patch({ city: e.target.value })} />
-              </label>
-              <label className="field">
-                <span>Province</span>
+              <label className="field cr-quiet">
+                <span className="sr-only">City</span>
                 <input
-                  value={draft.province}
-                  onChange={(e) => patch({ province: e.target.value })}
+                  value={draft.city}
+                  placeholder="City"
+                  aria-label="City"
+                  onChange={(e) => patch({ city: e.target.value })}
                 />
               </label>
-              <label className="field">
-                <span>Postal Code</span>
+              <label className="field cr-quiet">
+                <span className="sr-only">Province</span>
+                <select
+                  className={draft.province ? undefined : "is-empty"}
+                  value={draft.province}
+                  aria-label="Province"
+                  onChange={(e) => patch({ province: e.target.value })}
+                >
+                  <option value="">Province</option>
+                  {(draft.province && !PROVINCES.includes(draft.province)
+                    ? [draft.province, ...PROVINCES]
+                    : PROVINCES
+                  ).map((province) => (
+                    <option key={province} value={province}>
+                      {province}
+                    </option>
+                  ))}
+                </select>
+              </label>
+              <label className="field cr-quiet">
+                <span className="sr-only">Postal Code</span>
                 <input
                   value={draft.postal_code}
+                  placeholder="Postal Code"
+                  aria-label="Postal Code"
                   onChange={(e) => patch({ postal_code: e.target.value })}
                 />
               </label>
             </div>
-            <p className="cr-subhead">Map Pin</p>
-            <div className="cr-grid-3">
-              <label className="field">
-                <span>Latitude</span>
+            <label className="field cr-quiet">
+              <span className="sr-only">Google Maps Link</span>
+              <input
+                type="url"
+                value={draft.maps_url}
+                placeholder="Google Maps Link"
+                aria-label="Google Maps Link"
+                onChange={(e) => patch({ maps_url: e.target.value })}
+              />
+            </label>
+            <div className="cr-grid-2">
+              <label className="field cr-quiet">
+                <span className="sr-only">Latitude</span>
                 <input
                   inputMode="decimal"
                   value={draft.latitude}
+                  placeholder="Latitude"
+                  aria-label="Latitude"
                   onChange={(e) => patch({ latitude: e.target.value })}
-                  placeholder="-26.13"
                 />
               </label>
-              <label className="field">
-                <span>Longitude</span>
+              <label className="field cr-quiet">
+                <span className="sr-only">Longitude</span>
                 <input
                   inputMode="decimal"
                   value={draft.longitude}
+                  placeholder="Longitude"
+                  aria-label="Longitude"
                   onChange={(e) => patch({ longitude: e.target.value })}
-                  placeholder="27.99"
-                />
-              </label>
-              <label className="field">
-                <span>Maps URL</span>
-                <input
-                  type="url"
-                  value={draft.maps_url}
-                  onChange={(e) => patch({ maps_url: e.target.value })}
-                  placeholder="https://maps.google.com/?q="
                 />
               </label>
             </div>
-            <p className="cr-subhead">Operating Hours</p>
-            <div className="cr-hours-edit">
+          </section>
+
+          <section className={stepOpen("hours") ? "cr-step is-open" : "cr-step"} id="step-hours">
+            <h2>
+              <button type="button" className="cr-step-toggle" aria-expanded={stepOpen("hours")} onClick={() => toggleStep("hours")}>
+                <em>Operating Hours</em>
+                <i className="cr-step-caret" aria-hidden="true" />
+              </button>
+            </h2>
+            <div className="cr-hours-board">
+              <p className="cr-hours-season cr-hours-season-normal">Normal Time</p>
+              <p className="cr-hours-season cr-hours-season-vacation">School Vacations</p>
+              <span className="cr-hours-label">Day of Week</span>
+              <span className="cr-hours-label">Closed</span>
+              <span className="cr-hours-label">Open</span>
+              <span className="cr-hours-label">Close</span>
+              <span className="cr-hours-label">Closed</span>
+              <span className="cr-hours-label">Open</span>
+              <span className="cr-hours-label">Close</span>
               {draft.hours.map((row, index) => (
-                <div className="cr-hour-row" key={row.day_of_week}>
+                <div className="cr-hours-day" key={row.day_of_week}>
                   <strong>{formatDay(row.day_of_week)}</strong>
-                  <label className="cr-closed">
+                  <label className="cr-hour-check">
                     <input
                       type="checkbox"
                       checked={row.is_closed}
-                      onChange={(e) => patchHour(index, { is_closed: e.target.checked })}
+                      aria-label={`${formatDay(row.day_of_week)} closed, normal time`}
+                      onChange={(event) => patchHour(index, { is_closed: event.target.checked })}
                     />
-                    Closed
                   </label>
-                  <input
-                    type="time"
+                  <TimeField
                     value={row.opens_at}
                     disabled={row.is_closed}
-                    onChange={(e) => patchHour(index, { opens_at: e.target.value })}
-                    aria-label={`${formatDay(row.day_of_week)} opens`}
+                    label={`${formatDay(row.day_of_week)} normal opens`}
+                    onChange={(opens_at) => patchHour(index, { opens_at })}
                   />
-                  <input
-                    type="time"
+                  <TimeField
                     value={row.closes_at}
                     disabled={row.is_closed}
-                    onChange={(e) => patchHour(index, { closes_at: e.target.value })}
-                    aria-label={`${formatDay(row.day_of_week)} closes`}
+                    label={`${formatDay(row.day_of_week)} normal closes`}
+                    onChange={(closes_at) => patchHour(index, { closes_at })}
+                  />
+                  <label className="cr-hour-check">
+                    <input
+                      type="checkbox"
+                      checked={row.vacation_is_closed}
+                      aria-label={`${formatDay(row.day_of_week)} closed, school vacations`}
+                      onChange={(event) =>
+                        patchHour(index, { vacation_is_closed: event.target.checked })
+                      }
+                    />
+                  </label>
+                  <TimeField
+                    value={row.vacation_opens_at}
+                    disabled={row.vacation_is_closed}
+                    label={`${formatDay(row.day_of_week)} school vacation opens`}
+                    onChange={(vacation_opens_at) => patchHour(index, { vacation_opens_at })}
+                  />
+                  <TimeField
+                    value={row.vacation_closes_at}
+                    disabled={row.vacation_is_closed}
+                    label={`${formatDay(row.day_of_week)} school vacation closes`}
+                    onChange={(vacation_closes_at) => patchHour(index, { vacation_closes_at })}
                   />
                 </div>
               ))}
             </div>
           </section>
 
-          <section className="cr-step" id="step-prices">
+          <section className={stepOpen("contact") ? "cr-step is-open" : "cr-step"} id="step-contact">
             <h2>
-              <span>4</span> Cost
+              <button type="button" className="cr-step-toggle" aria-expanded={stepOpen("contact")} onClick={() => toggleStep("contact")}>
+                <em>Contact &amp; Socials</em>
+                <i className="cr-step-caret" aria-hidden="true" />
+              </button>
             </h2>
-            <p className="muted cr-step-help">
-              Each active price becomes a Cost card. Members see the standard price in white and
-              the Venturo member price in gold. Use 0 for Free. Copy on the listing reads
-              “Scan QR Code to claim your Discount.”
-            </p>
-            <div className="cr-activity-list">
-              {draft.activities.map((activity) => (
-                <article className="cr-activity-card" key={activity.clientKey}>
-                  <div className="cr-activity-head">
-                    <label className="field">
-                      <span>Activity Name</span>
-                      <input
-                        value={activity.name}
-                        onChange={(e) =>
-                          patchActivity(activity.clientKey, { name: e.target.value })
-                        }
-                      />
-                    </label>
-                    <label className="field checkbox">
-                      <span>Active</span>
-                      <label>
-                        <input
-                          type="checkbox"
-                          checked={activity.is_active}
-                          onChange={(e) =>
-                            patchActivity(activity.clientKey, { is_active: e.target.checked })
-                          }
-                        />
-                        Show this activity
-                      </label>
-                    </label>
-                  </div>
-                  <label className="field">
-                    <span>What Happens & What To Bring</span>
-                    <textarea
-                      rows={4}
-                      value={activity.description}
-                      onChange={(e) =>
-                        patchActivity(activity.clientKey, { description: e.target.value })
-                      }
-                      placeholder="Write-up for the activity. Good-to-know notes (gear, arrival, weather) can live here too."
-                    />
-                    <small className="cr-field-hint">
-                      Good-to-know tips fit naturally in this write-up.
-                    </small>
-                  </label>
-                  <div className="cr-grid-3">
-                    <label className="field">
-                      <span>Duration (minutes)</span>
-                      <input
-                        inputMode="numeric"
-                        value={activity.duration_minutes}
-                        onChange={(e) =>
-                          patchActivity(activity.clientKey, {
-                            duration_minutes: e.target.value,
-                          })
-                        }
-                      />
-                    </label>
-                    <label className="field">
-                      <span>Min Age</span>
-                      <input
-                        inputMode="numeric"
-                        value={activity.minimum_age}
-                        onChange={(e) =>
-                          patchActivity(activity.clientKey, { minimum_age: e.target.value })
-                        }
-                      />
-                    </label>
-                    <label className="field">
-                      <span>Max Age</span>
-                      <input
-                        inputMode="numeric"
-                        value={activity.maximum_age}
-                        onChange={(e) =>
-                          patchActivity(activity.clientKey, { maximum_age: e.target.value })
-                        }
-                      />
-                    </label>
-                  </div>
-                  <label className="field checkbox">
-                    <span>Booking</span>
-                    <label>
-                      <input
-                        type="checkbox"
-                        checked={activity.booking_required}
-                        onChange={(e) =>
-                          patchActivity(activity.clientKey, {
-                            booking_required: e.target.checked,
-                          })
-                        }
-                      />
-                      Booking required for this activity
-                    </label>
-                  </label>
+            <div className="cr-grid-2">
+              <label className="field cr-quiet">
+                <span className="sr-only">Email Address</span>
+                <input
+                  type="email"
+                  value={draft.email}
+                  placeholder="Email Address"
+                  aria-label="Email Address"
+                  onChange={(e) => patch({ email: e.target.value })}
+                />
+              </label>
+              <label className="field cr-quiet">
+                <span className="sr-only">Contact Number</span>
+                <input
+                  type="tel"
+                  value={draft.phone}
+                  placeholder="Contact Number"
+                  aria-label="Contact Number"
+                  onChange={(e) => patch({ phone: e.target.value })}
+                />
+              </label>
+            </div>
+            <label className="field cr-quiet">
+              <span className="sr-only">Website</span>
+              <input
+                type="url"
+                value={draft.website_url}
+                placeholder="Website"
+                aria-label="Website"
+                onChange={(e) => patch({ website_url: e.target.value })}
+              />
+            </label>
+            <label className="field cr-quiet">
+              <span className="sr-only">Booking Link</span>
+              <input
+                type="url"
+                value={draft.booking_url}
+                placeholder="Booking Link"
+                aria-label="Booking Link"
+                onChange={(e) => patch({ booking_url: e.target.value })}
+              />
+            </label>
+            <p className="cr-about-label">Social Handles</p>
+            <div className="cr-grid-3">
+              <label className="field cr-quiet">
+                <span className="sr-only">Instagram</span>
+                <input
+                  value={draft.social.find((row) => row.platform === "instagram")?.handle ?? ""}
+                  placeholder="@Instagram"
+                  aria-label="Instagram"
+                  onChange={(e) => patchSocial("instagram", e.target.value)}
+                />
+              </label>
+              <label className="field cr-quiet">
+                <span className="sr-only">Facebook</span>
+                <input
+                  value={draft.social.find((row) => row.platform === "facebook")?.handle ?? ""}
+                  placeholder="Facebook"
+                  aria-label="Facebook"
+                  onChange={(e) => patchSocial("facebook", e.target.value)}
+                />
+              </label>
+              <label className="field cr-quiet">
+                <span className="sr-only">TikTok</span>
+                <input
+                  value={draft.social.find((row) => row.platform === "tiktok")?.handle ?? ""}
+                  placeholder="TikTok"
+                  aria-label="TikTok"
+                  onChange={(e) => patchSocial("tiktok", e.target.value)}
+                />
+              </label>
+            </div>
+          </section>
 
-                  <p className="cr-subhead">Prices</p>
-                  <div className="cr-price-list">
-                    {activity.prices.map((row) => {
-                      const missingMember = row.is_active && !row.member_price.trim();
-                      return (
-                        <article className="cr-price-card" key={row.clientKey}>
-                          <div className="cr-grid-2">
-                            <label className="field">
-                              <span>Option Name</span>
-                              <input
-                                value={row.name}
-                                onChange={(e) =>
-                                  patchPrice(activity.clientKey, row.clientKey, {
-                                    name: e.target.value,
-                                  })
-                                }
-                              />
-                            </label>
-                            <label className="field">
-                              <span>Applies To</span>
-                              <select
-                                value={row.couples_exclusive ? "custom" : row.applies_to}
-                                onChange={(e) =>
-                                  patchPrice(activity.clientKey, row.clientKey, {
-                                    applies_to: e.target.value as DraftPrice["applies_to"],
-                                    couples_exclusive:
-                                      e.target.value === "custom"
-                                        ? row.couples_exclusive
-                                        : false,
-                                  })
-                                }
-                              >
-                                {APPLIES_TO_OPTIONS.map((option) => (
-                                  <option key={option.value} value={option.value}>
-                                    {option.label}
-                                  </option>
-                                ))}
-                              </select>
-                            </label>
-                          </div>
-                          <div className="cr-grid-2">
-                            <label className="field">
-                              <span>Price Category</span>
-                              <select
-                                value={row.price_category}
-                                onChange={(e) =>
-                                  patchPrice(activity.clientKey, row.clientKey, {
-                                    price_category: e.target
-                                      .value as DraftPrice["price_category"],
-                                  })
-                                }
-                              >
-                                {PRICE_CATEGORY_OPTIONS.map((option) => (
-                                  <option key={option.value} value={option.value}>
-                                    {option.label}
-                                  </option>
-                                ))}
-                              </select>
-                            </label>
-                            <label className="field checkbox">
-                              <span>Couples Exclusive</span>
-                              <label>
-                                <input
-                                  type="checkbox"
-                                  checked={row.couples_exclusive}
-                                  onChange={(e) =>
-                                    patchPrice(activity.clientKey, row.clientKey, {
-                                      couples_exclusive: e.target.checked,
-                                      applies_to: e.target.checked
-                                        ? "custom"
-                                        : row.applies_to === "custom"
-                                          ? "person"
-                                          : row.applies_to,
-                                    })
-                                  }
-                                />
-                                Couples package
-                              </label>
-                            </label>
-                          </div>
-                          <div className="cr-grid-2">
-                            <label className="field">
-                              <span>Valid From</span>
-                              <input
-                                type="date"
-                                value={row.valid_from}
-                                onChange={(e) =>
-                                  patchPrice(activity.clientKey, row.clientKey, {
-                                    valid_from: e.target.value,
-                                  })
-                                }
-                              />
-                            </label>
-                            <label className="field">
-                              <span>Valid Until</span>
-                              <input
-                                type="date"
-                                value={row.valid_until}
-                                onChange={(e) =>
-                                  patchPrice(activity.clientKey, row.clientKey, {
-                                    valid_until: e.target.value,
-                                  })
-                                }
-                              />
-                            </label>
-                          </div>
-                          <div className="cr-grid-2">
-                            <label className="field">
-                              <span>Standard Price (R)</span>
-                              <input
-                                inputMode="decimal"
-                                value={row.standard_price}
-                                onChange={(e) =>
-                                  patchPrice(activity.clientKey, row.clientKey, {
-                                    standard_price: e.target.value,
-                                  })
-                                }
-                              />
-                            </label>
-                            <label className="field">
-                              <span>Member Price (R)</span>
-                              <input
-                                inputMode="decimal"
-                                value={row.member_price}
-                                onChange={(e) =>
-                                  patchPrice(activity.clientKey, row.clientKey, {
-                                    member_price: e.target.value,
-                                  })
-                                }
-                              />
-                            </label>
-                          </div>
-                          <div className="cr-member-box">
-                            <span>Venturo member pays</span>
-                            <strong>
-                              {row.member_price.trim()
-                                ? formatRand(Number(row.member_price))
-                                : "Add member price"}
-                            </strong>
-                          </div>
-                          {missingMember && (
-                            <p className="cr-warn">Member discount still missing on this option.</p>
-                          )}
-                          <label className="field">
-                            <span>What&apos;s Included?</span>
-                            <textarea
-                              rows={2}
-                              value={row.inclusions}
+          <section className={stepOpen("prices") ? "cr-step is-open" : "cr-step"} id="step-prices">
+            <h2>
+              <button type="button" className="cr-step-toggle" aria-expanded={stepOpen("prices")} onClick={() => toggleStep("prices")}>
+                <em>Activities &amp; Costs</em>
+                <i className="cr-step-caret" aria-hidden="true" />
+              </button>
+            </h2>
+            <div className="cr-activity-list">
+              {draft.activities.map((activity, activityIndex) => (
+                <article className="cr-activity-board" key={activity.clientKey}>
+                  <div className="cr-activity-kicker">
+                    <p>Activity {activityIndex + 1}</p>
+                    <button
+                      type="button"
+                      className="cr-text-remove"
+                      onClick={() => removeActivity(activity.clientKey)}
+                    >
+                      Remove
+                    </button>
+                  </div>
+                  <label className="field cr-quiet">
+                    <span className="sr-only">Activity Name</span>
+                    <input
+                      value={activity.name}
+                      placeholder="Activity Name"
+                      aria-label={`Activity ${activityIndex + 1} name`}
+                      onChange={(e) =>
+                        patchActivity(activity.clientKey, { name: e.target.value })
+                      }
+                    />
+                  </label>
+                  {activity.prices.map((row, priceIndex) => {
+                    const choices = appliesChoices(row.applies_to);
+                    return (
+                      <div className="cr-sub" key={row.clientKey}>
+                        <div className="cr-sub-top">
+                          <label className="field cr-quiet">
+                            <span className="sr-only">Sub Activity Name</span>
+                            <input
+                              value={row.name}
+                              placeholder="Sub Activity Name"
+                              aria-label={`Activity ${activityIndex + 1} sub activity ${priceIndex + 1} name`}
                               onChange={(e) =>
                                 patchPrice(activity.clientKey, row.clientKey, {
-                                  inclusions: e.target.value,
+                                  name: e.target.value,
                                 })
                               }
                             />
                           </label>
-                          <label className="field checkbox">
-                            <span>Active</span>
-                            <label>
-                              <input
-                                type="checkbox"
-                                checked={row.is_active}
+                          <div className="cr-applies">
+                            <label className="field cr-quiet">
+                              <span className="sr-only">Applies to</span>
+                              <select
+                                className={row.applies_to ? undefined : "is-empty"}
+                                value={row.applies_to}
+                                aria-label={`Activity ${activityIndex + 1} sub activity ${priceIndex + 1} applies to`}
                                 onChange={(e) =>
                                   patchPrice(activity.clientKey, row.clientKey, {
-                                    is_active: e.target.checked,
+                                    applies_to: e.target.value as DraftPrice["applies_to"],
+                                    group_size: e.target.value === "group" ? row.group_size : "",
                                   })
                                 }
-                              />
-                              Show this price
+                              >
+                                <option value="">Applies to eg: “Per Person”</option>
+                                {choices.map((option) => (
+                                  <option key={option.value} value={option.value}>
+                                    {option.label}
+                                  </option>
+                                ))}
+                              </select>
                             </label>
+                            {row.applies_to === "group" && (
+                              <label className="field cr-quiet">
+                                <span className="sr-only">How many in the group</span>
+                                <input
+                                  inputMode="numeric"
+                                  value={row.group_size}
+                                  placeholder="How many"
+                                  aria-label={`Activity ${activityIndex + 1} sub activity ${priceIndex + 1} group size`}
+                                  onChange={(e) =>
+                                    patchPrice(activity.clientKey, row.clientKey, {
+                                      group_size: e.target.value.replace(/[^\d]/g, ""),
+                                    })
+                                  }
+                                />
+                              </label>
+                            )}
+                          </div>
+                          <label className="cr-include">
+                            <span>Include in “From”</span>
+                            <input
+                              type="checkbox"
+                              checked={row.show_on_from}
+                              aria-label={`Activity ${activityIndex + 1} sub activity ${priceIndex + 1} include in From`}
+                              onChange={(e) =>
+                                patchPrice(activity.clientKey, row.clientKey, {
+                                  show_on_from: e.target.checked,
+                                })
+                              }
+                            />
                           </label>
+                        </div>
+                        <div className="cr-cost-row">
+                          <label className="field cr-quiet">
+                            <span className="cr-cost-label">Cost</span>
+                            <input
+                              inputMode="decimal"
+                              value={row.standard_price}
+                              placeholder="Standard Price"
+                              aria-label={`Activity ${activityIndex + 1} sub activity ${priceIndex + 1} standard price`}
+                              onChange={(e) => {
+                                const standard_price = e.target.value;
+                                const hasDiscount = Boolean(
+                                  row.discount_rand.trim() || row.discount_percent.trim(),
+                                );
+                                patchPrice(activity.clientKey, row.clientKey, {
+                                  standard_price,
+                                  member_price: hasDiscount
+                                    ? derivedMemberPrice(
+                                        standard_price,
+                                        row.discount_rand,
+                                        row.discount_percent,
+                                      )
+                                    : row.member_price,
+                                });
+                              }}
+                            />
+                          </label>
+                          <fieldset className="cr-benefits">
+                            <legend>Membership Benefits</legend>
+                            <div className="cr-benefits-grid">
+                              <label className="field cr-quiet">
+                                <span className="sr-only">Discount Rand</span>
+                                <input
+                                  inputMode="decimal"
+                                  value={row.discount_rand}
+                                  placeholder="Discount Rand"
+                                  aria-label={`Activity ${activityIndex + 1} sub activity ${priceIndex + 1} discount rand`}
+                                  onChange={(e) => {
+                                    const discount_rand = e.target.value;
+                                    const discount_percent = discount_rand.trim()
+                                      ? ""
+                                      : row.discount_percent;
+                                    const hasDiscount = Boolean(
+                                      discount_rand.trim() || discount_percent.trim(),
+                                    );
+                                    patchPrice(activity.clientKey, row.clientKey, {
+                                      discount_rand,
+                                      discount_percent,
+                                      member_price: hasDiscount
+                                        ? derivedMemberPrice(
+                                            row.standard_price,
+                                            discount_rand,
+                                            discount_percent,
+                                          )
+                                        : row.discount_rand.trim()
+                                          ? ""
+                                          : row.member_price,
+                                    });
+                                  }}
+                                />
+                              </label>
+                              <label className="field cr-quiet">
+                                <span className="sr-only">Discount Percentage</span>
+                                <input
+                                  inputMode="decimal"
+                                  value={row.discount_percent}
+                                  placeholder="Discount Percentage"
+                                  aria-label={`Activity ${activityIndex + 1} sub activity ${priceIndex + 1} discount percentage`}
+                                  onChange={(e) => {
+                                    const discount_percent = e.target.value;
+                                    const discount_rand = discount_percent.trim()
+                                      ? ""
+                                      : row.discount_rand;
+                                    const hasDiscount = Boolean(
+                                      discount_rand.trim() || discount_percent.trim(),
+                                    );
+                                    patchPrice(activity.clientKey, row.clientKey, {
+                                      discount_rand,
+                                      discount_percent,
+                                      member_price: hasDiscount
+                                        ? derivedMemberPrice(
+                                            row.standard_price,
+                                            discount_rand,
+                                            discount_percent,
+                                          )
+                                        : row.discount_percent.trim()
+                                          ? ""
+                                          : row.member_price,
+                                    });
+                                  }}
+                                />
+                              </label>
+                              <label className="field cr-quiet">
+                                <span className="sr-only">Membership Price</span>
+                                <input
+                                  readOnly
+                                  tabIndex={-1}
+                                  value={row.member_price}
+                                  placeholder="Membership Price"
+                                  aria-label={`Activity ${activityIndex + 1} sub activity ${priceIndex + 1} membership price`}
+                                />
+                              </label>
+                            </div>
+                          </fieldset>
+                        </div>
+                        <div className="cr-sub-remove">
                           <button
-                            className="btn btn-secondary cr-inline-btn"
                             type="button"
+                            className="cr-text-remove"
                             onClick={() => removePrice(activity.clientKey, row.clientKey)}
                           >
-                            Remove Price
+                            Remove
                           </button>
-                        </article>
-                      );
-                    })}
-                  </div>
-                  <div className="cr-activity-actions">
-                    <button
-                      className="btn btn-secondary"
-                      type="button"
-                      onClick={() => addPrice(activity.clientKey)}
-                    >
-                      Add Price
-                    </button>
-                    <button
-                      className="btn btn-secondary"
-                      type="button"
-                      onClick={() => removeActivity(activity.clientKey)}
-                    >
-                      Remove Activity
-                    </button>
-                  </div>
+                        </div>
+                      </div>
+                    );
+                  })}
+                  <label className="field cr-quiet cr-details">
+                    <span className="sr-only">Activity Details</span>
+                    <textarea
+                      rows={4}
+                      value={activity.description}
+                      placeholder="Activity Details"
+                      aria-label={`Activity ${activityIndex + 1} details`}
+                      onChange={(e) =>
+                        patchActivity(activity.clientKey, { description: e.target.value })
+                      }
+                    />
+                  </label>
+                  <button
+                    className="cr-outline-btn"
+                    type="button"
+                    onClick={() => addPrice(activity.clientKey)}
+                  >
+                    Add Sub Activity
+                  </button>
                 </article>
               ))}
             </div>
-            <button className="btn btn-secondary" type="button" onClick={addActivity}>
+            <button className="cr-outline-btn" type="button" onClick={addActivity}>
               Add Activity
             </button>
           </section>
 
-          <section className="cr-step" id="step-audience">
+          <section className={stepOpen("photos") ? "cr-step is-open" : "cr-step"} id="step-photos">
             <h2>
-              <span>5</span> Chips &amp; Who It&apos;s For
+              <button type="button" className="cr-step-toggle" aria-expanded={stepOpen("photos")} onClick={() => toggleStep("photos")}>
+                <em>Photos</em>
+                <i className="cr-step-caret" aria-hidden="true" />
+              </button>
             </h2>
-            <p className="cr-subhead">Listing Chips</p>
-            <p className="muted cr-step-help">
-              Shown under the listing name. Pick up to 3 categories. Indoor / Outdoor is set on
-              The Listing. First selected is the primary category for interest suggestions.
-            </p>
-            <div className="cr-chip-grid" aria-label="Listing chips">
-              {catalog.kinds.map((kind) => {
-                const active = draft.kind_ids.includes(kind.id);
-                return (
-                  <button
-                    key={kind.id}
-                    type="button"
-                    className={active ? "cr-tag active" : "cr-tag"}
-                    onClick={() =>
-                      patch({ kind_ids: toggleId(draft.kind_ids, kind.id, 3) })
-                    }
-                  >
-                    {kind.title}
-                  </button>
-                );
-              })}
-            </div>
-
-            <p className="cr-subhead">Who Comes</p>
-            <p className="muted cr-step-help">
-              Algorithm only — not listing chips. Powers People Also Searched For &amp; For You.
-              Optional. Choose up to 3.
-            </p>
-            <div className="cr-chip-grid">
-              {whoComes.map((persona) => {
-                const active = draft.persona_ids.includes(persona.id);
-                return (
-                  <button
-                    key={persona.id}
-                    type="button"
-                    className={active ? "cr-tag active" : "cr-tag"}
-                    onClick={() =>
-                      patch({ persona_ids: toggleId(draft.persona_ids, persona.id, 3) })
-                    }
-                  >
-                    {persona.label}
-                  </button>
-                );
-              })}
-            </div>
-
-            <p className="cr-subhead">Energy</p>
-            <div className="cr-chip-grid">
-              {catalog.scales.map((scale) => {
-                const active = draft.scale_id === scale.id;
-                return (
-                  <button
-                    key={scale.id}
-                    type="button"
-                    className={active ? "cr-tag active" : "cr-tag"}
-                    title={scale.subtitle}
-                    onClick={() => patch({ scale_id: active ? "" : scale.id })}
-                  >
-                    {scale.title}
-                  </button>
-                );
-              })}
-            </div>
-
-            <p className="cr-subhead">Interests</p>
-            <p className="muted cr-step-help">
-              Search to find interests, or browse top picks for the selected category. Max 5.
-            </p>
-            {selectedInterests.length > 0 && (
-              <div className="cr-chip-grid cr-selected-chips">
-                {selectedInterests.map((interest) => (
-                  <button
-                    key={interest.id}
-                    type="button"
-                    className="cr-tag active"
-                    onClick={() =>
-                      patch({
-                        interest_ids: draft.interest_ids.filter((id) => id !== interest.id),
-                      })
-                    }
-                  >
-                    {interest.title} ×
-                  </button>
-                ))}
-              </div>
-            )}
-            <label className="field">
-              <span>Search Interests</span>
-              <input
-                type="search"
-                value={interestQuery}
-                onChange={(e) => setInterestQuery(e.target.value)}
-                placeholder="Bowling, escape rooms, markets…"
-              />
-            </label>
-            {interestResults.length === 0 && interestQuery.trim().length === 0 && (
-              <p className="muted">
-                Type to search, or pick a primary category to see suggested interests.
-              </p>
-            )}
-            {interestResults.length > 0 && (
-              <div className="cr-chip-grid">
-                {interestResults.map((interest) => {
-                  const active = draft.interest_ids.includes(interest.id);
-                  return (
-                    <button
-                      key={interest.id}
-                      type="button"
-                      className={active ? "cr-tag active" : "cr-tag"}
-                      onClick={() =>
-                        patch({
-                          interest_ids: toggleId(draft.interest_ids, interest.id, 5),
-                        })
-                      }
-                    >
-                      {interest.title}
-                    </button>
-                  );
-                })}
-              </div>
-            )}
-          </section>
-
-          <section className="cr-step" id="step-photos">
-            <h2>
-              <span>6</span> Photos
-            </h2>
-            <p className="muted cr-step-help">
-              Cover is the Discover hero. The rest appear under See all images.
-            </p>
-            {media.length === 0 && <p className="muted">No photos on this listing yet.</p>}
-            <div className="cr-photo-grid">
-              {media.map((item) => {
-                const cover = draft.cover_media_id === item.id;
-                return (
-                  <div
-                    key={item.id}
-                    className={cover ? "cr-photo active" : "cr-photo"}
-                    draggable
-                    onDragStart={() => {
-                      dragMediaId.current = item.id;
-                    }}
-                    onDragOver={(e) => e.preventDefault()}
-                    onDrop={(e) => {
-                      e.preventDefault();
-                      if (dragMediaId.current) reorderMedia(dragMediaId.current, item.id);
-                      dragMediaId.current = null;
-                    }}
-                  >
-                    <img src={item.public_url} alt={item.alt_text || ""} />
-                    <div className="cr-photo-actions">
-                      <button type="button" onClick={() => setCover(item.id)}>
-                        {cover ? "Cover" : "Make Cover"}
-                      </button>
-                      <button
-                        type="button"
-                        className="danger"
-                        disabled={photoPending}
-                        onClick={() => onDeletePhoto(item.id)}
-                      >
-                        Delete
-                      </button>
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
-            <div className="cr-photo-upload">
+            <div
+              className={photoDrag ? "cr-photo-well is-over" : "cr-photo-well"}
+              onDragEnter={(event) => {
+                event.preventDefault();
+                setPhotoDrag(true);
+              }}
+              onDragOver={(event) => {
+                event.preventDefault();
+                setPhotoDrag(true);
+              }}
+              onDragLeave={(event) => {
+                if (event.currentTarget.contains(event.relatedTarget as Node | null)) return;
+                setPhotoDrag(false);
+              }}
+              onDrop={(event) => {
+                event.preventDefault();
+                setPhotoDrag(false);
+                if (!photoPending) onUploadFiles(event.dataTransfer.files);
+              }}
+            >
               <input
                 ref={fileRef}
                 type="file"
@@ -1244,20 +1237,162 @@ export function ListingEditor({
                 hidden
                 onChange={(e) => onUploadFiles(e.target.files)}
               />
+              {media.length > 0 && (
+                <div className="cr-photo-grid">
+                  {media.map((item) => {
+                    const cover = draft.cover_media_id === item.id;
+                    return (
+                      <div
+                        key={item.id}
+                        className={cover ? "cr-photo active" : "cr-photo"}
+                        draggable
+                        onDragStart={() => {
+                          dragMediaId.current = item.id;
+                        }}
+                        onDragOver={(e) => e.preventDefault()}
+                        onDrop={(e) => {
+                          e.preventDefault();
+                          e.stopPropagation();
+                          setPhotoDrag(false);
+                          if (e.dataTransfer.files.length > 0) {
+                            if (!photoPending) onUploadFiles(e.dataTransfer.files);
+                            dragMediaId.current = null;
+                            return;
+                          }
+                          if (dragMediaId.current) reorderMedia(dragMediaId.current, item.id);
+                          dragMediaId.current = null;
+                        }}
+                      >
+                        <img src={item.public_url} alt={item.alt_text || ""} />
+                        <div className="cr-photo-actions">
+                          <button type="button" onClick={() => setCover(item.id)}>
+                            {cover ? "Cover" : "Make Cover"}
+                          </button>
+                          <button
+                            type="button"
+                            className="danger"
+                            disabled={photoPending}
+                            onClick={() => onDeletePhoto(item.id)}
+                          >
+                            Delete
+                          </button>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
               <button
-                className="btn btn-secondary"
+                className="cr-photo-add"
                 type="button"
                 disabled={photoPending}
                 onClick={() => fileRef.current?.click()}
               >
-                {photoStatus ?? "Add Photos"}
+                {photoStatus ?? "Add photos"}
               </button>
             </div>
           </section>
 
-          <section className="cr-step" id="step-review">
+          <section className={stepOpen("audience") ? "cr-step is-open" : "cr-step"} id="step-audience">
             <h2>
-              <span>7</span> Permission & Review
+              <button type="button" className="cr-step-toggle" aria-expanded={stepOpen("audience")} onClick={() => toggleStep("audience")}>
+                <em>Who&apos;s it for?</em>
+                <i className="cr-step-caret" aria-hidden="true" />
+              </button>
+            </h2>
+            <div className="cr-audience-well">
+              <div className="cr-audience-group">
+                <p className="cr-about-label">Interests</p>
+                <div className="cr-chip-grid">
+                  {INTEREST_CHIPS.map((item) => {
+                    const kind = catalog.kinds.find((row) => row.key === item.key);
+                    if (!kind) return null;
+                    const active = draft.kind_ids.includes(kind.id);
+                    return (
+                      <button
+                        key={kind.id}
+                        type="button"
+                        className={active ? "cr-tag active" : "cr-tag"}
+                        onClick={() => patch({ kind_ids: toggleId(draft.kind_ids, kind.id) })}
+                      >
+                        {item.label}
+                      </button>
+                    );
+                  })}
+                </div>
+                <label className="field cr-quiet">
+                  <span className="sr-only">Interest keywords</span>
+                  <input
+                    value={draft.interest_keywords}
+                    onChange={(event) => {
+                      const interest_keywords = event.target.value;
+                      patch({
+                        interest_keywords,
+                        interest_ids: interestIdsFromKeywords(interest_keywords, catalog.interests),
+                      });
+                    }}
+                    placeholder='Keywords (Separate with ",")'
+                    aria-label="Interest keywords"
+                  />
+                </label>
+              </div>
+
+              <div className="cr-audience-group">
+                <p className="cr-about-label">Persona (How you go out)</p>
+                <div className="cr-chip-grid">
+                  {catalog.personas.map((persona) => {
+                    const active = draft.persona_ids.includes(persona.id);
+                    return (
+                      <button
+                        key={persona.id}
+                        type="button"
+                        className={active ? "cr-tag active" : "cr-tag"}
+                        onClick={() => patch({ persona_ids: toggleId(draft.persona_ids, persona.id) })}
+                      >
+                        {persona.title}
+                      </button>
+                    );
+                  })}
+                </div>
+                <label className="field cr-quiet">
+                  <span className="sr-only">Persona keywords</span>
+                  <input
+                    value={draft.persona_keywords}
+                    onChange={(event) => patch({ persona_keywords: event.target.value })}
+                    placeholder='Keywords (Separate with ",")'
+                    aria-label="Persona keywords"
+                  />
+                </label>
+              </div>
+
+              <div className="cr-audience-group">
+                <p className="cr-about-label">Adventure Level</p>
+                <div className="cr-chip-grid">
+                  {catalog.scales.map((scale) => {
+                    const active = draft.scale_id === scale.id;
+                    return (
+                      <button
+                        key={scale.id}
+                        type="button"
+                        className={active ? "cr-tag active" : "cr-tag"}
+                        title={scale.subtitle}
+                        onClick={() => patch({ scale_id: active ? "" : scale.id })}
+                      >
+                        {scale.title}
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+            </div>
+          </section>
+
+          <section className={stepOpen("review") ? "cr-step is-open" : "cr-step"} id="step-review">
+            <h2>
+              <button type="button" className="cr-step-toggle" aria-expanded={stepOpen("review")} onClick={() => toggleStep("review")}>
+                <em>Permission &amp; Review</em>
+                <i className="cr-step-caret" aria-hidden="true" />
+              </button>
             </h2>
             <label className="cr-check">
               <input
@@ -1265,7 +1400,7 @@ export function ListingEditor({
                 checked={draft.authorised_to_submit}
                 onChange={(e) => patch({ authorised_to_submit: e.target.checked })}
               />
-              <span>I am authorised to submit this business on Venturo.</span>
+              <span>I am authorised to submit this business on Venturo</span>
             </label>
             <label className="cr-check">
               <input
@@ -1273,27 +1408,69 @@ export function ListingEditor({
                 checked={draft.image_rights_granted}
                 onChange={(e) => patch({ image_rights_granted: e.target.checked })}
               />
+              <span>Images &amp; Copy may be used on the Application, Website, and Adverts</span>
+            </label>
+            <label className="cr-check">
+              <input
+                type="checkbox"
+                checked={draft.terms_accepted}
+                onChange={(e) => patch({ terms_accepted: e.target.checked })}
+              />
               <span>
-                Images & copy may be used on the app, website, social, and ads.
+                I agree to the{" "}
+                <a href="/terms" target="_blank" rel="noreferrer">
+                  Terms and Conditions
+                </a>
+                ,{" "}
+                <a href="/privacy_policy" target="_blank" rel="noreferrer">
+                  Privacy Policy
+                </a>
+                , and{" "}
+                <a href="/community-guidelines" target="_blank" rel="noreferrer">
+                  Content
+                </a>
               </span>
             </label>
-            <div className="cr-next-box">
-              <p className="cr-subhead">What Happens Next?</p>
-              <p className="muted">
-                Save your edits any time. Approve & Publish is still a staff-only action —
-                businesses never go live themselves.
-              </p>
-            </div>
             <div className="cr-audit">
-              <p className="cr-subhead">Audit</p>
+              <p className="cr-about-label">Audit Review</p>
               {audit.length === 0 && <p className="muted">No staff actions yet.</p>}
               <ul>
-                {audit.map((row) => (
-                  <li key={row.id}>
-                    <span>{auditLabel(row)}</span>
-                    <span>{formatClock(row.created_at)}</span>
-                  </li>
-                ))}
+                {audit.map((row) => {
+                  const open = openAuditId === row.id;
+                  const changes = auditChanges(row.before, row.after);
+                  const when = formatAuditWhen(row.created_at);
+                  return (
+                    <li key={row.id}>
+                      <button
+                        type="button"
+                        className="cr-audit-row"
+                        aria-expanded={open}
+                        onClick={() => setOpenAuditId(open ? null : row.id)}
+                      >
+                        <span>{auditLabel(row)}</span>
+                        <span>
+                          {when} - {row.actor_name}
+                        </span>
+                      </button>
+                      {open ? (
+                        <div className="cr-audit-detail">
+                          {changes.length === 0 ? (
+                            <p>No field changes were stored for this entry.</p>
+                          ) : (
+                            changes.map((change) => (
+                              <div key={change.label}>
+                                <p>{change.label}</p>
+                                {change.lines.map((line, index) => (
+                                  <p key={`${change.label}-${index}`}>{line}</p>
+                                ))}
+                              </div>
+                            ))
+                          )}
+                        </div>
+                      ) : null}
+                    </li>
+                  );
+                })}
               </ul>
             </div>
           </section>
@@ -1306,7 +1483,7 @@ export function ListingEditor({
           branches={branches}
         />
       </div>
-
+      </div>
     </div>
   );
 }

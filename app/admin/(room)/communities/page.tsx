@@ -22,17 +22,6 @@ export default async function AdminCommunitiesPage({
         Publish a community here and the website and the app can follow the same record.
       </p>
       {error ? <p className="error">{error}</p> : null}
-      <div className="chips" style={{ margin: "20px 0" }}>
-        {TABS.map((tab) => (
-          <a
-            key={tab}
-            className={`chip${current === tab ? " active" : ""}`}
-            href={tab === "all" ? "/admin/communities" : `/admin/communities?status=${tab}`}
-          >
-            {tab === "all" ? "All" : tab}
-          </a>
-        ))}
-      </div>
       <form action={saveCommunity} className="cr-panel" style={{ marginBottom: 24 }}>
         <h2>New Community</h2>
         <label className="field">

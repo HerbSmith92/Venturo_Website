@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useMemo, useRef, useState } from "react";
 import type { ListingDetail } from "@/lib/control-room-types";
 import {
   formatAppPrice,
@@ -95,14 +95,115 @@ function IconPhone() {
 }
 
 function Stars({ rating }: { rating: number }) {
-  const filled = Math.floor(rating);
   return (
     <span className="cr-phone-stars" aria-hidden="true">
-      {[1, 2, 3, 4, 5].map((star) => (
-        <span key={star} className={star <= filled ? "filled" : undefined}>
-          ★
-        </span>
-      ))}
+      {[1, 2, 3, 4, 5].map((star) => {
+        const state = rating >= star ? "filled" : rating >= star - 0.5 ? "half" : undefined;
+        return (
+          <span key={star} className={state}>
+            ★
+          </span>
+        );
+      })}
+    </span>
+  );
+}
+
+function IconBack() {
+  return (
+    <svg viewBox="0 0 24 24" aria-hidden="true">
+      <path d="M14.5 6 8.5 12l6 6" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
+    </svg>
+  );
+}
+
+function IconHeart() {
+  return (
+    <svg viewBox="0 0 24 24" aria-hidden="true">
+      <path
+        d="M12 18.2s-6.2-3.7-6.2-8.1A3.4 3.4 0 0 1 12 8a3.4 3.4 0 0 1 6.2 2.1c0 4.4-6.2 8.1-6.2 8.1Z"
+        fill="none"
+        stroke="currentColor"
+        strokeWidth="1.6"
+        strokeLinejoin="round"
+      />
+    </svg>
+  );
+}
+
+function IconShare() {
+  return (
+    <svg viewBox="0 0 24 24" aria-hidden="true">
+      <path d="M12 14V5M12 5l-3 3M12 5l3 3" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" />
+      <path d="M7 12.5V17a2 2 0 0 0 2 2h6a2 2 0 0 0 2-2v-4.5" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" />
+    </svg>
+  );
+}
+
+function IconCalendar() {
+  return (
+    <svg viewBox="0 0 24 24" aria-hidden="true">
+      <rect x="4" y="5" width="16" height="15" rx="2" fill="none" stroke="currentColor" strokeWidth="1.6" />
+      <path d="M4 10h16M8 3.5v3M16 3.5v3" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" />
+    </svg>
+  );
+}
+
+function IconSpark() {
+  return (
+    <svg viewBox="0 0 24 24" aria-hidden="true">
+      <path d="M12 3.5 13.4 9 19 10.5 13.4 12 12 17.5 10.6 12 5 10.5 10.6 9 12 3.5Z" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinejoin="round" />
+      <path d="M18 15.5 18.6 17.4 20.5 18 18.6 18.6 18 20.5 17.4 18.6 15.5 18 17.4 17.4 18 15.5Z" fill="currentColor" />
+    </svg>
+  );
+}
+
+function IconCompass() {
+  return (
+    <svg viewBox="0 0 24 24" aria-hidden="true">
+      <circle cx="12" cy="12" r="8" fill="none" stroke="currentColor" strokeWidth="1.6" />
+      <path d="m14.8 9.2-1.3 4.3-4.3 1.3 1.3-4.3 4.3-1.3Z" fill="currentColor" />
+    </svg>
+  );
+}
+
+function IconPeople() {
+  return (
+    <svg viewBox="0 0 24 24" aria-hidden="true">
+      <circle cx="9" cy="9" r="2.4" fill="none" stroke="currentColor" strokeWidth="1.6" />
+      <circle cx="16" cy="10" r="2" fill="none" stroke="currentColor" strokeWidth="1.6" />
+      <path d="M4.8 18.2c.6-2.2 2.3-3.4 4.2-3.4s3.6 1.2 4.2 3.4M14 14.8c1.4 0 2.8.8 3.4 2.6" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" />
+    </svg>
+  );
+}
+
+function IconWallet() {
+  return (
+    <svg viewBox="0 0 24 24" aria-hidden="true">
+      <rect x="5" y="4.5" width="12" height="15" rx="1.5" fill="none" stroke="currentColor" strokeWidth="1.6" />
+      <path d="M8 8.5h6M8 12h6M8 15.5h4" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" />
+    </svg>
+  );
+}
+
+function StatusSignals() {
+  return (
+    <span className="cr-device-signals" aria-hidden="true">
+      <svg viewBox="0 0 18 12">
+        <rect x="0" y="7" width="3" height="5" rx="0.6" fill="currentColor" />
+        <rect x="5" y="4.5" width="3" height="7.5" rx="0.6" fill="currentColor" />
+        <rect x="10" y="2" width="3" height="10" rx="0.6" fill="currentColor" />
+        <rect x="15" y="0" width="3" height="12" rx="0.6" fill="currentColor" />
+      </svg>
+      <svg viewBox="0 0 16 12">
+        <path d="M8 10.2 1.2 4.2a9 9 0 0 1 13.6 0L8 10.2Z" fill="none" stroke="currentColor" strokeWidth="1.4" />
+        <path d="M8 10.2 4.2 6.8a5 5 0 0 1 7.6 0L8 10.2Z" fill="currentColor" />
+      </svg>
+      <svg viewBox="0 0 26 12">
+        <rect x="0.6" y="1" width="21" height="10" rx="2" fill="none" stroke="currentColor" strokeWidth="1.2" />
+        <rect x="2.2" y="2.6" width="8" height="6.8" rx="1" fill="currentColor" />
+        <rect x="22.4" y="3.6" width="1.8" height="4.8" rx="0.6" fill="currentColor" />
+      </svg>
     </span>
   );
 }
@@ -121,6 +222,8 @@ export function ListingAppPreview({
   const [descOpen, setDescOpen] = useState(false);
   const [heroIndex, setHeroIndex] = useState(0);
   const [tab, setTab] = useState<"info" | "reviews">("info");
+  const [barSolid, setBarSolid] = useState(false);
+  const screenRef = useRef<HTMLDivElement>(null);
   const hours = previewHours(draft);
   const prices = previewPrices(draft, 8);
   const media = activeMedia(draft);
@@ -164,9 +267,20 @@ export function ListingAppPreview({
 
   return (
     <aside className="cr-phone-wrap" aria-label="Discover listing preview">
-      <p className="cr-phone-label">Discover Listing</p>
-      <div className="cr-phone cr-phone-app">
-        <div className="cr-phone-screen">
+      <p className="cr-phone-label">Application Preview</p>
+      <div className="cr-device">
+        <div className="cr-device-bezel">
+          <div className="cr-device-screen cr-phone">
+            <div className={barSolid ? "cr-device-status is-solid" : "cr-device-status"} aria-hidden="true">
+              <span>16:18</span>
+              <span className="cr-device-island" />
+              <StatusSignals />
+            </div>
+            <div
+              className="cr-phone-screen"
+              ref={screenRef}
+              onScroll={(event) => setBarSolid(event.currentTarget.scrollTop > 12)}
+            >
           <div className="cr-phone-hero">
             {cover ? (
               <img src={cover.public_url} alt="" />
@@ -174,10 +288,16 @@ export function ListingAppPreview({
               <div className="cr-phone-hero-empty">No cover yet</div>
             )}
             <div className="cr-phone-hero-chrome" aria-hidden="true">
-              <span className="cr-phone-hero-btn">‹</span>
+              <span className="cr-phone-hero-back">
+                <IconBack />
+              </span>
               <span className="cr-phone-hero-actions">
-                <span className="cr-phone-hero-btn">♡</span>
-                <span className="cr-phone-hero-btn">↗</span>
+                <span className="cr-phone-hero-btn">
+                  <IconHeart />
+                </span>
+                <span className="cr-phone-hero-btn">
+                  <IconShare />
+                </span>
               </span>
             </div>
             {cover && (
@@ -205,6 +325,7 @@ export function ListingAppPreview({
             {rating != null && (
               <p className="cr-phone-rating">
                 <Stars rating={rating} />
+                <span className="cr-phone-rating-rule" />
                 <span>Avg {rating.toFixed(1)}</span>
               </p>
             )}
@@ -302,12 +423,18 @@ export function ListingAppPreview({
                 <h4>Map Location</h4>
                 <div className="cr-phone-map">
                   {mapQuery ? (
-                    <iframe
-                      title="Map preview"
-                      src={`https://maps.google.com/maps?q=${encodeURIComponent(mapQuery)}&z=15&output=embed`}
-                      loading="lazy"
-                      referrerPolicy="no-referrer-when-downgrade"
-                    />
+                    <>
+                      <iframe
+                        title="Map preview"
+                        src={`https://maps.google.com/maps?q=${encodeURIComponent(mapQuery)}&z=14&output=embed`}
+                        loading="lazy"
+                        referrerPolicy="no-referrer-when-downgrade"
+                      />
+                      <p className="cr-phone-pin">
+                        <span />
+                        <em>{draft.name || "Listing"}</em>
+                      </p>
+                    </>
                   ) : (
                     <p>Add a street address or pin to preview the map.</p>
                   )}
@@ -338,14 +465,31 @@ export function ListingAppPreview({
               </>
             )}
           </div>
+            </div>
+            <nav className="cr-phone-nav" aria-hidden="true">
+              <span>
+                <IconCalendar />
+                <em>Calendar</em>
+              </span>
+              <span>
+                <IconSpark />
+                <em>Events</em>
+              </span>
+              <span className="active">
+                <IconCompass />
+                <em>Discover</em>
+              </span>
+              <span>
+                <IconPeople />
+                <em>Community</em>
+              </span>
+              <span>
+                <IconWallet />
+                <em>Wallet</em>
+              </span>
+            </nav>
+          </div>
         </div>
-        <nav className="cr-phone-nav" aria-hidden="true">
-          <span>Calendar</span>
-          <span>Events</span>
-          <span className="active">Discover</span>
-          <span>Community</span>
-          <span>Wallet</span>
-        </nav>
       </div>
     </aside>
   );

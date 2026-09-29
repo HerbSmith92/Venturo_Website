@@ -1,8 +1,10 @@
-import { applyListingAction } from "@/app/admin/actions";
+import { applyListingAction, deleteArchivedListing } from "@/app/admin/actions";
 import type { ListingDetail } from "@/lib/control-room-types";
+import { DeleteArchivedListing } from "@/components/admin/DeleteArchivedListing";
 
 export function ListingActions({ listing }: { listing: ListingDetail }) {
   const suspended = Boolean(listing.is_suspended);
+  const archived = listing.status === "archived";
   const scheduled =
     listing.status === "approved" &&
     Boolean(listing.publish_at) &&
@@ -13,20 +15,15 @@ export function ListingActions({ listing }: { listing: ListingDetail }) {
       {listing.review_note ? (
         <p className="notice">Last note: {listing.review_note}</p>
       ) : null}
-      {scheduled ? (
+      {suspended ? (
         <p className="notice">
-          Scheduled for {new Date(listing.publish_at ?? "").toLocaleString("en-ZA", { hourCycle: "h23" })}.
-          The website and app stay quiet until then.
+          This business asked us to take the listing down. It stays here until you recover it.
         </p>
       ) : null}
       {listing.status !== "approved" || suspended || scheduled ? (
         <form action={applyListingAction} className="cr-action-note">
           <input type="hidden" name="id" value={listing.id} />
           <input type="hidden" name="action" value="approve" />
-          <label className="field">
-            <span>Go live at (optional, Johannesburg time)</span>
-            <input name="publish_at" type="datetime-local" />
-          </label>
           <button className="btn btn-primary" type="submit">
             Approve & Publish
           </button>
@@ -37,7 +34,7 @@ export function ListingActions({ listing }: { listing: ListingDetail }) {
           <input type="hidden" name="id" value={listing.id} />
           <input type="hidden" name="action" value="review" />
           <button className="btn btn-secondary" type="submit">
-            Move To Review
+            Send For Approval
           </button>
         </form>
       )}
@@ -59,8 +56,8 @@ export function ListingActions({ listing }: { listing: ListingDetail }) {
           <input type="hidden" name="id" value={listing.id} />
           <input type="hidden" name="action" value="suspend" />
           <label className="field">
-            <span>Why it is leaving the app</span>
-            <textarea name="note" rows={2} placeholder="Optional" />
+            <span>They asked us to take this down</span>
+            <textarea name="note" rows={2} placeholder="Optional note" />
           </label>
           <button className="btn btn-secondary" type="submit">
             Suspend
@@ -72,20 +69,22 @@ export function ListingActions({ listing }: { listing: ListingDetail }) {
           <input type="hidden" name="id" value={listing.id} />
           <input type="hidden" name="action" value="unsuspend" />
           <button className="btn btn-primary" type="submit">
-            Return To The App
+            Recover
           </button>
         </form>
       ) : null}
-      {listing.status !== "archived" && (
+      {archived ? (
+        <DeleteArchivedListing id={listing.id} action={deleteArchivedListing} />
+      ) : (
         <form action={applyListingAction} className="cr-action-note">
           <input type="hidden" name="id" value={listing.id} />
           <input type="hidden" name="action" value="archive" />
           <label className="field">
-            <span>Reason for rejection</span>
-            <textarea name="note" required rows={2} placeholder="Why this listing cannot go live." />
+            <span>Archive note (optional)</span>
+            <textarea name="note" rows={2} placeholder="Why this listing is leaving the directory." />
           </label>
           <button className="btn btn-secondary" type="submit">
-            Reject & Archive
+            Archive
           </button>
         </form>
       )}

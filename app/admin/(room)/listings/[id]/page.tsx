@@ -1,5 +1,7 @@
 import { notFound } from "next/navigation";
 import { ListingEditor } from "@/components/admin/ListingEditor";
+import { getStaffSession } from "@/lib/auth";
+import { isAdmin } from "@/lib/roles";
 import {
   loadAudit,
   loadEditorBranches,
@@ -16,6 +18,7 @@ export default async function ListingReviewPage({
 }) {
   const { id } = await params;
   const { error, done } = await searchParams;
+  const session = await getStaffSession();
   const listing = await loadListing(id);
   if (!listing) notFound();
 
@@ -27,7 +30,9 @@ export default async function ListingReviewPage({
 
   const notice =
     done === "edit"
-      ? "Draft saved."
+      ? listing.status === "approved"
+        ? "Edits saved. The live listing stays as it is until an admin approves."
+        : "Draft saved."
       : done
         ? `Saved: ${done}.`
         : undefined;
@@ -40,6 +45,7 @@ export default async function ListingReviewPage({
       audit={audit}
       notice={notice}
       error={error}
+      canApprove={isAdmin(session?.role)}
     />
   );
 }

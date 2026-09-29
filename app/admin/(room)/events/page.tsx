@@ -27,18 +27,6 @@ export default async function AdminEventsPage({
       <h1>Events</h1>
       <p className="muted">Approve member-hosted events before they go public.</p>
 
-      <div className="chips" style={{ margin: "24px 0" }}>
-        {FILTERS.map((filter) => (
-          <a
-            key={filter.id}
-            className={`chip${status === filter.id ? " active" : ""}`}
-            href={`/admin/events?status=${filter.id}`}
-          >
-            {filter.label}
-          </a>
-        ))}
-      </div>
-
       {events.length === 0 ? (
         <p className="notice">
           {status === "review"
