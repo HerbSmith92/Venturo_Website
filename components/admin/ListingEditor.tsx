@@ -475,6 +475,16 @@ export function ListingEditor({
               <button className="btn btn-secondary" type="button" onClick={onSave} disabled={pending}>
                 {pending ? "Saving…" : "Save Draft"}
               </button>
+              {listing.slug ? (
+                <a
+                  className="btn btn-secondary"
+                  href={`/admin/listings/${listing.id}/poster`}
+                  target="_blank"
+                  rel="noreferrer"
+                >
+                  Print Partner Poster
+                </a>
+              ) : null}
               <ListingActions listing={listing} />
             </div>
           </div>
