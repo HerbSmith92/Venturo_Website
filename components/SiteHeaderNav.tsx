@@ -32,21 +32,6 @@ export function SiteHeaderNav({ user }: { user: CurrentUser | null }) {
 
   return (
     <div className="nav-bar" ref={rootRef}>
-      <nav className="nav-actions nav-actions-desktop" aria-label="Site">
-        <a className="btn btn-ghost" href="/directory">
-          Directory
-        </a>
-        <a className="btn btn-ghost" href="/events">
-          Events
-        </a>
-        <a className="btn btn-ghost" href="/communities">
-          Communities
-        </a>
-        <a className="btn btn-ghost" href="/guides">
-          Guides
-        </a>
-      </nav>
-
       {user ? (
         <a className="btn btn-primary nav-signup" href="/account">
           {profileLabel}
@@ -73,17 +58,8 @@ export function SiteHeaderNav({ user }: { user: CurrentUser | null }) {
       {open && (
         <div className="nav-drawer-panel" id={panelId}>
           <nav className="nav-drawer-links" aria-label="Site menu">
-            <div className="nav-drawer-public">
-              <a href="/directory">Directory</a>
-              <a href="/events">Events</a>
-              <a href="/communities">Communities</a>
-              <a href="/guides">Guides</a>
-            </div>
-            <a href="/list-your-business">List Your Business</a>
-            <a href="/events/create">Create An Event</a>
-            <p className="nav-drawer-label">Here To Help</p>
-            <a href="/support">Support</a>
-            <a href="/legal-documents">Legal Documents</a>
+            <a href="/directory">Directory</a>
+            <a href="/events">Events</a>
             <a href="/admin">Admin</a>
             {user ? (
               <>

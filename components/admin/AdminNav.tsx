@@ -6,19 +6,6 @@ import type { StaffSession } from "@/lib/auth";
 const CONTENT = [
   { href: "/admin/listings", label: "Directory" },
   { href: "/admin/events", label: "Events" },
-  { href: "/admin/communities", label: "Communities" },
-  { href: "/admin/guides", label: "Guides" },
-  { href: "/admin/website", label: "Website" },
-];
-
-const OPERATIONS = [
-  { href: "/admin/enquiries", label: "Enquiries" },
-  { href: "/admin/claims", label: "Claims" },
-  { href: "/admin/operations", label: "Orders" },
-  { href: "/admin/members", label: "Members" },
-  { href: "/admin/analytics", label: "Analytics" },
-  { href: "/admin/settings", label: "Settings" },
-  { href: "/admin/staff", label: "Staff" },
 ];
 
 function NavLinks({
@@ -54,10 +41,6 @@ export function AdminNav({ user }: { user: StaffSession }) {
         <p className="cr-nav-label">Content</p>
         <div className="cr-nav-group">
           <NavLinks items={CONTENT} path={path} />
-        </div>
-        <p className="cr-nav-label">Operations</p>
-        <div className="cr-nav-group">
-          <NavLinks items={OPERATIONS} path={path} />
         </div>
       </nav>
       <div className="cr-nav-foot">

@@ -5,14 +5,13 @@ export default async function ControlRoomHome() {
 
   return (
     <section>
-      <p className="eyebrow">Website, Directory & Memberships</p>
+      <p className="eyebrow">Staff</p>
       <h1>Control Room</h1>
       <p className="lede muted">
-        Approve listings & member-hosted events, feature Top Picks, & read
-        enquiries. Publish is a staff action — hosts cannot go live themselves.
+        Directory and Events are the two desks. The public site is being rebuilt one screen at a time.
       </p>
       <div className="cr-board">
-        <h2>Content</h2>
+        <h2>Directory</h2>
         <div className="cr-stats">
           <a className="cr-stat" href="/admin/listings?status=approved">
             <span>Live</span>
@@ -23,12 +22,8 @@ export default async function ControlRoomHome() {
             <strong>{stats.review}</strong>
           </a>
           <a className="cr-stat" href="/admin/listings?status=draft">
-            <span>Changes Requested</span>
+            <span>Drafts</span>
             <strong>{stats.draft}</strong>
-          </a>
-          <a className="cr-stat" href="/admin/events?status=review">
-            <span>Events In Review</span>
-            <strong>{stats.eventsReview}</strong>
           </a>
           <a className="cr-stat" href="/admin/listings?status=archived">
             <span>Archived</span>
@@ -37,18 +32,14 @@ export default async function ControlRoomHome() {
         </div>
       </div>
       <div className="cr-board">
-        <h2>Operations</h2>
+        <h2>Events</h2>
         <div className="cr-stats">
-          <a className="cr-stat" href="/admin/members">
-            <span>Members</span>
-            <strong>{stats.members}</strong>
+          <a className="cr-stat" href="/admin/events?status=review">
+            <span>In Review</span>
+            <strong>{stats.eventsReview}</strong>
           </a>
-          <a className="cr-stat" href="/admin/enquiries">
-            <span>Enquiries</span>
-            <strong>{stats.enquiries}</strong>
-          </a>
-          <a className="cr-stat" href="/admin/claims">
-            <span>Claims</span>
+          <a className="cr-stat" href="/admin/events">
+            <span>All Events</span>
             <strong>Open</strong>
           </a>
         </div>
