@@ -6876,14 +6876,154 @@ label.check {
   }
 }
 
+.poster-page {
+  display: grid;
+  gap: 16px;
+}
+
+.poster-toolbar {
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+}
+
+.poster-sheet {
+  width: min(210mm, 100%);
+  min-height: 297mm;
+  margin: 0 auto;
+  padding: 16mm 16mm 14mm;
+  background: var(--snow);
+  color: var(--night);
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  box-shadow: var(--shadow-1);
+}
+
+.poster-logo {
+  width: 120px;
+  height: auto;
+}
+
+.poster-kicker {
+  margin: 28px 0 8px;
+  font-family: "Social Gothic Rough", "Arial Black", sans-serif;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  font-size: 18px;
+}
+
+.poster-sheet h1 {
+  font-size: 42px;
+  text-transform: uppercase;
+  max-width: 160mm;
+}
+
+.poster-place {
+  margin: 10px 0 0;
+  font-size: 18px;
+}
+
+.poster-claim-qr {
+  width: min(68mm, 70%);
+  height: auto;
+  margin: 16mm auto 8mm;
+}
+
+.poster-sheet h2 {
+  align-self: stretch;
+  text-align: center;
+  font-size: 26px;
+  text-transform: uppercase;
+}
+
+.poster-copy {
+  align-self: stretch;
+  margin: 10px 0 0;
+  text-align: center;
+  font-size: 16px;
+}
+
+.poster-stores {
+  align-self: stretch;
+  display: flex;
+  justify-content: center;
+  gap: 28mm;
+  margin-top: auto;
+  padding-top: 16mm;
+}
+
+.poster-stores figure {
+  margin: 0;
+  display: grid;
+  justify-items: center;
+  gap: 6px;
+}
+
+.poster-stores img {
+  width: min(32mm, 100%);
+  height: auto;
+}
+
+.poster-stores figcaption {
+  font-size: 13px;
+}
+
+.poster-address {
+  align-self: stretch;
+  margin: 10mm 0 0;
+  text-align: center;
+  font-size: 12px;
+}
+
+.listing-offer {
+  margin-top: 18px;
+}
+
 @media print {
   .portal-chrome,
   .portal-rail,
   .portal-studio-back,
   .event-dash-menu,
   .event-guest-toolbar,
-  .hero-actions {
+  .hero-actions,
+  .cr-nav,
+  .poster-toolbar {
     display: none !important;
+  }
+
+  body:has(.poster-page),
+  .cr-shell:has(.poster-page),
+  .cr-main:has(.poster-page) {
+    background: #fff !important;
+  }
+
+  .cr-shell:has(.poster-page) {
+    display: block;
+  }
+
+  .cr-main:has(.poster-page) {
+    padding: 0;
+  }
+
+  .poster-sheet {
+    width: 210mm;
+    min-height: 297mm;
+    margin: 0;
+    box-shadow: none;
+  }
+
+  .poster-claim-qr {
+    width: 68mm;
+  }
+
+  .poster-stores img {
+    width: 32mm;
+  }
+
+  @page {
+    size: A4;
+    margin: 0;
   }
 
   .event-guest-table {

@@ -16,10 +16,13 @@ import { notFound } from "next/navigation";
 
 export default async function ListingDetailPage({
   params,
+  searchParams,
 }: {
   params: Promise<{ slug: string }>;
+  searchParams: Promise<{ offer?: string }>;
 }) {
   const { slug } = await params;
+  const { offer } = await searchParams;
   const listing = await getPublicListingBySlug(slug);
   if (!listing) notFound();
 
@@ -108,6 +111,10 @@ export default async function ListingDetailPage({
           </div>
         </div>
       </section>
+
+      {offer === "member" ? (
+        <p className="notice shell">Open the Venturo app to claim this member price.</p>
+      ) : null}
 
       <section className="section shell">
         <div className="event-detail-grid">
