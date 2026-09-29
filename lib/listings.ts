@@ -70,7 +70,12 @@ type LiveRow = {
   publish_at?: string | null;
   is_featured: boolean | null;
   google_rating: number | string | null;
-  listing_media?: { public_url: string | null; is_cover: boolean | null; sort_order: number | null }[];
+  listing_media?: {
+    public_url: string | null;
+    is_cover: boolean | null;
+    sort_order: number | null;
+    is_pending?: boolean | null;
+  }[];
   listing_activity_kinds?: {
     is_primary: boolean | null;
     activity_kinds?: { key: string | null } | { key: string | null }[] | null;
@@ -101,7 +106,7 @@ function mapLiveRow(row: LiveRow): Listing {
   const rawKey = kinds.map(kindKey).find((key): key is string => Boolean(key));
   const category: CategoryId = rawKey && isCategoryId(rawKey) ? rawKey : "adventure";
 
-  const media = [...(row.listing_media ?? [])].sort((a, b) => {
+  const media = [...(row.listing_media ?? [])].filter((item) => !item.is_pending).sort((a, b) => {
     if (a.is_cover !== b.is_cover) return a.is_cover ? -1 : 1;
     return (a.sort_order ?? 0) - (b.sort_order ?? 0);
   });
@@ -152,7 +157,7 @@ const LIVE_SELECT = `
       longitude,
       is_suspended,
       publish_at,
-      listing_media ( public_url, is_cover, sort_order ),
+      listing_media ( public_url, is_cover, sort_order, is_pending ),
       listing_activity_kinds ( is_primary, activity_kinds ( key ) ),
       price_options ( standard_price, member_price, is_active )
     `;
@@ -180,7 +185,7 @@ async function loadLiveListings(): Promise<Listing[] | null> {
           .select(
             `
       id, name, slug, suburb, city, short_description, price_from, is_featured, google_rating,
-      listing_media ( public_url, is_cover, sort_order ),
+      listing_media ( public_url, is_cover, sort_order, is_pending ),
       listing_activity_kinds ( is_primary, activity_kinds ( key ) ),
       price_options ( standard_price, member_price, is_active )
     `,
@@ -347,6 +352,7 @@ export type PublicListingDetail = Listing & {
     shortDescription: string | null;
     durationMinutes: number | null;
     bookingRequired: boolean;
+    fromAmount: number | null;
   }[];
   prices: {
     id: string;
@@ -378,6 +384,8 @@ type DetailRow = LiveRow & {
     booking_required: boolean | null;
     sort_order: number | null;
     status: string | null;
+    show_on_discover?: boolean | null;
+    show_on_from?: boolean | null;
   }[];
   operating_hours?: {
     day_of_week: number;
@@ -395,6 +403,7 @@ type DetailRow = LiveRow & {
     is_active: boolean | null;
     sort_order: number | null;
     applies_to?: string | null;
+    show_on_from?: boolean | null;
   }[];
 };
 
@@ -432,14 +441,14 @@ export async function getPublicListingBySlug(
       maps_url,
       booking_required,
       indoor_outdoor,
-      listing_media ( public_url, is_cover, sort_order, alt_text ),
+      listing_media ( public_url, is_cover, sort_order, alt_text, is_pending ),
       listing_activity_kinds ( is_primary, activity_kinds ( key ) ),
       listing_activities!listing_activities_listing_id_fkey (
-        id, name, short_description, description, duration_minutes, booking_required, sort_order, status
+        id, name, short_description, description, duration_minutes, booking_required, sort_order, status, show_on_discover, show_on_from
       ),
       operating_hours ( day_of_week, opens_at, closes_at, is_closed ),
       price_options (
-        id, listing_activity_id, name, standard_price, member_price, inclusions, is_active, sort_order, applies_to
+        id, listing_activity_id, name, standard_price, member_price, inclusions, is_active, show_on_from, sort_order, applies_to
       )
     `,
     )
@@ -456,14 +465,14 @@ export async function getPublicListingBySlug(
       id, name, slug, suburb, city, short_description, description, price_from, is_featured, google_rating,
       website_url, booking_url, street_address_1, street_address_2, province, postal_code,
       booking_required, indoor_outdoor,
-      listing_media ( public_url, is_cover, sort_order, alt_text ),
+      listing_media ( public_url, is_cover, sort_order, alt_text, is_pending ),
       listing_activity_kinds ( is_primary, activity_kinds ( key ) ),
       listing_activities!listing_activities_listing_id_fkey (
-        id, name, short_description, description, duration_minutes, booking_required, sort_order, status
+        id, name, short_description, description, duration_minutes, booking_required, sort_order, status, show_on_discover, show_on_from
       ),
       operating_hours ( day_of_week, opens_at, closes_at, is_closed ),
       price_options (
-        id, listing_activity_id, name, standard_price, member_price, inclusions, is_active, sort_order, applies_to
+        id, listing_activity_id, name, standard_price, member_price, inclusions, is_active, show_on_from, sort_order, applies_to
       )
     `,
       )
@@ -492,6 +501,7 @@ export async function getPublicListingBySlug(
   if (!isPublicNow(row)) return null;
   const base = mapLiveRow(row);
   const media = [...(row.listing_media ?? [])]
+    .filter((item) => !item.is_pending)
     .sort((a, b) => {
       if (a.is_cover !== b.is_cover) return a.is_cover ? -1 : 1;
       return (a.sort_order ?? 0) - (b.sort_order ?? 0);
@@ -511,17 +521,6 @@ export async function getPublicListingBySlug(
       isClosed: Boolean(h.is_closed),
     }));
 
-  const activities = [...(row.listing_activities ?? [])]
-    .filter((a) => (a.status ?? "active") !== "archived")
-    .sort((a, b) => (a.sort_order ?? 0) - (b.sort_order ?? 0))
-    .map((a) => ({
-      id: a.id,
-      name: a.name,
-      shortDescription: (a.description ?? a.short_description ?? "").trim() || null,
-      durationMinutes: a.duration_minutes,
-      bookingRequired: Boolean(a.booking_required),
-    }));
-
   const prices = [...(row.price_options ?? [])]
     .filter((p) => p.is_active !== false)
     .sort((a, b) => (a.sort_order ?? 0) - (b.sort_order ?? 0))
@@ -533,7 +532,26 @@ export async function getPublicListingBySlug(
       inclusions: p.inclusions,
       activityId: p.listing_activity_id,
       appliesTo: p.applies_to ?? null,
+      showOnFrom: Boolean(p.show_on_from),
     }));
+
+  const activities = [...(row.listing_activities ?? [])]
+    .filter((a) => (a.status ?? "active") !== "archived" && a.show_on_discover !== false)
+    .sort((a, b) => (a.sort_order ?? 0) - (b.sort_order ?? 0))
+    .map((a) => {
+      const mine = prices.filter((price) => price.activityId === a.id && price.standardPrice !== null);
+      const marked = mine.filter((price) => price.showOnFrom);
+      const pool = marked.length > 0 ? marked : a.show_on_from ? mine : [];
+      const amount = pool.length ? Math.min(...pool.map((price) => price.standardPrice as number)) : null;
+      return {
+        id: a.id,
+        name: a.name,
+        shortDescription: (a.description ?? a.short_description ?? "").trim() || null,
+        durationMinutes: a.duration_minutes,
+        bookingRequired: Boolean(a.booking_required),
+        fromAmount: amount,
+      };
+    });
 
   return {
     ...base,

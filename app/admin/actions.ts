@@ -18,16 +18,60 @@ export async function createListing() {
   }
 
   const { data, error } = await supabase.rpc("admin_create_listing");
-  const row = (Array.isArray(data) ? data[0] : data) as { id?: string } | null;
+  const row = (Array.isArray(data) ? data[0] : data) as { id?: string; status?: string } | null;
   if (error || !row?.id) {
     redirect(
       `/admin/listings?error=${encodeURIComponent(error?.message ?? "Could not create that listing.")}`,
     );
   }
 
+  if (row.status !== "review") {
+    const moved = await supabase.rpc("admin_apply_listing_action", {
+      p_listing_id: row.id,
+      p_action: "review",
+      p_featured: null,
+      p_note: null,
+      p_publish_at: null,
+    });
+    if (moved.error) {
+      redirect(`/admin/listings/${row.id}?error=${encodeURIComponent(moved.error.message)}`);
+    }
+  }
+
   revalidatePath("/admin");
   revalidatePath("/admin/listings");
   redirect(`/admin/listings/${row.id}`);
+}
+
+export async function deleteArchivedListing(formData: FormData) {
+  await requireAdmin();
+  const supabase = await createClient();
+  const id = String(formData.get("id") ?? "");
+  if (!supabase || !id) {
+    redirect("/admin/listings?status=archived&error=That+listing+could+not+be+deleted.");
+  }
+
+  const { data: media } = await supabase
+    .from("listing_media")
+    .select("storage_key")
+    .eq("listing_id", id);
+  const keys = (media ?? [])
+    .map((row) => row.storage_key)
+    .filter((key): key is string => Boolean(key));
+
+  const { error } = await supabase.rpc("admin_delete_archived_listing", { p_listing_id: id });
+  if (error) {
+    redirect(`/admin/listings?status=archived&error=${encodeURIComponent(error.message)}`);
+  }
+
+  if (keys.length > 0) {
+    await supabase.storage.from("listing-media").remove(keys);
+  }
+
+  revalidatePath("/admin");
+  revalidatePath("/admin/listings");
+  revalidatePath("/directory");
+  redirect("/admin/listings?status=archived");
 }
 
 export async function saveListingDraft(listingId: string, draft: ListingDraft) {
@@ -86,11 +130,15 @@ export async function uploadListingPhoto(listingId: string, formData: FormData) 
     return { ok: false as const, error: "Keep photos under 10 MB." };
   }
 
-  const { data: existing } = await supabase
-    .from("listing_media")
-    .select("id, sort_order, is_cover")
-    .eq("listing_id", listingId)
-    .order("sort_order", { ascending: true });
+  const [{ data: existing }, { data: parent }] = await Promise.all([
+    supabase
+      .from("listing_media")
+      .select("id, sort_order, is_cover")
+      .eq("listing_id", listingId)
+      .order("sort_order", { ascending: true }),
+    supabase.from("directory_listings").select("status").eq("id", listingId).maybeSingle(),
+  ]);
+  const holdBack = parent?.status === "approved";
 
   const nextOrder =
     existing && existing.length
@@ -126,7 +174,8 @@ export async function uploadListingPhoto(listingId: string, formData: FormData) 
       public_url: publicUrl,
       alt_text: file.name.replace(/\.[^.]+$/, "").slice(0, 120) || null,
       copyright_status: "owned",
-      is_cover: makeCover,
+      is_cover: holdBack ? false : makeCover,
+      is_pending: holdBack,
       sort_order: nextOrder,
     })
     .select("id, public_url, is_cover, sort_order, alt_text, storage_key")
@@ -206,15 +255,6 @@ export async function deleteListingPhoto(listingId: string, mediaId: string) {
   return { ok: true as const };
 }
 
-/** datetime-local values are Johannesburg wall time (SAST, UTC+2). */
-function sastLocalToIso(value: string) {
-  const match = value.match(/^(\d{4}-\d{2}-\d{2})T(\d{2}:\d{2})/);
-  if (!match) return null;
-  const date = new Date(`${match[1]}T${match[2]}:00+02:00`);
-  if (Number.isNaN(date.getTime())) return null;
-  return date.toISOString();
-}
-
 export async function applyListingAction(formData: FormData) {
   await requireAdmin();
   const supabase = await createClient();
@@ -231,15 +271,13 @@ export async function applyListingAction(formData: FormData) {
       ? null
       : String(featuredRaw) === "true";
   const note = String(formData.get("note") ?? "").trim();
-  const publishRaw = String(formData.get("publish_at") ?? "").trim();
-  const publishAt = publishRaw ? sastLocalToIso(publishRaw) : null;
 
   const { error } = await supabase.rpc("admin_apply_listing_action", {
     p_listing_id: id,
     p_action: action,
     p_featured: featured,
     p_note: note || null,
-    p_publish_at: publishAt,
+    p_publish_at: null,
   });
 
   if (error) {

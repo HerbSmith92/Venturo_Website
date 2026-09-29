@@ -1,123 +1,142 @@
-import { createListing } from "@/app/admin/actions";
-import { getStaffSession } from "@/lib/auth";
-import {
-  formatClock,
-  formatRand,
-  listingStatusLabel,
-  loadQueue,
-  type ListingStatus,
-} from "@/lib/control-room";
-import { isAdmin } from "@/lib/roles";
-
-const TABS: { id: "" | ListingStatus | "scheduled" | "suspended"; label: string }[] = [
-  { id: "", label: "All" },
-  { id: "review", label: "In Review" },
-  { id: "draft", label: "Changes Requested" },
-  { id: "scheduled", label: "Scheduled" },
-  { id: "approved", label: "Live" },
-  { id: "suspended", label: "Suspended" },
-  { id: "archived", label: "Archived" },
-];
+import { DeleteArchivedListing } from "@/components/admin/DeleteArchivedListing";
+import { DirectoryColumnHead } from "@/components/admin/DirectoryColumnHead";
+import { deleteArchivedListing } from "@/app/admin/actions";
+import { formatClock, listingStatusLabel, loadDirectoryQueue } from "@/lib/control-room";
+import type { QueueListing } from "@/lib/control-room-types";
 
 export default async function ListingsQueuePage({
   searchParams,
 }: {
-  searchParams: Promise<{ status?: string; q?: string; error?: string }>;
+  searchParams: Promise<{
+    status?: string;
+    q?: string;
+    interest?: string;
+    author?: string;
+    sort?: string;
+    dir?: string;
+    group?: string;
+    error?: string;
+  }>;
 }) {
-  const { status = "", q = "", error } = await searchParams;
-  const [listings, session] = await Promise.all([loadQueue(status, q), getStaffSession()]);
-  const admin = isAdmin(session?.role);
+  const { status = "approved", q = "", interest = "", author = "", sort = "", dir = "", group = "", error } =
+    await searchParams;
+  const board = await loadDirectoryQueue({ status, q, interest, author, sort, dir });
+  const grouped = group === "interest" ? groupRows(board.rows) : null;
+  const canDelete = status === "archived";
 
   return (
-    <section>
-      <p className="eyebrow">Directory Queue</p>
-      <h1>Listings</h1>
-      <p className="lede muted">
-        Edit, approve now or on a date, request changes with a reason, suspend,
-        or archive. A live listing is what the website and the app show.
-      </p>
-      {error && <p className="error">{error}</p>}
-      {admin && (
-        <div className="cr-actions directory-add">
-          <form action={createListing}>
-            <button className="btn btn-primary btn-xl" type="submit">
-              Add New Listing
-            </button>
-          </form>
-        </div>
-      )}
-      <form className="cr-filters" action="/admin/listings">
-        <input type="hidden" name="status" value={status} />
-        <input
-          name="q"
-          type="search"
-          defaultValue={q}
-          placeholder="Search by name"
-          aria-label="Search listings"
-        />
-        <button className="btn btn-secondary" type="submit">
-          Search
-        </button>
-      </form>
-      <div className="cr-tabs">
-        {TABS.map((tab) => {
-          const href = tab.id ? `/admin/listings?status=${tab.id}` : "/admin/listings";
-          const active = status === tab.id;
-          return (
-            <a key={tab.label} className={active ? "cr-tab active" : "cr-tab"} href={href}>
-              {tab.label}
-            </a>
-          );
-        })}
+    <section className="cr-directory">
+      <div className="cr-directory-head">
+        <h1>Directory</h1>
       </div>
+      {error ? <p className="error">{error}</p> : null}
       <div className="cr-table-wrap">
-        <table className="cr-table">
-          <thead>
-            <tr>
-              <th>Listing</th>
-              <th>Place</th>
-              <th>Status</th>
-              <th>From</th>
-              <th>Updated</th>
-            </tr>
-          </thead>
+        <table className="cr-table cr-directory-table">
+          <DirectoryColumnHead
+            status={status}
+            interest={interest}
+            author={author}
+            query={q}
+            sort={sort}
+            dir={dir}
+            group={group}
+            interests={board.interests}
+            authors={board.authors}
+          />
           <tbody>
-            {listings.length === 0 && (
+            {board.rows.length === 0 ? (
               <tr>
-                <td colSpan={5} className="muted">
+                <td colSpan={6} className="muted">
                   Nothing in this queue.
                 </td>
               </tr>
+            ) : grouped ? (
+              grouped.map((bucket) => (
+                <ListingGroup key={bucket.title} title={bucket.title} rows={bucket.rows} canDelete={canDelete} />
+              ))
+            ) : (
+              board.rows.map((listing) => <ListingRow key={listing.id} listing={listing} canDelete={canDelete} />)
             )}
-            {listings.map((listing) => (
-              <tr key={listing.id}>
-                <td>
-                  <a href={`/admin/listings/${listing.id}`}>
-                    {listing.name}
-                    {listing.is_featured ? " · Top Pick" : ""}
-                  </a>
-                  {listing.branch_name && <div className="muted">{listing.branch_name}</div>}
-                </td>
-                <td>
-                  {[listing.suburb, listing.city].filter(Boolean).join(", ") || "—"}
-                </td>
-                <td>
-                  <span className={`cr-pill status-${listing.status}`}>
-                    {listingStatusLabel(listing.status, {
-                      suspended: Boolean(listing.is_suspended),
-                      scheduled:
-                        Boolean(listing.publish_at) &&
-                        new Date(listing.publish_at ?? "").getTime() > Date.now(),
-                    })}
-                  </span>
-                </td>
-                <td>{formatRand(listing.price_from)}</td>
-                <td>{formatClock(listing.updated_at)}</td>
-              </tr>
-            ))}
           </tbody>
         </table>
       </div>
     </section>
+  );
+}
+
+function groupRows(rows: QueueListing[]) {
+  const buckets = new Map<string, QueueListing[]>();
+  for (const row of rows) {
+    const title = row.interest?.trim() || "Other";
+    const list = buckets.get(title) ?? [];
+    list.push(row);
+    buckets.set(title, list);
+  }
+  return [...buckets.entries()]
+    .sort(([left], [right]) => {
+      if (left === "Other") return 1;
+      if (right === "Other") return -1;
+      return left.localeCompare(right, "en", { sensitivity: "base" });
+    })
+    .map(([title, items]) => ({ title, rows: items }));
+}
+
+function ListingGroup({ title, rows, canDelete }: { title: string; rows: QueueListing[]; canDelete: boolean }) {
+  return (
+    <>
+      <tr className="cr-directory-group">
+        <td colSpan={6}>{title}</td>
+      </tr>
+      {rows.map((listing) => (
+        <ListingRow key={listing.id} listing={listing} canDelete={canDelete} />
+      ))}
+    </>
+  );
+}
+
+function ListingRow({ listing, canDelete }: { listing: QueueListing; canDelete: boolean }) {
+  const place = [listing.branch_name, listing.suburb, listing.city].filter(Boolean).join(" · ");
+  const scheduled = Boolean(listing.publish_at) && new Date(listing.publish_at ?? "").getTime() > Date.now();
+  return (
+    <tr>
+      <td>
+        <div className="cr-directory-listing">
+          {listing.cover_url ? (
+            <span className="cr-directory-photo">
+              <img src={listing.cover_url} alt="" />
+            </span>
+          ) : (
+            <span className="cr-directory-thumb" aria-hidden="true" />
+          )}
+          <div>
+            <strong>{listing.name}</strong>
+            {listing.is_featured ? <span className="cr-directory-pick">Top Pick</span> : null}
+            {place ? <p>{place}</p> : null}
+          </div>
+        </div>
+      </td>
+      <td>
+        <span className={`cr-pill status-${listing.is_suspended ? "suspended" : listing.status}`}>
+          {listingStatusLabel(listing.status, {
+            suspended: Boolean(listing.is_suspended),
+            scheduled,
+          })}
+        </span>
+        {listing.status === "draft" && listing.review_note ? (
+          <p className="cr-directory-note">{listing.review_note}</p>
+        ) : null}
+      </td>
+      <td>{listing.interest || "—"}</td>
+      <td>{listing.author || "—"}</td>
+      <td>{formatClock(listing.updated_at)}</td>
+      <td>
+        <div className="cr-directory-actions">
+          <a className="btn btn-primary" href={`/admin/listings/${listing.id}`}>
+            Edit
+          </a>
+          {canDelete ? <DeleteArchivedListing id={listing.id} action={deleteArchivedListing} /> : null}
+        </div>
+      </td>
+    </tr>
   );
 }

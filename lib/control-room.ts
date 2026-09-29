@@ -91,6 +91,163 @@ export async function loadQueue(status?: string, q?: string): Promise<QueueListi
   return data as QueueListing[];
 }
 
+type KindEmbed = { key?: string | null; title?: string | null } | { key?: string | null; title?: string | null }[] | null;
+
+type DirectoryQueryRow = QueueListing & {
+  listing_media?: {
+    public_url: string | null;
+    is_cover: boolean | null;
+    sort_order: number | null;
+    is_pending?: boolean | null;
+  }[] | null;
+  listing_activity_kinds?: { is_primary: boolean | null; activity_kinds: KindEmbed }[] | null;
+};
+
+function kindTitle(entry: { activity_kinds: KindEmbed } | undefined) {
+  const kind = entry?.activity_kinds;
+  if (!kind) return null;
+  const row = Array.isArray(kind) ? kind[0] : kind;
+  return row?.title?.trim() || null;
+}
+
+function kindKeyOf(entry: { activity_kinds: KindEmbed } | undefined) {
+  const kind = entry?.activity_kinds;
+  if (!kind) return null;
+  const row = Array.isArray(kind) ? kind[0] : kind;
+  return row?.key?.trim() || null;
+}
+
+function queueCoverUrl(media: DirectoryQueryRow["listing_media"]) {
+  const rows = [...(media ?? [])].filter((row) => !row.is_pending).sort((a, b) => {
+    if (a.is_cover !== b.is_cover) return a.is_cover ? -1 : 1;
+    return (a.sort_order ?? 0) - (b.sort_order ?? 0);
+  });
+  return rows.find((row) => row.public_url)?.public_url ?? null;
+}
+
+export async function loadDirectoryQueue(filters: {
+  status?: string;
+  q?: string;
+  interest?: string;
+  author?: string;
+  sort?: string;
+  dir?: string;
+}): Promise<{
+  rows: QueueListing[];
+  interests: { key: string; title: string }[];
+  authors: string[];
+}> {
+  const supabase = await createClient();
+  if (!supabase) return { rows: [], interests: [], authors: [] };
+
+  const status = filters.status === "all" ? "" : filters.status;
+  let query = supabase
+    .from("directory_listings")
+    .select(
+      `
+      id, name, branch_name, slug, suburb, city, status, is_featured, is_suspended, review_note, publish_at, price_from, updated_at,
+      listing_media ( public_url, is_cover, sort_order, is_pending ),
+      listing_activity_kinds ( is_primary, activity_kinds ( key, title ) )
+    `,
+    )
+    .order("updated_at", { ascending: false })
+    .limit(200);
+
+  if (status === "suspended") query = query.eq("is_suspended", true);
+  else if (status === "scheduled") {
+    query = query
+      .eq("status", "approved")
+      .eq("is_suspended", false)
+      .gt("publish_at", new Date().toISOString());
+  } else if (status && isListingStatus(status)) {
+    query = query.eq("status", status);
+    if (status === "approved") query = query.eq("is_suspended", false);
+  }
+  if (filters.q?.trim()) query = query.ilike("name", `%${filters.q.trim()}%`);
+
+  const { data, error } = await query;
+  if (error || !data) return { rows: [], interests: [], authors: [] };
+
+  const base = data as DirectoryQueryRow[];
+  const ids = base.map((row) => row.id);
+  const authorByListing = new Map<string, string>();
+  if (ids.length > 0) {
+    const audit = await supabase
+      .from("listing_audit_events")
+      .select("listing_id, actor_id, created_at")
+      .in("listing_id", ids)
+      .order("created_at", { ascending: false });
+    const latestActor = new Map<string, string>();
+    for (const event of audit.data ?? []) {
+      if (!latestActor.has(event.listing_id)) latestActor.set(event.listing_id, event.actor_id);
+    }
+    const actorIds = [...new Set(latestActor.values())];
+    if (actorIds.length > 0) {
+      const profiles = await supabase.from("profiles").select("id, display_name").in("id", actorIds);
+      const names = new Map(
+        (profiles.data ?? []).map((profile) => [profile.id, (profile.display_name ?? "").trim()]),
+      );
+      for (const [listingId, actorId] of latestActor) {
+        const name = names.get(actorId);
+        if (name) authorByListing.set(listingId, name);
+      }
+    }
+  }
+
+  const mapped = base.map((row) => {
+    const kinds = [...(row.listing_activity_kinds ?? [])].sort(
+      (a, b) => Number(Boolean(b.is_primary)) - Number(Boolean(a.is_primary)),
+    );
+    const primary = kinds[0];
+    return {
+      ...row,
+      cover_url: queueCoverUrl(row.listing_media),
+      interest: kindTitle(primary),
+      interest_key: kindKeyOf(primary),
+      author: authorByListing.get(row.id) ?? null,
+    } satisfies QueueListing;
+  });
+
+  const interests = new Map<string, string>();
+  const authors = new Set<string>();
+  for (const row of mapped) {
+    if (row.interest_key && row.interest) interests.set(row.interest_key, row.interest);
+    if (row.author) authors.add(row.author);
+  }
+
+  const interest = filters.interest?.trim();
+  const author = filters.author?.trim().toLowerCase();
+  const rows = mapped.filter((row) => {
+    if (interest && row.interest_key !== interest) return false;
+    if (author && (row.author ?? "").toLowerCase() !== author) return false;
+    return true;
+  });
+
+  const sort =
+    filters.sort === "name" || filters.sort === "interest" || filters.sort === "author" || filters.sort === "updated"
+      ? filters.sort
+      : "updated";
+  const ascending = filters.dir ? filters.dir === "asc" : sort !== "updated";
+  rows.sort((a, b) => {
+    const text = (left: string | null | undefined, right: string | null | undefined) =>
+      (left ?? "\uffff").localeCompare(right ?? "\uffff", "en", { sensitivity: "base" });
+    let delta = 0;
+    if (sort === "name") delta = text(a.name, b.name);
+    else if (sort === "interest") delta = text(a.interest, b.interest);
+    else if (sort === "author") delta = text(a.author, b.author);
+    else delta = new Date(a.updated_at).getTime() - new Date(b.updated_at).getTime();
+    return ascending ? delta : -delta;
+  });
+
+  return {
+    rows,
+    interests: [...interests.entries()]
+      .map(([key, title]) => ({ key, title }))
+      .sort((a, b) => a.title.localeCompare(b.title)),
+    authors: [...authors].sort((a, b) => a.localeCompare(b)),
+  };
+}
+
 export async function loadListing(id: string): Promise<ListingDetail | null> {
   const supabase = await createClient();
   if (!supabase) return null;
@@ -103,20 +260,22 @@ export async function loadListing(id: string): Promise<ListingDetail | null> {
       short_description, description, phone, email, website_url, booking_url,
       street_address_1, street_address_2, province, postal_code,
       latitude, longitude, maps_url,
-      booking_required, indoor_outdoor, google_rating, google_review_count,
-      authorised_to_submit, image_rights_granted,
+      booking_required, indoor_outdoor, interest_keywords, persona_keywords, google_rating, google_review_count,
+      authorised_to_submit, image_rights_granted, terms_accepted,
       published_at, last_verified_at,
       businesses ( id, name, slug, status, description, website_url ),
-      listing_media ( id, public_url, is_cover, sort_order, alt_text, storage_key ),
+      listing_revisions ( payload, state ),
+      listing_media ( id, public_url, is_cover, sort_order, alt_text, storage_key, is_pending ),
       listing_activities!listing_activities_listing_id_fkey (
         id, name, slug, short_description, description,
         duration_minutes, minimum_age, maximum_age, booking_required,
-        sort_order, status
+        sort_order, status, show_on_discover, show_on_from
       ),
-      operating_hours ( id, day_of_week, opens_at, closes_at, is_closed ),
+      operating_hours ( id, day_of_week, opens_at, closes_at, is_closed, vacation_opens_at, vacation_closes_at, vacation_is_closed ),
       price_options (
         id, listing_activity_id, name, standard_price, member_price, inclusions,
-        applies_to, price_category, valid_from, valid_until, is_active, sort_order
+        applies_to, price_category, valid_from, valid_until, is_active, show_on_from, sort_order,
+        minimum_group_size, discount_rand, discount_percent
       ),
       listing_personas ( persona_id, is_primary ),
       listing_interests ( interest_id, is_primary ),
@@ -134,9 +293,22 @@ export async function loadListing(id: string): Promise<ListingDetail | null> {
     }
     return null;
   }
-  const row = data as ListingDetail;
+  const loaded = data as ListingDetail & {
+    listing_revisions?:
+      | { payload?: unknown; state?: string }
+      | { payload?: unknown; state?: string }[]
+      | null;
+  };
+  const revisionRow = Array.isArray(loaded.listing_revisions)
+    ? loaded.listing_revisions[0]
+    : loaded.listing_revisions;
+  const pendingState =
+    revisionRow?.state === "draft" || revisionRow?.state === "review" ? revisionRow.state : null;
+  const { listing_revisions: _revision, ...row } = loaded;
   return {
     ...row,
+    pending_payload: pendingState ? (revisionRow?.payload ?? null) : null,
+    pending_state: pendingState,
     listing_media: row.listing_media ?? [],
     listing_activities: row.listing_activities ?? [],
     operating_hours: row.operating_hours ?? [],
@@ -155,7 +327,7 @@ export async function loadEditorBranches(businessId: string) {
   const { data } = await supabase
     .from("directory_listings")
     .select(
-      "id, name, branch_name, status, suburb, city, price_from, listing_media ( public_url, is_cover, sort_order )",
+      "id, name, branch_name, status, suburb, city, price_from, listing_media ( public_url, is_cover, sort_order, is_pending )",
     )
     .eq("business_id", businessId)
     .order("name");
@@ -172,11 +344,12 @@ export async function loadEditorBranches(businessId: string) {
       public_url: string | null;
       is_cover: boolean | null;
       sort_order: number | null;
+      is_pending?: boolean | null;
     }[];
   };
 
   return ((data ?? []) as BranchRow[]).map((row) => {
-    const media = [...(row.listing_media ?? [])].sort((a, b) => {
+    const media = [...(row.listing_media ?? [])].filter((item) => !item.is_pending).sort((a, b) => {
       if (a.is_cover !== b.is_cover) return a.is_cover ? -1 : 1;
       return (a.sort_order ?? 0) - (b.sort_order ?? 0);
     });
@@ -247,11 +420,33 @@ export async function loadAudit(listingId: string) {
   if (!supabase) return [];
   const { data } = await supabase
     .from("listing_audit_events")
-    .select("id, action, from_status, to_status, created_at")
+    .select("id, action, from_status, to_status, created_at, actor_id, before, after")
     .eq("listing_id", listingId)
     .order("created_at", { ascending: false })
-    .limit(20);
-  return (data ?? []) as import("@/lib/control-room-shared").AuditEvent[];
+    .limit(30);
+  const rows = data ?? [];
+  const actorIds = [...new Set(rows.map((row) => row.actor_id).filter(Boolean))];
+  const names = new Map<string, string>();
+  if (actorIds.length > 0) {
+    const profiles = await supabase
+      .from("profiles")
+      .select("id, display_name, last_name")
+      .in("id", actorIds);
+    for (const profile of profiles.data ?? []) {
+      const name = [profile.display_name, profile.last_name].filter(Boolean).join(" ").trim();
+      if (name) names.set(profile.id, name);
+    }
+  }
+  return rows.map((row) => ({
+    id: row.id,
+    action: row.action,
+    from_status: row.from_status,
+    to_status: row.to_status,
+    created_at: row.created_at,
+    actor_name: names.get(row.actor_id) || "Unknown author",
+    before: (row.before ?? null) as Record<string, unknown> | null,
+    after: (row.after ?? null) as Record<string, unknown> | null,
+  }));
 }
 
 export type EnquiryRow = {
@@ -419,7 +614,7 @@ export function businessName(listing: ListingDetail) {
 }
 
 export function coverUrl(listing: ListingDetail) {
-  const media = [...(listing.listing_media ?? [])].sort((a, b) => {
+  const media = [...(listing.listing_media ?? [])].filter((row) => !row.is_pending).sort((a, b) => {
     if (a.is_cover !== b.is_cover) return a.is_cover ? -1 : 1;
     return (a.sort_order ?? 0) - (b.sort_order ?? 0);
   });

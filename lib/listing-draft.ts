@@ -21,6 +21,9 @@ export type DraftHour = {
   opens_at: string;
   closes_at: string;
   is_closed: boolean;
+  vacation_opens_at: string;
+  vacation_closes_at: string;
+  vacation_is_closed: boolean;
 };
 
 export type DraftPrice = {
@@ -30,11 +33,15 @@ export type DraftPrice = {
   standard_price: string;
   member_price: string;
   inclusions: string;
-  applies_to: PriceAppliesTo;
+  applies_to: PriceAppliesTo | "";
   price_category: PriceCategory;
+  discount_rand: string;
+  discount_percent: string;
+  group_size: string;
   valid_from: string;
   valid_until: string;
   is_active: boolean;
+  show_on_from: boolean;
   sort_order: number;
   couples_exclusive: boolean;
 };
@@ -51,6 +58,8 @@ export type DraftActivity = {
   booking_required: boolean;
   sort_order: number;
   is_active: boolean;
+  show_on_discover: boolean;
+  show_on_from: boolean;
   prices: DraftPrice[];
 };
 
@@ -60,6 +69,7 @@ export type DraftMedia = {
   alt_text: string;
   is_cover: boolean;
   sort_order: number;
+  is_pending?: boolean;
   _delete?: boolean;
 };
 
@@ -98,11 +108,14 @@ export type ListingDraft = {
   social: DraftSocial[];
   persona_ids: string[];
   interest_ids: string[];
+  interest_keywords: string;
+  persona_keywords: string;
   scale_id: string;
   kind_ids: string[];
   cover_media_id: string;
   authorised_to_submit: boolean;
   image_rights_granted: boolean;
+  terms_accepted: boolean;
 };
 
 export type EditorCatalog = {
@@ -124,33 +137,80 @@ export type EditorBranch = {
 };
 
 export type StepKey =
-  | "contact"
   | "business"
+  | "location"
   | "hours"
+  | "contact"
   | "prices"
-  | "audience"
   | "photos"
+  | "audience"
   | "review";
 
+/** Editor labels for activity kinds, in the Who's it for order. */
+export const INTEREST_CHIPS: { key: string; label: string }[] = [
+  { key: "adventure", label: "Adventure" },
+  { key: "thrills", label: "Thrills" },
+  { key: "romance", label: "Romance" },
+  { key: "family", label: "Family" },
+  { key: "nightlife", label: "Nightlife" },
+  { key: "team", label: "Social Sport" },
+  { key: "workshop", label: "Workshops" },
+  { key: "markets", label: "Markets" },
+  { key: "digital", label: "Games" },
+  { key: "third-party", label: "Shows" },
+];
+
+export function interestIdsFromKeywords(
+  keywords: string,
+  interests: { id: string; title: string }[],
+) {
+  const ids: string[] = [];
+  for (const part of keywords.split(",")) {
+    const name = part.trim().toLowerCase();
+    if (!name) continue;
+    const match = interests.find((item) => item.title.trim().toLowerCase() === name);
+    if (match && !ids.includes(match.id)) ids.push(match.id);
+  }
+  return ids;
+}
+
+export function interestKeywordsFromIds(
+  ids: string[],
+  interests: { id: string; title: string }[],
+) {
+  return ids
+    .map((id) => interests.find((item) => item.id === id)?.title)
+    .filter((title): title is string => Boolean(title))
+    .join(", ");
+}
+
 export const EDITOR_STEPS: { key: StepKey; label: string; number: number }[] = [
-  { key: "contact", label: "Social & Contact", number: 1 },
-  { key: "business", label: "The Listing", number: 2 },
-  { key: "hours", label: "Hours & Map", number: 3 },
-  { key: "prices", label: "Cost", number: 4 },
-  { key: "audience", label: "Chips & Who It's For", number: 5 },
+  { key: "business", label: "The Listing", number: 1 },
+  { key: "location", label: "Location", number: 2 },
+  { key: "hours", label: "Operating Hours", number: 3 },
+  { key: "contact", label: "Contact & Socials", number: 4 },
+  { key: "prices", label: "Activities & Costs", number: 5 },
   { key: "photos", label: "Photos", number: 6 },
-  { key: "review", label: "Permission & Review", number: 7 },
+  { key: "audience", label: "Who's it for?", number: 7 },
+  { key: "review", label: "Permission & Review", number: 8 },
 ];
 
 export const APPLIES_TO_OPTIONS: { value: PriceAppliesTo; label: string }[] = [
-  { value: "person", label: "Per person" },
+  { value: "person", label: "Per Person" },
+  { value: "couple", label: "Per Couple" },
   { value: "adult", label: "Adult" },
   { value: "child", label: "Child" },
   { value: "pensioner", label: "Pensioner" },
-  { value: "group", label: "Group" },
+  { value: "group", label: "Per Group" },
   { value: "hour", label: "Per hour" },
   { value: "item", label: "Per item" },
   { value: "custom", label: "Custom" },
+];
+
+export const SUB_APPLIES_OPTIONS: { value: PriceAppliesTo; label: string }[] = [
+  { value: "person", label: "Per Person" },
+  { value: "couple", label: "Per Couple" },
+  { value: "group", label: "Per Group" },
 ];
 
 export const PRICE_CATEGORY_OPTIONS: { value: PriceCategory; label: string }[] = [
@@ -160,14 +220,6 @@ export const PRICE_CATEGORY_OPTIONS: { value: PriceCategory; label: string }[] =
   { value: "rental", label: "Rental" },
   { value: "add_on", label: "Add-on" },
   { value: "other", label: "Other" },
-];
-
-/** Simplified “Who comes” personas shown in the listing editor. */
-export const WHO_COMES_PERSONAS: { title: string; label: string }[] = [
-  { title: "Going Solo", label: "Solo" },
-  { title: "With a Partner", label: "Couples" },
-  { title: "With Family", label: "Families" },
-  { title: "With Friends", label: "Groups" },
 ];
 
 function asText(value: string | null | undefined) {
@@ -222,6 +274,7 @@ function clientKey(prefix: string, stableId?: string) {
 function asAppliesTo(value: string | null | undefined): PriceAppliesTo {
   const allowed: PriceAppliesTo[] = [
     "person",
+    "couple",
     "adult",
     "child",
     "pensioner",
@@ -253,22 +306,52 @@ export function emptyHours(): DraftHour[] {
     opens_at: "",
     closes_at: "",
     is_closed: true,
+    vacation_opens_at: "",
+    vacation_closes_at: "",
+    vacation_is_closed: false,
   }));
+}
+
+function formatMoneyInput(amount: number) {
+  if (!Number.isFinite(amount)) return "";
+  const rounded = Math.round(amount * 100) / 100;
+  return Number.isInteger(rounded) ? String(rounded) : rounded.toFixed(2);
+}
+
+/** Member price from a rand discount or a percentage discount. Empty when neither is set. */
+export function derivedMemberPrice(standard: string, rand: string, percent: string) {
+  const base = Number(standard);
+  if (!standard.trim() || !Number.isFinite(base)) return "";
+  if (rand.trim()) {
+    const off = Number(rand);
+    if (!Number.isFinite(off)) return "";
+    return formatMoneyInput(Math.max(0, base - off));
+  }
+  if (percent.trim()) {
+    const rate = Number(percent);
+    if (!Number.isFinite(rate)) return "";
+    return formatMoneyInput(Math.max(0, base * (1 - rate / 100)));
+  }
+  return "";
 }
 
 export function emptyPrice(sortOrder = 0): DraftPrice {
   return {
     id: "",
     clientKey: clientKey("price"),
-    name: "Standard",
+    name: "",
     standard_price: "",
     member_price: "",
     inclusions: "",
-    applies_to: "person",
+    applies_to: "",
     price_category: "admission",
+    discount_rand: "",
+    discount_percent: "",
+    group_size: "",
     valid_from: "",
     valid_until: "",
     is_active: true,
+    show_on_from: false,
     sort_order: sortOrder,
     couples_exclusive: false,
   };
@@ -287,6 +370,8 @@ export function emptyActivity(name = "General", sortOrder = 0): DraftActivity {
     booking_required: false,
     sort_order: sortOrder,
     is_active: true,
+    show_on_discover: true,
+    show_on_from: false,
     prices: [emptyPrice(0)],
   };
 }
@@ -294,8 +379,7 @@ export function emptyActivity(name = "General", sortOrder = 0): DraftActivity {
 function priceToDraft(row: ListingPriceOption, sortOrder: number): DraftPrice {
   const applies = asAppliesTo(row.applies_to ?? undefined);
   const name = row.name ?? "";
-  const couples =
-    applies === "custom" && /couple/i.test(name);
+  const couples = applies === "couple" || (applies === "custom" && /couple/i.test(name));
   return {
     id: row.id,
     clientKey: clientKey("price", row.id),
@@ -303,13 +387,17 @@ function priceToDraft(row: ListingPriceOption, sortOrder: number): DraftPrice {
     standard_price: asMoney(row.standard_price),
     member_price: asMoney(row.member_price),
     inclusions: asText(row.inclusions),
-    applies_to: applies,
+    applies_to: couples ? "couple" : applies,
     price_category: asPriceCategory(row.price_category ?? undefined),
+    discount_rand: asMoney(row.discount_rand),
+    discount_percent: asMoney(row.discount_percent),
+    group_size: applies === "group" ? asInt(row.minimum_group_size) : "",
     valid_from: asDate(row.valid_from),
     valid_until: asDate(row.valid_until),
     is_active: row.is_active !== false,
+    show_on_from: Boolean(row.show_on_from),
     sort_order: row.sort_order ?? sortOrder,
-    couples_exclusive: couples,
+    couples_exclusive: false,
   };
 }
 
@@ -326,6 +414,7 @@ function mediaToDraft(rows: ListingMedia[]): DraftMedia[] {
       alt_text: asText(row.alt_text),
       is_cover: Boolean(row.is_cover),
       sort_order: row.sort_order ?? index,
+      is_pending: Boolean(row.is_pending),
     }));
 }
 
@@ -353,6 +442,8 @@ function activitiesFromListing(listing: ListingDetail): DraftActivity[] {
       booking_required: Boolean(activity.booking_required),
       sort_order: activity.sort_order ?? index,
       is_active: activity.status !== "archived",
+      show_on_discover: activity.show_on_discover !== false,
+      show_on_from: Boolean(activity.show_on_from),
       prices:
         linked.length > 0
           ? linked.map((price, i) => priceToDraft(price, i))
@@ -377,6 +468,8 @@ function activitiesFromListing(listing: ListingDetail): DraftActivity[] {
       booking_required: Boolean(listing.booking_required),
       sort_order: nested.length,
       is_active: true,
+      show_on_discover: true,
+      show_on_from: false,
       prices: orphans.map((price, i) => priceToDraft(price, i)),
     });
   }
@@ -398,6 +491,9 @@ export function listingToDraft(listing: ListingDetail): ListingDraft {
       opens_at: asTime(found.opens_at),
       closes_at: asTime(found.closes_at),
       is_closed: Boolean(found.is_closed),
+      vacation_opens_at: asTime(found.vacation_opens_at),
+      vacation_closes_at: asTime(found.vacation_closes_at),
+      vacation_is_closed: Boolean(found.vacation_is_closed),
     };
   });
 
@@ -447,11 +543,14 @@ export function listingToDraft(listing: ListingDetail): ListingDraft {
     ],
     persona_ids: (listing.listing_personas ?? []).map((row) => row.persona_id),
     interest_ids: (listing.listing_interests ?? []).map((row) => row.interest_id),
+    interest_keywords: listing.interest_keywords ?? "",
+    persona_keywords: listing.persona_keywords ?? "",
     scale_id: primaryScale,
     kind_ids: kindIds,
     cover_media_id: cover,
     authorised_to_submit: Boolean(listing.authorised_to_submit),
     image_rights_granted: Boolean(listing.image_rights_granted),
+    terms_accepted: Boolean(listing.terms_accepted),
   };
 }
 
@@ -465,16 +564,11 @@ export function stepComplete(draft: ListingDraft, key: StepKey) {
     case "contact":
       return Boolean(draft.email.trim() || draft.phone.trim());
     case "business":
-      return Boolean(
-        draft.business_name.trim() && draft.name.trim() && draft.description.trim(),
-      );
-    case "hours": {
-      const place = draft.street_address_1.trim() || draft.city.trim();
-      const openDay = draft.hours.some(
-        (row) => !row.is_closed && row.opens_at && row.closes_at,
-      );
-      return Boolean(place && openDay);
-    }
+      return Boolean(draft.name.trim() && draft.description.trim());
+    case "location":
+      return Boolean(draft.street_address_1.trim() || draft.city.trim());
+    case "hours":
+      return draft.hours.some((row) => !row.is_closed && row.opens_at && row.closes_at);
     case "prices": {
       const named = draft.activities.filter((row) => row.is_active && row.name.trim());
       return named.some((activity) =>
@@ -487,12 +581,12 @@ export function stepComplete(draft: ListingDraft, key: StepKey) {
       return (
         draft.kind_ids.length > 0 &&
         Boolean(draft.scale_id) &&
-        draft.interest_ids.length > 0
+        (draft.interest_ids.length > 0 || Boolean(draft.interest_keywords.trim()))
       );
     case "photos":
       return media.length > 0 && Boolean(draft.cover_media_id);
     case "review":
-      return draft.authorised_to_submit && draft.image_rights_granted;
+      return draft.authorised_to_submit && draft.image_rights_granted && draft.terms_accepted;
     default:
       return false;
   }
@@ -525,6 +619,7 @@ export function draftToPayload(draft: ListingDraft) {
   return {
     authorised_to_submit: draft.authorised_to_submit,
     image_rights_granted: draft.image_rights_granted,
+    terms_accepted: draft.terms_accepted,
     cover_media_id: draft.cover_media_id || null,
     media,
     deleted_media_ids,
@@ -550,7 +645,7 @@ export function draftToPayload(draft: ListingDraft) {
       indoor_outdoor: draft.indoor_outdoor || null,
     },
     business: {
-      name: draft.business_name,
+      name: draft.business_name.trim() || draft.name.trim(),
       description: draft.business_description,
       website_url: draft.business_website || draft.website_url,
     },
@@ -559,6 +654,9 @@ export function draftToPayload(draft: ListingDraft) {
       opens_at: row.opens_at,
       closes_at: row.closes_at,
       is_closed: row.is_closed,
+      vacation_opens_at: row.vacation_opens_at,
+      vacation_closes_at: row.vacation_closes_at,
+      vacation_is_closed: row.vacation_is_closed,
     })),
     activities: draft.activities.map((activity, activityIndex) => ({
       id: activity.id || null,
@@ -571,40 +669,256 @@ export function draftToPayload(draft: ListingDraft) {
       booking_required: activity.booking_required,
       sort_order: activityIndex,
       is_active: activity.is_active,
+      show_on_discover: activity.show_on_discover,
+      show_on_from: activity.show_on_from,
       prices: activity.prices.map((price, priceIndex) => {
-        const couples = price.couples_exclusive;
-        const applies_to: PriceAppliesTo = couples ? "custom" : price.applies_to;
-        const name =
-          couples && !/couple/i.test(price.name)
-            ? price.name.trim()
-              ? `${price.name.trim()} (Couples)`
-              : "Couples exclusive"
-            : price.name;
+        const hasDiscount = Boolean(price.discount_rand.trim() || price.discount_percent.trim());
         return {
           id: price.id || null,
-          name,
+          name: price.name,
           standard_price: price.standard_price,
-          member_price: price.member_price,
+          member_price: hasDiscount
+            ? derivedMemberPrice(price.standard_price, price.discount_rand, price.discount_percent)
+            : price.member_price,
           inclusions: price.inclusions,
-          applies_to,
+          applies_to: price.applies_to || "person",
           price_category: price.price_category,
+          discount_rand: price.discount_rand,
+          discount_percent: price.discount_percent,
+          group_size: price.applies_to === "group" ? price.group_size : "",
           valid_from: price.valid_from || null,
           valid_until: price.valid_until || null,
           is_active: price.is_active,
+          show_on_from: price.show_on_from,
           sort_order: priceIndex,
         };
       }),
     })),
     persona_ids: draft.persona_ids,
     interest_ids: draft.interest_ids,
+    interest_keywords: draft.interest_keywords,
+    persona_keywords: draft.persona_keywords,
     scale_ids: draft.scale_id ? [draft.scale_id] : [],
-    kind_ids: draft.kind_ids.slice(0, 3),
+    kind_ids: draft.kind_ids,
     social: draft.social.map((row) => ({
       platform: row.platform,
       handle: row.handle,
       url: row.url,
     })),
   };
+}
+
+function pendingRecord(value: unknown) {
+  if (!value || typeof value !== "object" || Array.isArray(value)) return null;
+  return value as Record<string, unknown>;
+}
+
+function pendingText(value: unknown) {
+  if (typeof value === "string") return value;
+  if (value === null || value === undefined) return "";
+  return String(value);
+}
+
+function pendingBool(value: unknown, fallback: boolean) {
+  return typeof value === "boolean" ? value : fallback;
+}
+
+function pendingIds(value: unknown) {
+  if (!Array.isArray(value)) return null;
+  return value.filter((item): item is string => typeof item === "string" && item.length > 0);
+}
+
+function pendingIndoor(value: unknown): ListingDraft["indoor_outdoor"] {
+  if (value === "indoor" || value === "outdoor" || value === "both") return value;
+  return "";
+}
+
+/** Show unpublished edits in the editor without changing the live listing. */
+export function applyPendingPayload(draft: ListingDraft, raw: unknown): ListingDraft {
+  const payload = pendingRecord(raw);
+  if (!payload) return draft;
+  const listing = pendingRecord(payload.listing) ?? {};
+  const business = pendingRecord(payload.business) ?? {};
+  const next: ListingDraft = { ...draft };
+
+  if (payload.listing) {
+    next.name = pendingText(listing.name);
+    next.branch_name = pendingText(listing.branch_name);
+    next.short_description = pendingText(listing.short_description);
+    next.description = pendingText(listing.description);
+    next.phone = pendingText(listing.phone);
+    next.email = pendingText(listing.email);
+    next.website_url = pendingText(listing.website_url);
+    next.booking_url = pendingText(listing.booking_url);
+    next.street_address_1 = pendingText(listing.street_address_1);
+    next.street_address_2 = pendingText(listing.street_address_2);
+    next.suburb = pendingText(listing.suburb);
+    next.city = pendingText(listing.city);
+    next.province = pendingText(listing.province);
+    next.postal_code = pendingText(listing.postal_code);
+    next.latitude = pendingText(listing.latitude);
+    next.longitude = pendingText(listing.longitude);
+    next.maps_url = pendingText(listing.maps_url);
+    next.booking_required = pendingBool(listing.booking_required, draft.booking_required);
+    next.indoor_outdoor = pendingIndoor(listing.indoor_outdoor);
+  }
+
+  if (payload.business) {
+    next.business_name = pendingText(business.name);
+    next.business_description = pendingText(business.description);
+    next.business_website = pendingText(business.website_url);
+  }
+
+  const pendingHours = payload.hours;
+  if (Array.isArray(pendingHours)) {
+    next.hours = emptyHours().map((row) => {
+      const found = pendingHours.find((item) => {
+        const hour = pendingRecord(item);
+        return hour ? Number(hour.day_of_week) === row.day_of_week : false;
+      });
+      const hour = pendingRecord(found);
+      if (!hour) return row;
+      return {
+        day_of_week: row.day_of_week,
+        opens_at: asTime(pendingText(hour.opens_at)),
+        closes_at: asTime(pendingText(hour.closes_at)),
+        is_closed: pendingBool(hour.is_closed, true),
+        vacation_opens_at: asTime(pendingText(hour.vacation_opens_at)),
+        vacation_closes_at: asTime(pendingText(hour.vacation_closes_at)),
+        vacation_is_closed: pendingBool(hour.vacation_is_closed, false),
+      };
+    });
+  }
+
+  if (Array.isArray(payload.activities)) {
+    next.activities = payload.activities.map((item, index) => {
+      const activity = pendingRecord(item) ?? {};
+      const prices = Array.isArray(activity.prices) ? activity.prices : [];
+      const id = pendingText(activity.id);
+      return {
+        id,
+        clientKey: clientKey("activity", id || undefined),
+        name: pendingText(activity.name),
+        short_description: pendingText(activity.short_description),
+        description: pendingText(activity.description),
+        duration_minutes: asInt(pendingText(activity.duration_minutes)),
+        minimum_age: asInt(pendingText(activity.minimum_age)),
+        maximum_age: asInt(pendingText(activity.maximum_age)),
+        booking_required: pendingBool(activity.booking_required, false),
+        sort_order: index,
+        is_active: pendingBool(activity.is_active, true),
+        show_on_discover: pendingBool(activity.show_on_discover, true),
+        show_on_from: pendingBool(activity.show_on_from, false),
+        prices:
+          prices.length > 0
+            ? prices.map((priceItem, priceIndex) => {
+                const price = pendingRecord(priceItem) ?? {};
+                const priceId = pendingText(price.id);
+                const applies = asAppliesTo(pendingText(price.applies_to));
+                return {
+                  id: priceId,
+                  clientKey: clientKey("price", priceId || undefined),
+                  name: pendingText(price.name),
+                  standard_price: asMoney(pendingText(price.standard_price)),
+                  member_price: asMoney(pendingText(price.member_price)),
+                  inclusions: pendingText(price.inclusions),
+                  applies_to: applies,
+                  price_category: asPriceCategory(pendingText(price.price_category)),
+                  discount_rand: asMoney(pendingText(price.discount_rand)),
+                  discount_percent: asMoney(pendingText(price.discount_percent)),
+                  group_size: applies === "group" ? asInt(pendingText(price.group_size)) : "",
+                  valid_from: asDate(pendingText(price.valid_from)),
+                  valid_until: asDate(pendingText(price.valid_until)),
+                  is_active: pendingBool(price.is_active, true),
+                  show_on_from: pendingBool(price.show_on_from, false),
+                  sort_order: priceIndex,
+                  couples_exclusive: false,
+                } satisfies DraftPrice;
+              })
+            : [emptyPrice(0)],
+      } satisfies DraftActivity;
+    });
+  }
+
+  if (Array.isArray(payload.media)) {
+    const deleted = new Set(pendingIds(payload.deleted_media_ids) ?? []);
+    const byId = new Map(draft.media.map((row) => [row.id, row]));
+    const ordered: DraftMedia[] = [];
+    for (const item of payload.media) {
+      const media = pendingRecord(item);
+      if (!media) continue;
+      const existing = byId.get(pendingText(media.id));
+      if (!existing) continue;
+      ordered.push({
+        ...existing,
+        alt_text: pendingText(media.alt_text),
+        is_cover: pendingBool(media.is_cover, existing.is_cover),
+        sort_order: Number(media.sort_order) || ordered.length,
+        _delete: false,
+      });
+      byId.delete(existing.id);
+    }
+    for (const leftover of byId.values()) {
+      ordered.push({ ...leftover, _delete: deleted.has(leftover.id) });
+    }
+    next.media = ordered;
+    const cover = pendingText(payload.cover_media_id);
+    const visible = ordered.filter((row) => !row._delete);
+    next.cover_media_id =
+      (cover && visible.some((row) => row.id === cover) ? cover : "") ||
+      visible.find((row) => row.is_cover)?.id ||
+      visible[0]?.id ||
+      "";
+  }
+
+  const pendingSocial = payload.social;
+  if (Array.isArray(pendingSocial)) {
+    next.social = draft.social.map((row) => {
+      const found = pendingSocial.find((item) => {
+        const social = pendingRecord(item);
+        return social?.platform === row.platform;
+      });
+      const social = pendingRecord(found);
+      if (!social) return row;
+      return {
+        platform: row.platform,
+        handle: pendingText(social.handle),
+        url: pendingText(social.url),
+      };
+    });
+  }
+
+  const personaIds = pendingIds(payload.persona_ids);
+  const interestIds = pendingIds(payload.interest_ids);
+  const kindIds = pendingIds(payload.kind_ids);
+  const scaleIds = pendingIds(payload.scale_ids);
+  if (personaIds) next.persona_ids = personaIds;
+  if (interestIds) next.interest_ids = interestIds;
+  if (kindIds) next.kind_ids = kindIds;
+  if (scaleIds) next.scale_id = scaleIds[0] ?? "";
+  if (typeof payload.interest_keywords === "string") next.interest_keywords = payload.interest_keywords;
+  if (typeof payload.persona_keywords === "string") next.persona_keywords = payload.persona_keywords;
+  if (typeof payload.authorised_to_submit === "boolean") {
+    next.authorised_to_submit = payload.authorised_to_submit;
+  }
+  if (typeof payload.image_rights_granted === "boolean") {
+    next.image_rights_granted = payload.image_rights_granted;
+  }
+  if (typeof payload.terms_accepted === "boolean") next.terms_accepted = payload.terms_accepted;
+
+  return next;
+}
+
+export function draftWithPending(
+  listing: ListingDetail,
+  catalog: Pick<EditorCatalog, "interests">,
+) {
+  const next = listingToDraft(listing);
+  if (listing.pending_payload) return applyPendingPayload(next, listing.pending_payload);
+  if (listing.interest_keywords == null) {
+    next.interest_keywords = interestKeywordsFromIds(next.interest_ids, catalog.interests);
+  }
+  return next;
 }
 
 export function previewHours(draft: ListingDraft) {
@@ -617,6 +931,7 @@ export function previewHours(draft: ListingDraft) {
 
 export function priceUnitLabel(applies: PriceAppliesTo | string) {
   if (applies === "person") return "p.p";
+  if (applies === "couple") return "per couple";
   if (applies === "adult") return "adult";
   if (applies === "child") return "child";
   if (applies === "pensioner") return "pensioner";
@@ -655,10 +970,11 @@ export function previewPrices(draft: ListingDraft, limit = 8) {
     member: number | null;
     unit: string;
     free: boolean;
+    from: boolean;
   }[] = [];
 
   for (const activity of draft.activities) {
-    if (!activity.is_active) continue;
+    if (!activity.is_active || !activity.show_on_discover) continue;
     for (const price of activity.prices) {
       if (!price.is_active || !price.name.trim()) continue;
       const standardOk = price.standard_price.trim() === "" ? null : Number(price.standard_price);
@@ -672,6 +988,7 @@ export function previewPrices(draft: ListingDraft, limit = 8) {
         member,
         unit: priceUnitLabel(price.applies_to),
         free,
+        from: price.show_on_from || activity.show_on_from,
       });
       if (rows.length >= limit) return rows;
     }
@@ -706,12 +1023,15 @@ export function statusLegend(status: ListingStatus) {
 }
 
 export function auditLabel(event: AuditEvent) {
-  if (event.action === "edit") return "Saved edits";
-  if (event.action === "approve") return "Approved & published";
-  if (event.action === "review") return "Moved to review";
-  if (event.action === "draft") return "Requested changes";
-  if (event.action === "archive") return "Rejected & archived";
-  if (event.action === "feature") return "Top Pick updated";
+  if (event.action === "edit") return "Saved Edits";
+  if (event.action === "approve") return "Business Approved";
+  if (event.action === "review") return "Submitted for Approval";
+  if (event.action === "create") return "Listing Created";
+  if (event.action === "draft") return "Changes Requested";
+  if (event.action === "archive") return "Archived";
+  if (event.action === "suspend") return "Suspended";
+  if (event.action === "unsuspend") return "Recovered";
+  if (event.action === "feature") return "Featured Candidate";
   return event.action;
 }
 

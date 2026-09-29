@@ -44,6 +44,7 @@ type MediaRow = {
   public_url: string | null;
   is_cover: boolean | null;
   sort_order: number | null;
+  is_pending?: boolean | null;
 };
 
 type ListingEmbed = {
@@ -95,7 +96,7 @@ function asListing(embed: ListingEmbed | ListingEmbed[] | null | undefined) {
 }
 
 function coverUrl(media: MediaRow[] | undefined) {
-  const sorted = [...(media ?? [])].sort((a, b) => {
+  const sorted = [...(media ?? [])].filter((item) => !item.is_pending).sort((a, b) => {
     if (a.is_cover !== b.is_cover) return a.is_cover ? -1 : 1;
     return (a.sort_order ?? 0) - (b.sort_order ?? 0);
   });
@@ -176,7 +177,7 @@ const GUIDE_SELECT = `
       short_description,
       price_from,
       status,
-      listing_media ( public_url, is_cover, sort_order ),
+      listing_media ( public_url, is_cover, sort_order, is_pending ),
       listing_activity_kinds ( is_primary, activity_kinds ( key ) ),
       price_options ( standard_price, member_price, is_active )
     )
