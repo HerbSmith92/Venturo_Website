@@ -1,28 +1,37 @@
-import { loadWebsiteCopy } from "@/lib/website";
+import { headers } from "next/headers";
+import { LandingDiscover } from "@/components/LandingDiscover";
+import { LandingHeaderScrim } from "@/components/LandingHeaderScrim";
+import { getCurrentUser } from "@/lib/auth";
+import { getAppStoreLinks } from "@/lib/brand";
+import { listingsByCategory, mixListingsByInterest } from "@/lib/listings";
+import { loadHomeFeatures, loadWebsiteCopy } from "@/lib/website";
 
 export default async function HomePage() {
-  const copy = await loadWebsiteCopy();
+  const [copy, features, user, listings, headerList] = await Promise.all([
+    loadWebsiteCopy(),
+    loadHomeFeatures(),
+    getCurrentUser(),
+    listingsByCategory("all"),
+    headers(),
+  ]);
+  const stores = getAppStoreLinks();
+  const android = /android/i.test(headerList.get("user-agent") ?? "");
+  const appHref = android
+    ? copy.playStoreUrl || stores.playStore
+    : copy.appStoreUrl || stores.appStore;
 
   return (
-    <main>
-      <section className="shell">
-        <div className="hero">
-          <img src={copy.heroImageUrl} alt="" />
-          <div className="hero-copy">
-            <p className="eyebrow">{copy.heroEyebrow}</p>
-            <h1>{copy.heroTitle}</h1>
-            <p className="lede">{copy.heroLede}</p>
-            <div className="hero-actions">
-              <a className="btn btn-primary" href="/directory">
-                Open The Directory
-              </a>
-              <a className="btn btn-secondary" href="/events">
-                See What&apos;s On
-              </a>
-            </div>
-          </div>
-        </div>
-      </section>
-    </main>
+    <>
+      <LandingHeaderScrim />
+      <LandingDiscover
+        copy={copy}
+        listings={mixListingsByInterest(listings, 8)}
+        events={features.events.slice(0, 8)}
+        communities={features.communities.slice(0, 8)}
+        appHref={appHref}
+        appLabel="Explore More In The App"
+        showMemberPrice={user?.plan === "paid"}
+      />
+    </>
   );
 }

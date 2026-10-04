@@ -199,6 +199,46 @@ async function loadLiveListings(): Promise<Listing[] | null> {
   return (rows as LiveRow[]).filter(isPublicNow).map(mapLiveRow);
 }
 
+function shuffle<T>(items: T[]) {
+  const copy = [...items];
+  for (let i = copy.length - 1; i > 0; i -= 1) {
+    const j = Math.floor(Math.random() * (i + 1));
+    const current = copy[i];
+    copy[i] = copy[j];
+    copy[j] = current;
+  }
+  return copy;
+}
+
+/** One pass across interests, so a rail is not eight of the same category. */
+export function mixListingsByInterest(listings: Listing[], limit = 8) {
+  const buckets = new Map<string, Listing[]>();
+  for (const listing of listings) {
+    const bucket = buckets.get(listing.category) ?? [];
+    bucket.push(listing);
+    buckets.set(listing.category, bucket);
+  }
+
+  const categories = shuffle([...buckets.keys()]);
+  for (const category of categories) {
+    buckets.set(category, shuffle(buckets.get(category) ?? []));
+  }
+
+  const picked: Listing[] = [];
+  let progressed = true;
+  while (picked.length < limit && progressed) {
+    progressed = false;
+    for (const category of categories) {
+      const next = buckets.get(category)?.shift();
+      if (!next) continue;
+      picked.push(next);
+      progressed = true;
+      if (picked.length >= limit) break;
+    }
+  }
+  return shuffle(picked);
+}
+
 export async function featuredListings() {
   const listings = (await loadLiveListings()) ?? [];
   const marked = listings.filter((listing) => listing.featured);
