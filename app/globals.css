@@ -443,6 +443,215 @@ select {
   flex-wrap: wrap;
 }
 
+/* Landing: full-bleed Discover hero, then the experience directory. */
+body:has(.landing) .chrome {
+  position: fixed;
+  top: 0;
+  right: 0;
+  left: 0;
+  background: transparent;
+  backdrop-filter: none;
+}
+
+body:has(.landing) .chrome.chrome-solid {
+  background: color-mix(in srgb, var(--night) 88%, transparent);
+  backdrop-filter: blur(16px);
+}
+
+.landing-hero {
+  position: relative;
+  display: grid;
+  align-items: end;
+  min-height: clamp(480px, 72vh, 780px);
+  overflow: hidden;
+}
+
+.landing-hero-media,
+.landing-hero-fade {
+  position: absolute;
+  inset: 0;
+}
+
+.landing-hero-media img {
+  width: 100%;
+  height: 100%;
+  max-width: none;
+  object-fit: cover;
+  object-position: center 30%;
+}
+
+.landing-hero-fade {
+  background:
+    linear-gradient(
+      180deg,
+      rgba(20, 0, 26, 0.9) 0%,
+      rgba(42, 45, 53, 0.55) 12%,
+      rgba(42, 45, 53, 0.12) 24%,
+      rgba(42, 45, 53, 0) 36%
+    ),
+    linear-gradient(
+      180deg,
+      rgba(42, 45, 53, 0) 36%,
+      rgba(42, 45, 53, 0.28) 54%,
+      rgba(42, 45, 53, 0.78) 76%,
+      var(--night) 100%
+    );
+  pointer-events: none;
+}
+
+.landing-hero-stack {
+  position: relative;
+  z-index: 1;
+  display: grid;
+  gap: 28px;
+  padding: 64px 0 8px;
+}
+
+.landing-hero-copy {
+  max-width: 720px;
+  text-shadow: 0 2px 16px rgba(20, 0, 26, 0.55);
+}
+
+.landing-hero-copy .lede {
+  color: color-mix(in srgb, var(--snow) 90%, transparent);
+}
+
+.landing-hero-copy .hero-actions {
+  text-shadow: none;
+}
+
+.landing-activities .card {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+}
+
+.landing-activities .card-body {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+}
+
+.landing-activities .card-body h3,
+.landing-activities .card-meta {
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+.landing-activities .card-body h3 {
+  line-height: 1.15;
+  min-height: calc(1.15em * 2);
+  -webkit-line-clamp: 2;
+}
+
+.landing-activities .card-meta {
+  line-height: 1.35;
+  min-height: calc(1.35em * 2);
+  -webkit-line-clamp: 2;
+}
+
+.landing-activities .price-row {
+  align-items: flex-end;
+  min-height: 2.6em;
+  margin-top: auto;
+}
+
+.landing-directory {
+  display: grid;
+  gap: 36px;
+  padding: 28px 0 64px;
+}
+
+.landing-band-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-end;
+  gap: 16px;
+  margin-bottom: 16px;
+}
+
+.landing-band-head p {
+  margin-top: 8px;
+  max-width: 42ch;
+  color: color-mix(in srgb, var(--snow) 72%, transparent);
+}
+
+.landing-see {
+  color: var(--canary);
+  font-size: 14px;
+  white-space: nowrap;
+}
+
+.landing-see:hover {
+  text-decoration: underline;
+}
+
+.landing-reasons {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 16px;
+  align-items: start;
+}
+
+.landing-reasons img,
+.landing-member-shot {
+  width: 100%;
+  height: auto;
+  border-radius: var(--radius-lg);
+}
+
+.landing-member-shot {
+  justify-self: center;
+  max-width: 420px;
+}
+
+.band-velvet .price-card .btn-secondary {
+  border-color: var(--night);
+  color: var(--night);
+}
+
+.band-velvet .price-card .hero-actions {
+  display: grid;
+}
+
+.band-velvet .price-card .hero-actions .btn {
+  width: 100%;
+  justify-content: center;
+}
+
+.band-velvet .price-card > p:not(.eyebrow):not(.price-amount):not(.price-cadence) {
+  margin: 0 0 16px;
+}
+
+@media (max-width: 900px) {
+  .landing-reasons {
+    display: flex;
+    overflow-x: auto;
+    overscroll-behavior-x: contain;
+    scroll-snap-type: x mandatory;
+    gap: 12px;
+    padding-bottom: 8px;
+  }
+
+  .landing-reasons img {
+    flex: 0 0 min(78vw, 360px);
+    width: min(78vw, 360px);
+    scroll-snap-align: start;
+  }
+}
+
+@media (max-width: 720px) {
+  .landing-hero {
+    min-height: clamp(460px, 70vh, 620px);
+  }
+
+  .landing-hero-stack {
+    gap: 20px;
+    padding-top: 48px;
+  }
+}
+
 .section {
   padding: 8px 0 56px;
 }
