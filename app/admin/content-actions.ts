@@ -33,6 +33,12 @@ export async function saveCommunity(formData: FormData) {
     place_label: String(formData.get("place_label") ?? "").trim() || null,
     social_url: String(formData.get("social_url") ?? "").trim() || null,
     contact_email: String(formData.get("contact_email") ?? "").trim() || null,
+    website_url: String(formData.get("website_url") ?? "").trim() || null,
+    phone: String(formData.get("phone") ?? "").trim() || null,
+    instagram_url: String(formData.get("instagram_url") ?? "").trim() || null,
+    facebook_url: String(formData.get("facebook_url") ?? "").trim() || null,
+    founder_name: String(formData.get("founder_name") ?? "").trim() || null,
+    founder_email: String(formData.get("founder_email") ?? "").trim() || null,
     status: String(formData.get("status") ?? "draft"),
     is_featured: formData.get("is_featured") === "on",
     updated_by: staff.id,
@@ -49,6 +55,7 @@ export async function saveCommunity(formData: FormData) {
       );
     }
     revalidatePath("/communities");
+    revalidatePath(`/communities/${slug}`);
     revalidatePath("/");
     redirect(`/admin/communities/${id}?done=1`);
   }

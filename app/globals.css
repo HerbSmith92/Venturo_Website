@@ -4087,6 +4087,21 @@ fieldset.field {
   font-size: 18px;
 }
 
+.community-hero-fallback {
+  position: absolute;
+  inset: 0;
+  background:
+    linear-gradient(160deg, color-mix(in srgb, var(--blush) 42%, var(--night)), var(--night) 70%);
+}
+
+.community-events {
+  margin-top: 36px;
+}
+
+.community-event-grid {
+  margin-top: 16px;
+}
+
 .listing-reviews {
   margin-top: 32px;
 }

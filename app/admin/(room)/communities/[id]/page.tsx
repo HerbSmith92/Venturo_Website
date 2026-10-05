@@ -58,12 +58,42 @@ export default async function AdminCommunityEditPage({
         </div>
         <div className="field-row">
           <label className="field">
+            <span>Website</span>
+            <input name="website_url" type="url" defaultValue={community.websiteUrl ?? ""} />
+          </label>
+          <label className="field">
+            <span>Phone</span>
+            <input name="phone" type="tel" defaultValue={community.phone ?? ""} />
+          </label>
+        </div>
+        <div className="field-row">
+          <label className="field">
+            <span>Instagram</span>
+            <input name="instagram_url" defaultValue={community.instagramUrl ?? ""} />
+          </label>
+          <label className="field">
+            <span>Facebook</span>
+            <input name="facebook_url" defaultValue={community.facebookUrl ?? ""} />
+          </label>
+        </div>
+        <div className="field-row">
+          <label className="field">
             <span>Social link</span>
             <input name="social_url" defaultValue={community.socialUrl ?? ""} />
           </label>
           <label className="field">
             <span>Contact email</span>
             <input name="contact_email" type="email" defaultValue={community.contactEmail ?? ""} />
+          </label>
+        </div>
+        <div className="field-row">
+          <label className="field">
+            <span>Founder name</span>
+            <input name="founder_name" defaultValue={community.founderName ?? ""} />
+          </label>
+          <label className="field">
+            <span>Founder email</span>
+            <input name="founder_email" type="email" defaultValue={community.founderEmail ?? ""} />
           </label>
         </div>
         <label className="field">
@@ -81,6 +111,7 @@ export default async function AdminCommunityEditPage({
         </label>
         <fieldset>
           <legend>Linked events</legend>
+          <p className="muted">Coming events show under Hosting. Ones that have ended show under Hosted.</p>
           {events.length === 0 ? <p className="muted">No live events to link yet.</p> : null}
           {events.map((event) => (
             <label key={event.id} className="field">
