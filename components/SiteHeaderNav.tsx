@@ -60,6 +60,7 @@ export function SiteHeaderNav({ user }: { user: CurrentUser | null }) {
           <nav className="nav-drawer-links" aria-label="Site menu">
             <a href="/directory">Directory</a>
             <a href="/events">Events</a>
+            <a href="/communities">Communities</a>
             <a href="/admin">Admin</a>
             {user ? (
               <>
