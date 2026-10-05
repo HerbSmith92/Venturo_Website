@@ -1,4 +1,4 @@
-import { saveReview } from "@/app/member-actions";
+import { ListingCostList, type ListingCostRow } from "@/components/ListingCostList";
 import { SaveForm } from "@/components/SaveForm";
 import { getCurrentUser } from "@/lib/auth";
 import {
@@ -11,8 +11,29 @@ import { listPublicEvents } from "@/lib/events";
 import { formatDay, formatHours, formatRand } from "@/lib/control-room-shared";
 import { priceUnitLabel } from "@/lib/listing-draft";
 import { isSaved } from "@/lib/saves";
-import { createClient } from "@/lib/supabase/server";
 import { notFound } from "next/navigation";
+
+function googleReviewsHref(listing: { name: string; area: string; mapsUrl: string | null }) {
+  const maps = listing.mapsUrl ?? "";
+  if (/\/maps\/place\/|place_id=|cid=/.test(maps)) return maps;
+  const query = [listing.name, listing.area].filter(Boolean).join(" ");
+  return `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(query)}`;
+}
+
+function ReviewStars({ rating }: { rating: number }) {
+  return (
+    <span className="cr-phone-stars" aria-hidden="true">
+      {[1, 2, 3, 4, 5].map((star) => {
+        const state = rating >= star ? "filled" : rating >= star - 0.5 ? "half" : undefined;
+        return (
+          <span key={star} className={state}>
+            ★
+          </span>
+        );
+      })}
+    </span>
+  );
+}
 
 export default async function ListingDetailPage({
   params,
@@ -28,24 +49,10 @@ export default async function ListingDetailPage({
 
   const user = await getCurrentUser();
   const paid = user?.plan === "paid";
-  const supabase = await createClient();
-  const [saved, reviewResult, related] = await Promise.all([
+  const [saved, related] = await Promise.all([
     user ? isSaved(user.id, "listing", listing.id) : Promise.resolve(false),
-    supabase
-      ? supabase
-          .from("listing_reviews")
-          .select("id, author_name, rating, body, created_at")
-          .eq("listing_id", listing.id)
-          .order("created_at", { ascending: false })
-      : Promise.resolve({ data: [] }),
     listPublicEvents({ limit: 12 }),
   ]);
-  const reviews = (reviewResult.data ?? []) as {
-    id: string;
-    author_name: string;
-    rating: number;
-    body: string;
-  }[];
   const relatedEvents = related.filter(
     (event) => listing.city && event.city && event.city.toLowerCase() === listing.city.toLowerCase(),
   ).slice(0, 3);
@@ -60,6 +67,47 @@ export default async function ListingDetailPage({
   ]
     .filter(Boolean)
     .join(", ");
+  const story = (listing.description || listing.shortDescription || "").trim();
+  const storyKey = story.replace(/\s+/g, " ").trim().toLowerCase();
+  const activities = listing.activities.flatMap((activity) => {
+    const blurb = (activity.shortDescription ?? "").trim();
+    const repeated =
+      Boolean(blurb) &&
+      Boolean(storyKey) &&
+      blurb.replace(/\s+/g, " ").trim().toLowerCase() === storyKey;
+    const sameName =
+      activity.name.replace(/\s+/g, " ").trim().toLowerCase() ===
+      listing.name.replace(/\s+/g, " ").trim().toLowerCase();
+    if (repeated && sameName) return [];
+    return [{ ...activity, shortDescription: repeated ? null : activity.shortDescription }];
+  });
+  const costRows: ListingCostRow[] = listing.prices.map((price) => {
+    const memberDeal =
+      price.memberPrice !== null &&
+      price.standardPrice !== null &&
+      price.memberPrice < price.standardPrice;
+    const unit = priceUnitLabel(price.appliesTo ?? "");
+    const suffix = unit ? ` ${unit}` : "";
+    const save =
+      memberDeal && price.standardPrice !== null && price.memberPrice !== null
+        ? price.standardPrice - price.memberPrice
+        : null;
+    const priceLabel =
+      price.standardPrice === 0 ? "Free" : `${formatRand(price.standardPrice)}${suffix}`;
+    const memberLabel = memberDeal
+      ? price.memberPrice === 0
+        ? "Members free"
+        : `Members ${formatRand(price.memberPrice)}${suffix}`
+      : null;
+    return {
+      id: price.id,
+      name: price.name,
+      priceLabel,
+      memberLabel,
+      saveLabel: save !== null && save > 0 ? `Save ${formatRand(save)}${suffix}` : null,
+      inclusions: price.inclusions,
+    };
+  });
 
   return (
     <main>
@@ -76,6 +124,17 @@ export default async function ListingDetailPage({
               {listing.area}
               {listing.city && listing.city !== listing.area ? ` · ${listing.city}` : ""}
             </p>
+            {listing.googleRating != null ? (
+              <p className="listing-google-rating">
+                <ReviewStars rating={listing.googleRating} />
+                <span>
+                  {listing.googleRating.toFixed(1)}
+                  {listing.googleReviewCount
+                    ? ` · ${listing.googleReviewCount.toLocaleString("en-ZA")} Google reviews`
+                    : " · Google"}
+                </span>
+              </p>
+            ) : null}
             <div className="price-row" style={{ marginTop: 12 }}>
               <span className="from-price">{formatFromPrice(listing.fromPrice)}</span>
               {listing.memberFromPrice !== null &&
@@ -133,12 +192,12 @@ export default async function ListingDetailPage({
               </div>
             )}
 
-            {listing.activities.length > 0 && (
+            {activities.length > 0 && (
               <div style={{ marginTop: 28 }}>
                 <p className="eyebrow">Activities</p>
                 <h2>Things To Do Here</h2>
                 <ul className="preview-ticket-list">
-                  {listing.activities.map((activity) => (
+                  {activities.map((activity) => (
                     <li key={activity.id}>
                       <div>
                         <strong>{activity.name}</strong>
@@ -173,54 +232,39 @@ export default async function ListingDetailPage({
               </div>
             )}
 
+            <div className="listing-reviews">
+              <p className="eyebrow">Reviews</p>
+              <h2>On Google</h2>
+              {listing.googleRating != null ? (
+                <p className="listing-google-rating">
+                  <ReviewStars rating={listing.googleRating} />
+                  <span>
+                    Avg {listing.googleRating.toFixed(1)}
+                    {listing.googleReviewCount
+                      ? ` from ${listing.googleReviewCount.toLocaleString("en-ZA")} Google reviews.`
+                      : " on Google."}
+                  </span>
+                </p>
+              ) : (
+                <p className="muted">This place&apos;s reviews live on Google.</p>
+              )}
+              <p style={{ marginTop: 16 }}>
+                <a
+                  className="btn btn-secondary"
+                  href={googleReviewsHref(listing)}
+                  target="_blank"
+                  rel="noreferrer"
+                >
+                  Read Them On Google
+                </a>
+              </p>
+            </div>
+
             <p style={{ marginTop: 28 }}>
               <a className="btn btn-secondary" href="/directory">
                 Back To Directory
               </a>
             </p>
-
-            <div style={{ marginTop: 32 }}>
-              <p className="eyebrow">Reviews</p>
-              <h2>What People Said</h2>
-              {reviews.length === 0 ? <p className="muted">No reviews yet.</p> : null}
-              <ul className="stack-list">
-                {reviews.map((review) => (
-                  <li key={review.id}>
-                    <strong>
-                      {review.author_name} · {review.rating}/5
-                    </strong>
-                    <p>{review.body}</p>
-                  </li>
-                ))}
-              </ul>
-              {user ? (
-                <form action={saveReview} className="cr-panel" style={{ marginTop: 16 }}>
-                  <input type="hidden" name="listing_id" value={listing.id} />
-                  <input type="hidden" name="slug" value={listing.slug} />
-                  <label className="field">
-                    <span>Rating</span>
-                    <select name="rating" defaultValue="5">
-                      <option value="5">5</option>
-                      <option value="4">4</option>
-                      <option value="3">3</option>
-                      <option value="2">2</option>
-                      <option value="1">1</option>
-                    </select>
-                  </label>
-                  <label className="field">
-                    <span>Your note</span>
-                    <textarea name="body" required rows={3} />
-                  </label>
-                  <button className="btn btn-primary" type="submit">
-                    Write A Review
-                  </button>
-                </form>
-              ) : (
-                <p>
-                  <a href={`/login?next=/directory/${listing.slug}`}>Log in to write a review</a>
-                </p>
-              )}
-            </div>
 
             {relatedEvents.length > 0 ? (
               <div style={{ marginTop: 32 }}>
@@ -257,51 +301,12 @@ export default async function ListingDetailPage({
                 ) : null}
               </p>
             ) : null}
-            {listing.prices.length === 0 ? (
+            {costRows.length === 0 ? (
               <p className="muted">
                 From {formatFromPrice(listing.fromPrice)}. Full price list soon.
               </p>
             ) : (
-              <ul className="listing-cost-list">
-                {listing.prices.map((price) => {
-                  const memberDeal =
-                    price.memberPrice !== null &&
-                    price.standardPrice !== null &&
-                    price.memberPrice < price.standardPrice;
-                  const unit = priceUnitLabel(price.appliesTo ?? "");
-                  const suffix = unit ? ` ${unit}` : "";
-                  const save =
-                    memberDeal && price.standardPrice !== null && price.memberPrice !== null
-                      ? price.standardPrice - price.memberPrice
-                      : null;
-                  return (
-                    <li className="listing-cost-card" key={price.id}>
-                      <div>
-                        <strong>{price.name}</strong>
-                        {save !== null && save > 0 ? (
-                          <p>Save {formatRand(save)}{suffix}</p>
-                        ) : null}
-                        {price.inclusions ? <p className="muted">{price.inclusions}</p> : null}
-                      </div>
-                      <div className="listing-cost-figures">
-                        <span>
-                          {price.standardPrice === 0
-                            ? "Free"
-                            : `${formatRand(price.standardPrice)}${suffix}`}
-                          <span className="listing-cost-chevron" aria-hidden="true" />
-                        </span>
-                        {memberDeal ? (
-                          <b>
-                            {price.memberPrice === 0
-                              ? "Free"
-                              : `${formatRand(price.memberPrice)}${suffix}`}
-                          </b>
-                        ) : null}
-                      </div>
-                    </li>
-                  );
-                })}
-              </ul>
+              <ListingCostList rows={costRows} />
             )}
 
             {listing.hours.length > 0 && (
