@@ -4086,6 +4086,37 @@ fieldset.field {
   margin-top: 32px;
 }
 
+.listing-contact {
+  margin-top: 32px;
+}
+
+.listing-contact-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-top: 12px;
+}
+
+.listing-contact-row a {
+  width: 46px;
+  height: 46px;
+  border-radius: 999px;
+  border: 1.5px solid color-mix(in srgb, var(--snow) 70%, transparent);
+  display: grid;
+  place-items: center;
+  color: var(--snow);
+}
+
+.listing-contact-row a:hover {
+  border-color: var(--canary);
+  color: var(--canary);
+}
+
+.listing-contact-row svg {
+  width: 20px;
+  height: 20px;
+}
+
 .cr-phone-rating-rule {
   width: 1px;
   height: 14px;

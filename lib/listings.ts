@@ -379,6 +379,8 @@ export type PublicListingDetail = Listing & {
   googleRating: number | null;
   googleReviewCount: number | null;
   phone: string | null;
+  email: string | null;
+  social: { platform: string; handle: string | null; url: string | null }[];
   mapsUrl: string | null;
   media: { url: string; alt: string | null }[];
   hours: {
@@ -480,9 +482,11 @@ export async function getPublicListingBySlug(
       province,
       postal_code,
       phone,
+      email,
       maps_url,
       booking_required,
       indoor_outdoor,
+      social_links ( platform, handle, url ),
       listing_media ( public_url, is_cover, sort_order, alt_text, is_pending ),
       listing_activity_kinds ( is_primary, activity_kinds ( key ) ),
       listing_activities!listing_activities_listing_id_fkey (
@@ -529,8 +533,10 @@ export async function getPublicListingBySlug(
       is_suspended: false,
       publish_at: null,
       phone: null,
+      email: null,
       maps_url: null,
       google_review_count: null,
+      social_links: [],
     };
   } else if (error || !data) {
     return null;
@@ -613,6 +619,14 @@ export async function getPublicListingBySlug(
       (row as { google_review_count?: number | string | null }).google_review_count,
     ),
     phone: row.phone ?? null,
+    email: (row as { email?: string | null }).email ?? null,
+    social: ((row as { social_links?: { platform: string; handle: string | null; url: string | null }[] })
+      .social_links ?? []
+    ).map((link) => ({
+      platform: link.platform,
+      handle: link.handle,
+      url: link.url,
+    })),
     mapsUrl: row.maps_url ?? null,
     media: media.length ? media : [{ url: base.image, alt: base.name }],
     hours,
