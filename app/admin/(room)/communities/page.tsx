@@ -34,7 +34,7 @@ export default async function AdminCommunitiesPage({
             <div className="section-head" style={{ marginBottom: 0 }}>
               <div>
                 <span className={`status-pill ${row.status}`}>{communityStatusLabel(row.status)}</span>
-                <h2 style={{ marginTop: 8 }}>{row.title}</h2>
+                <h2 style={{ marginTop: 8 }}>{row.title || "Untitled"}</h2>
                 <p className="muted">
                   {row.placeLabel || "Anywhere"}
                   {row.interest ? ` · ${row.interest}` : ""}

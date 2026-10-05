@@ -1,41 +1,8 @@
 import { createClient } from "@/lib/supabase/server";
+import type { CommunityEventLink, CommunityPhoto, CommunityRecord, CommunityStatus } from "@/lib/community-shared";
 
-export type CommunityStatus = "draft" | "requested" | "published" | "archived" | "suspended";
-
-export function communityStatusLabel(status: CommunityStatus) {
-  switch (status) {
-    case "requested":
-      return "Requested";
-    case "draft":
-      return "Changes Requested";
-    case "published":
-      return "Published";
-    case "archived":
-      return "Archived";
-    case "suspended":
-      return "Suspended";
-  }
-}
-
-export type CommunityRecord = {
-  id: string;
-  title: string;
-  slug: string;
-  about: string | null;
-  coverUrl: string | null;
-  interest: string | null;
-  placeLabel: string | null;
-  socialUrl: string | null;
-  contactEmail: string | null;
-  websiteUrl: string | null;
-  phone: string | null;
-  instagramUrl: string | null;
-  facebookUrl: string | null;
-  founderName: string | null;
-  founderEmail: string | null;
-  status: CommunityStatus;
-  isFeatured: boolean;
-};
+export type { CommunityEventLink, CommunityPhoto, CommunityRecord, CommunityStatus };
+export { communityStatusLabel } from "@/lib/community-shared";
 
 type CommunityRow = {
   id: string;
@@ -51,8 +18,12 @@ type CommunityRow = {
   phone?: string | null;
   instagram_url?: string | null;
   facebook_url?: string | null;
+  tiktok_url?: string | null;
   founder_name?: string | null;
   founder_email?: string | null;
+  areas?: string[] | null;
+  interest_keywords?: string | null;
+  scale_id?: string | null;
   status: CommunityStatus;
   is_featured: boolean | null;
 };
@@ -72,15 +43,19 @@ function mapCommunity(row: CommunityRow): CommunityRecord {
     phone: row.phone ?? null,
     instagramUrl: row.instagram_url ?? null,
     facebookUrl: row.facebook_url ?? null,
+    tiktokUrl: row.tiktok_url ?? null,
     founderName: row.founder_name ?? null,
     founderEmail: row.founder_email ?? null,
+    areas: row.areas ?? [],
+    interestKeywords: row.interest_keywords ?? "",
+    scaleId: row.scale_id ?? null,
     status: row.status,
     isFeatured: Boolean(row.is_featured),
   };
 }
 
 const SELECT =
-  "id, title, slug, about, cover_url, interest, place_label, social_url, contact_email, website_url, phone, instagram_url, facebook_url, founder_name, founder_email, status, is_featured";
+  "id, title, slug, about, cover_url, interest, place_label, social_url, contact_email, website_url, phone, instagram_url, facebook_url, tiktok_url, founder_name, founder_email, areas, interest_keywords, scale_id, status, is_featured";
 
 export async function listCommunities(status?: CommunityStatus | "all") {
   const supabase = await createClient();
@@ -122,9 +97,93 @@ export async function listCommunityEventIds(communityId: string) {
   const { data, error } = await supabase
     .from("community_events")
     .select("event_id")
-    .eq("community_id", communityId);
+    .eq("community_id", communityId)
+    .eq("link_status", "approved");
   if (error || !data) return [];
   return data.map((row) => row.event_id as string);
+}
+
+export async function listCommunityPhotos(communityId: string): Promise<CommunityPhoto[]> {
+  const supabase = await createClient();
+  if (!supabase) return [];
+  const { data, error } = await supabase
+    .from("community_photos")
+    .select("id, public_url, storage_key, is_cover, sort_order")
+    .eq("community_id", communityId)
+    .order("sort_order");
+  if (error || !data) return [];
+  return data.map((row) => ({
+    id: row.id as string,
+    publicUrl: row.public_url as string,
+    storageKey: row.storage_key as string,
+    isCover: Boolean(row.is_cover),
+    sortOrder: (row.sort_order as number) ?? 0,
+  }));
+}
+
+export async function listCommunityKindIds(communityId: string) {
+  const supabase = await createClient();
+  if (!supabase) return [];
+  const { data, error } = await supabase
+    .from("community_activity_kinds")
+    .select("activity_kind_id")
+    .eq("community_id", communityId);
+  if (error || !data) return [];
+  return data.map((row) => row.activity_kind_id as string);
+}
+
+export async function listCommunityPersonaIds(communityId: string) {
+  const supabase = await createClient();
+  if (!supabase) return [];
+  const { data, error } = await supabase
+    .from("community_personas")
+    .select("persona_id")
+    .eq("community_id", communityId);
+  if (error || !data) return [];
+  return data.map((row) => row.persona_id as string);
+}
+
+export async function listCommunityEventLinks(communityId: string): Promise<CommunityEventLink[]> {
+  const supabase = await createClient();
+  if (!supabase) return [];
+  const { data, error } = await supabase
+    .from("community_events")
+    .select("link_status, events (id, title, slug, starts_at, status, city)")
+    .eq("community_id", communityId);
+  if (error || !data) return [];
+  return data.flatMap((row) => {
+    const event = row.events as
+      | {
+          id: string;
+          title: string;
+          slug: string;
+          starts_at: string | null;
+          status: string;
+          city: string | null;
+        }
+      | {
+          id: string;
+          title: string;
+          slug: string;
+          starts_at: string | null;
+          status: string;
+          city: string | null;
+        }[]
+      | null;
+    const item = Array.isArray(event) ? event[0] : event;
+    if (!item) return [];
+    return [
+      {
+        id: item.id,
+        title: item.title,
+        slug: item.slug,
+        startsAt: item.starts_at,
+        city: item.city,
+        status: item.status,
+        linkStatus: row.link_status === "pending" ? "pending" : "approved",
+      } satisfies CommunityEventLink,
+    ];
+  });
 }
 
 export async function isFollowingCommunity(userId: string, communityId: string) {
