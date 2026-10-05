@@ -530,6 +530,7 @@ export async function getPublicListingBySlug(
       publish_at: null,
       phone: null,
       maps_url: null,
+      google_review_count: null,
     };
   } else if (error || !data) {
     return null;
