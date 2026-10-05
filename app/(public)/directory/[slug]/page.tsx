@@ -1,3 +1,4 @@
+import { ListingContact, listingContactLinks } from "@/components/ListingContact";
 import { ListingCostList, type ListingCostRow } from "@/components/ListingCostList";
 import { SaveForm } from "@/components/SaveForm";
 import { getCurrentUser } from "@/lib/auth";
@@ -108,6 +109,7 @@ export default async function ListingDetailPage({
       inclusions: price.inclusions,
     };
   });
+  const contactLinks = listingContactLinks(listing);
 
   return (
     <main>
@@ -156,11 +158,6 @@ export default async function ListingDetailPage({
               <a className="btn btn-secondary" href={`/directory/claim?q=${encodeURIComponent(listing.name)}`}>
                 Claim Listing
               </a>
-              {listing.phone ? (
-                <a className="btn btn-secondary" href={`tel:${listing.phone}`}>
-                  Call
-                </a>
-              ) : null}
               {listing.mapsUrl ? (
                 <a className="btn btn-secondary" href={listing.mapsUrl}>
                   Get Directions
@@ -231,6 +228,8 @@ export default async function ListingDetailPage({
                 <p className="muted">{address}</p>
               </div>
             )}
+
+            <ListingContact links={contactLinks} />
 
             <div className="listing-reviews">
               <p className="eyebrow">Reviews</p>
@@ -325,22 +324,13 @@ export default async function ListingDetailPage({
               </div>
             )}
 
-            <div className="hero-actions" style={{ marginTop: 24 }}>
-              {listing.bookingUrl ? (
-                <a className="btn btn-primary" href={listing.bookingUrl} target="_blank" rel="noreferrer">
-                  Book / Enquire
-                </a>
-              ) : listing.websiteUrl ? (
-                <a className="btn btn-primary" href={listing.websiteUrl} target="_blank" rel="noreferrer">
-                  Visit Website
-                </a>
-              ) : null}
-              {!paid && (
+            {!paid && (
+              <div className="hero-actions" style={{ marginTop: 24 }}>
                 <a className="btn btn-secondary" href="/join/subscribe">
                   Get Member Prices
                 </a>
-              )}
-            </div>
+              </div>
+            )}
           </aside>
         </div>
       </section>
