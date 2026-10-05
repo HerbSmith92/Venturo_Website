@@ -4071,6 +4071,21 @@ fieldset.field {
   color: var(--canary);
 }
 
+.listing-google-rating {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-top: 8px;
+}
+
+.listing-google-rating .cr-phone-stars {
+  font-size: 18px;
+}
+
+.listing-reviews {
+  margin-top: 32px;
+}
+
 .cr-phone-rating-rule {
   width: 1px;
   height: 14px;
@@ -5680,14 +5695,28 @@ label.check {
 }
 
 .listing-cost-card {
+  border-radius: 14px;
+  border: 1px solid color-mix(in srgb, var(--canary) 72%, transparent);
+  background: color-mix(in srgb, var(--night) 35%, transparent);
+  overflow: hidden;
+}
+
+.listing-cost-toggle {
   display: flex;
   justify-content: space-between;
   align-items: center;
   gap: 12px;
+  width: 100%;
   padding: 12px 14px;
-  border-radius: 14px;
-  border: 1px solid color-mix(in srgb, var(--canary) 72%, transparent);
-  background: color-mix(in srgb, var(--night) 35%, transparent);
+  border: 0;
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  text-align: left;
+}
+
+button.listing-cost-toggle {
+  cursor: pointer;
 }
 
 .listing-cost-card strong {
@@ -5729,6 +5758,21 @@ label.check {
   border-right: 1.5px solid color-mix(in srgb, var(--snow) 70%, transparent);
   border-bottom: 1.5px solid color-mix(in srgb, var(--snow) 70%, transparent);
   transform: rotate(45deg) translateY(-2px);
+  transition: transform 160ms ease;
+}
+
+.listing-cost-chevron.is-open {
+  transform: rotate(225deg) translateY(-1px);
+}
+
+.listing-cost-detail {
+  padding: 0 14px 12px;
+}
+
+.listing-cost-member {
+  margin: 6px 0 0;
+  color: var(--canary);
+  font-weight: 600;
 }
 
 .preview-ticket-list {

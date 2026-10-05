@@ -377,6 +377,7 @@ export type PublicListingDetail = Listing & {
   bookingRequired: boolean;
   indoorOutdoor: string | null;
   googleRating: number | null;
+  googleReviewCount: number | null;
   phone: string | null;
   mapsUrl: string | null;
   media: { url: string; alt: string | null }[];
@@ -467,6 +468,7 @@ export async function getPublicListingBySlug(
       price_from,
       is_featured,
       google_rating,
+      google_review_count,
       latitude,
       longitude,
       is_suspended,
@@ -606,6 +608,9 @@ export async function getPublicListingBySlug(
     bookingRequired: Boolean(row.booking_required),
     indoorOutdoor: row.indoor_outdoor,
     googleRating: asNumber(row.google_rating),
+    googleReviewCount: asNumber(
+      (row as { google_review_count?: number | string | null }).google_review_count,
+    ),
     phone: row.phone ?? null,
     mapsUrl: row.maps_url ?? null,
     media: media.length ? media : [{ url: base.image, alt: base.name }],
