@@ -135,12 +135,18 @@ function Icon({ name }: { name: string }) {
   );
 }
 
-export function ListingContact({ links }: { links: ListingContactLink[] }) {
+export function ListingContact({
+  links,
+  heading = "Contact & Book",
+}: {
+  links: ListingContactLink[];
+  heading?: string;
+}) {
   if (links.length === 0) return null;
   return (
     <div className="listing-contact">
       <p className="eyebrow">Contact</p>
-      <h2>Contact & Book</h2>
+      <h2>{heading}</h2>
       <div className="listing-contact-row">
         {links.map((link) => (
           <a

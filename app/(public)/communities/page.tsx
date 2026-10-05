@@ -11,7 +11,7 @@ export default async function CommunitiesPage() {
         <p className="eyebrow">People First</p>
         <h1>Communities</h1>
         <p className="lede muted">
-          Groups Control Room publishes. Follow one and it shows in My Venturo and in the app.
+          Groups and organisations that hold a space for people to come together. Follow one and it stays on your profile.
         </p>
         {communities.length === 0 ? (
           <p className="notice">Communities are on the way. Browse events while they land.</p>
@@ -19,6 +19,11 @@ export default async function CommunitiesPage() {
           <div className="grid" style={{ marginTop: 28 }}>
             {communities.map((item) => (
               <a key={item.id} className="card" href={`/communities/${item.slug}`}>
+                {item.coverUrl ? (
+                  <div className="card-image">
+                    <img src={item.coverUrl} alt="" />
+                  </div>
+                ) : null}
                 <div className="card-body">
                   <p className="card-kicker">Community</p>
                   <h3>{item.title}</h3>

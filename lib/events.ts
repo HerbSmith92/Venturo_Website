@@ -286,6 +286,15 @@ export async function getEventBySlug(slug: string): Promise<VenturoEvent | null>
   return mapEvent(data as EventRow);
 }
 
+export async function listEventsByIds(ids: string[]): Promise<VenturoEvent[]> {
+  if (!ids.length) return [];
+  const supabase = await createClient();
+  if (!supabase) return [];
+  const { data, error } = await supabase.from("events").select(EVENT_SELECT).in("id", ids);
+  if (error || !data) return [];
+  return (data as EventRow[]).map(mapEvent);
+}
+
 export async function getEventById(id: string): Promise<VenturoEvent | null> {
   const supabase = await createClient();
   if (!supabase) return null;
