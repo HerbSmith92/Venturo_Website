@@ -1,8 +1,12 @@
 import { DeleteArchivedListing } from "@/components/admin/DeleteArchivedListing";
+import { BulkForm } from "@/components/admin/BulkForm";
 import { DirectoryColumnHead } from "@/components/admin/DirectoryColumnHead";
+import { bulkListingAction } from "@/app/admin/bulk-actions";
 import { deleteArchivedListing } from "@/app/admin/actions";
+import { getStaffSession } from "@/lib/auth";
 import { formatClock, listingStatusLabel, loadDirectoryQueue } from "@/lib/control-room";
 import type { QueueListing } from "@/lib/control-room-types";
+import { isAdmin } from "@/lib/roles";
 
 export default async function ListingsQueuePage({
   searchParams,
@@ -20,9 +24,56 @@ export default async function ListingsQueuePage({
 }) {
   const { status = "approved", q = "", interest = "", author = "", sort = "", dir = "", group = "", error } =
     await searchParams;
+  const session = await getStaffSession();
+  const canBulk = isAdmin(session?.role);
   const board = await loadDirectoryQueue({ status, q, interest, author, sort, dir });
   const grouped = group === "interest" ? groupRows(board.rows) : null;
   const canDelete = status === "archived";
+  const columns = canBulk ? 7 : 6;
+  const query = new URLSearchParams({ status });
+  if (q) query.set("q", q);
+  if (interest) query.set("interest", interest);
+  if (author) query.set("author", author);
+  if (sort) query.set("sort", sort);
+  if (dir) query.set("dir", dir);
+  if (group) query.set("group", group);
+  const returnTo = `/admin/listings?${query.toString()}`;
+
+  const table = (
+    <div className="cr-table-wrap">
+      <table className="cr-table cr-directory-table">
+        <DirectoryColumnHead
+          status={status}
+          interest={interest}
+          author={author}
+          query={q}
+          sort={sort}
+          dir={dir}
+          group={group}
+          interests={board.interests}
+          authors={board.authors}
+          selectable={canBulk}
+        />
+        <tbody>
+          {board.rows.length === 0 ? (
+            <tr>
+              <td colSpan={columns} className="muted">
+                Nothing in this queue.
+              </td>
+            </tr>
+          ) : grouped ? (
+            grouped.map((bucket) => (
+              <ListingGroup key={bucket.title} title={bucket.title} rows={bucket.rows} canDelete={canDelete} columns={columns} selectable={canBulk} />
+            ))
+          ) : (
+            board.rows.map((listing) => (
+              <ListingRow key={listing.id} listing={listing} canDelete={canDelete} selectable={canBulk} />
+            ))
+          )}
+        </tbody>
+      </table>
+    </div>
+  );
 
   return (
     <section className="cr-directory">
@@ -30,36 +81,13 @@ export default async function ListingsQueuePage({
         <h1>Directory</h1>
       </div>
       {error ? <p className="error">{error}</p> : null}
-      <div className="cr-table-wrap">
-        <table className="cr-table cr-directory-table">
-          <DirectoryColumnHead
-            status={status}
-            interest={interest}
-            author={author}
-            query={q}
-            sort={sort}
-            dir={dir}
-            group={group}
-            interests={board.interests}
-            authors={board.authors}
-          />
-          <tbody>
-            {board.rows.length === 0 ? (
-              <tr>
-                <td colSpan={6} className="muted">
-                  Nothing in this queue.
-                </td>
-              </tr>
-            ) : grouped ? (
-              grouped.map((bucket) => (
-                <ListingGroup key={bucket.title} title={bucket.title} rows={bucket.rows} canDelete={canDelete} />
-              ))
-            ) : (
-              board.rows.map((listing) => <ListingRow key={listing.id} listing={listing} canDelete={canDelete} />)
-            )}
-          </tbody>
-        </table>
-      </div>
+      {canBulk && board.rows.length > 0 ? (
+        <BulkForm formId="bulk-listings" noun="Activity" nouns="Activities" action={bulkListingAction} returnTo={returnTo}>
+          {table}
+        </BulkForm>
+      ) : (
+        table
+      )}
     </section>
   );
 }
@@ -81,24 +109,49 @@ function groupRows(rows: QueueListing[]) {
     .map(([title, items]) => ({ title, rows: items }));
 }
 
-function ListingGroup({ title, rows, canDelete }: { title: string; rows: QueueListing[]; canDelete: boolean }) {
+function ListingGroup({
+  title,
+  rows,
+  canDelete,
+  columns,
+  selectable,
+}: {
+  title: string;
+  rows: QueueListing[];
+  canDelete: boolean;
+  columns: number;
+  selectable: boolean;
+}) {
   return (
     <>
       <tr className="cr-directory-group">
-        <td colSpan={6}>{title}</td>
+        <td colSpan={columns}>{title}</td>
       </tr>
       {rows.map((listing) => (
-        <ListingRow key={listing.id} listing={listing} canDelete={canDelete} />
+        <ListingRow key={listing.id} listing={listing} canDelete={canDelete} selectable={selectable} />
       ))}
     </>
   );
 }
 
-function ListingRow({ listing, canDelete }: { listing: QueueListing; canDelete: boolean }) {
+function ListingRow({
+  listing,
+  canDelete,
+  selectable,
+}: {
+  listing: QueueListing;
+  canDelete: boolean;
+  selectable: boolean;
+}) {
   const place = [listing.branch_name, listing.suburb, listing.city].filter(Boolean).join(" · ");
   const scheduled = Boolean(listing.publish_at) && new Date(listing.publish_at ?? "").getTime() > Date.now();
   return (
     <tr>
+      {selectable ? (
+        <td className="cr-bulk-cell">
+          <input className="cr-bulk-check" type="checkbox" name="id" value={listing.id} form="bulk-listings" aria-label={`Select ${listing.name}`} />
+        </td>
+      ) : null}
       <td>
         <div className="cr-directory-listing">
           {listing.cover_url ? (

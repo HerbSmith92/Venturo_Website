@@ -6055,6 +6055,78 @@ button.listing-cost-toggle {
   border: 1px solid color-mix(in srgb, var(--snow) 10%, transparent);
 }
 
+.cr-bulk {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 12px;
+  margin: 8px 0 16px;
+}
+
+.cr-bulk-all,
+.cr-bulk-row,
+.cr-bulk-cell {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.cr-bulk-all input,
+.cr-bulk-check {
+  width: 18px;
+  height: 18px;
+  accent-color: var(--canary);
+}
+
+.cr-bulk-action select {
+  min-width: 180px;
+  padding: 10px 12px;
+  border-radius: 10px;
+  border: 1px solid color-mix(in srgb, var(--snow) 18%, transparent);
+  background: color-mix(in srgb, var(--snow) 8%, transparent);
+  color: var(--snow);
+}
+
+.cr-bulk-col {
+  width: 42px;
+}
+
+.stack-list article.cr-bulk-row {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+}
+
+.cr-bulk-row .section-head {
+  flex: 1;
+  min-width: 0;
+}
+
+.cr-bulk-dialog {
+  width: min(440px, calc(100vw - 32px));
+  margin: auto;
+  padding: 24px;
+  border: 1px solid color-mix(in srgb, var(--snow) 16%, transparent);
+  border-radius: 16px;
+  background: var(--night);
+  color: var(--snow);
+}
+
+.cr-bulk-dialog::backdrop {
+  background: rgba(20, 22, 28, 0.72);
+}
+
+.cr-bulk-dialog p {
+  margin: 0 0 18px;
+  font-size: 18px;
+}
+
+.cr-bulk-dialog-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+}
+
 .campaign-list {
   display: grid;
   gap: 12px;

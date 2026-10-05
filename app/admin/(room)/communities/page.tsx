@@ -1,3 +1,5 @@
+import { bulkCommunityAction } from "@/app/admin/bulk-actions";
+import { BulkForm } from "@/components/admin/BulkForm";
 import { communityStatusLabel, listCommunities } from "@/lib/communities";
 
 const QUEUES = ["all", "requested", "draft", "archived", "suspended"] as const;
@@ -20,6 +22,37 @@ export default async function AdminCommunitiesPage({
     ? (status as (typeof QUEUES)[number])
     : "all";
   const rows = await listCommunities(current);
+  const returnTo = current === "all" ? "/admin/communities" : `/admin/communities?status=${current}`;
+
+  const list = (
+    <div className="stack-list">
+      {rows.map((row) => (
+        <article key={row.id} className="cr-bulk-row">
+          <input
+            className="cr-bulk-check"
+            type="checkbox"
+            name="id"
+            value={row.id}
+            form="bulk-communities"
+            aria-label={`Select ${row.title || "Untitled"}`}
+          />
+          <div className="section-head" style={{ marginBottom: 0 }}>
+            <div>
+              <span className={`status-pill ${row.status}`}>{communityStatusLabel(row.status)}</span>
+              <h2 style={{ marginTop: 8 }}>{row.title || "Untitled"}</h2>
+              <p className="muted">
+                {row.placeLabel || "Anywhere"}
+                {row.interest ? ` · ${row.interest}` : ""}
+              </p>
+            </div>
+            <a className="btn btn-primary" href={`/admin/communities/${row.id}`}>
+              Edit
+            </a>
+          </div>
+        </article>
+      ))}
+    </div>
+  );
 
   return (
     <section>
@@ -27,26 +60,19 @@ export default async function AdminCommunitiesPage({
       <h1>Communities</h1>
       <p className="lede muted">{QUEUE_TITLE[current]}</p>
       {error ? <p className="error">{error}</p> : null}
-      <div className="stack-list">
-        {rows.length === 0 ? <p className="muted">Nothing in this queue.</p> : null}
-        {rows.map((row) => (
-          <article key={row.id}>
-            <div className="section-head" style={{ marginBottom: 0 }}>
-              <div>
-                <span className={`status-pill ${row.status}`}>{communityStatusLabel(row.status)}</span>
-                <h2 style={{ marginTop: 8 }}>{row.title || "Untitled"}</h2>
-                <p className="muted">
-                  {row.placeLabel || "Anywhere"}
-                  {row.interest ? ` · ${row.interest}` : ""}
-                </p>
-              </div>
-              <a className="btn btn-primary" href={`/admin/communities/${row.id}`}>
-                Edit
-              </a>
-            </div>
-          </article>
-        ))}
-      </div>
+      {rows.length === 0 ? (
+        <p className="muted">Nothing in this queue.</p>
+      ) : (
+        <BulkForm
+          formId="bulk-communities"
+          noun="Community"
+          nouns="Communities"
+          action={bulkCommunityAction}
+          returnTo={returnTo}
+        >
+          {list}
+        </BulkForm>
+      )}
     </section>
   );
 }

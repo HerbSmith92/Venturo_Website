@@ -33,9 +33,11 @@ export function DirectoryColumnHead({
   group,
   interests,
   authors,
+  selectable = false,
 }: QueryState & {
   interests: { key: string; title: string }[];
   authors: string[];
+  selectable?: boolean;
 }) {
   const router = useRouter();
   const current: QueryState = {
@@ -72,6 +74,7 @@ export function DirectoryColumnHead({
   return (
     <thead>
       <tr>
+        {selectable ? <th className="cr-bulk-col" /> : null}
         <ColumnMenu
           label="Listing"
           active={current.sort === "name" || Boolean(current.query)}

@@ -82,6 +82,7 @@ function menu(admin: boolean, name: string): Group[] {
             { id: "draft", label: "Drafts", href: "/admin/events?status=draft" },
             { id: "rejected", label: "Rejected", href: "/admin/events?status=rejected" },
             { id: "cancelled", label: "Cancelled", href: "/admin/events?status=cancelled" },
+            { id: "archived", label: "Archived", href: "/admin/events?status=archived" },
             { id: "all", label: "All", href: "/admin/events?status=all" },
           ],
         },

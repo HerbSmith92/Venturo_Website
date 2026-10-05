@@ -6,7 +6,7 @@
  * bannerUrl       — 16:9 hero on the event page (web + app detail).
  */
 
-export type EventStatus = "draft" | "review" | "approved" | "rejected" | "cancelled";
+export type EventStatus = "draft" | "review" | "approved" | "rejected" | "cancelled" | "archived";
 export type EventVisibility = "public" | "private";
 export type TicketKind = "paid" | "free" | "donation";
 export type MemberDiscountKind = "none" | "percent" | "amount";
