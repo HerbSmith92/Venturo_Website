@@ -339,11 +339,11 @@ export function CommunityEditor({
                 </button>
               </h2>
               <label className="field cr-quiet">
-                <span className="sr-only">Name of Community</span>
+                <span className="sr-only">Community Name</span>
                 <input
                   value={draft.title}
-                  placeholder="Name of Community"
-                  aria-label="Name of Community"
+                  placeholder="Community Name"
+                  aria-label="Community Name"
                   onChange={(event) => patch({ title: event.target.value })}
                 />
               </label>
