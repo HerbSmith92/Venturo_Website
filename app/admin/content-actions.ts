@@ -20,7 +20,7 @@ export async function createCommunity() {
   const { data, error } = await supabase
     .from("communities")
     .insert({
-      title: "New Community",
+      title: "",
       slug,
       status: "requested",
       created_by: staff.id,
@@ -33,6 +33,131 @@ export async function createCommunity() {
   }
   revalidatePath("/admin/communities");
   redirect(`/admin/communities/${data.id}`);
+}
+
+export type CommunityDraftInput = {
+  title: string;
+  about: string;
+  areas: string[];
+  contactEmail: string;
+  phone: string;
+  websiteUrl: string;
+  instagramUrl: string;
+  facebookUrl: string;
+  tiktokUrl: string;
+  founderName: string;
+  founderEmail: string;
+  kindIds: string[];
+  interestKeywords: string;
+  personaIds: string[];
+  scaleId: string;
+  status: string;
+  isFeatured: boolean;
+};
+
+export async function saveCommunityDraft(id: string, draft: CommunityDraftInput) {
+  const staff = await requireStaff();
+  const supabase = await createClient();
+  const title = draft.title.trim();
+  if (!supabase || !id) return { ok: false as const, error: "Could not save that community." };
+  if (!title) return { ok: false as const, error: "A name is required." };
+
+  const { data: existing, error: loadError } = await supabase
+    .from("communities")
+    .select("slug, social_url")
+    .eq("id", id)
+    .maybeSingle();
+  if (loadError || !existing) return { ok: false as const, error: "Could not find that community." };
+
+  const areas = draft.areas.map((area) => area.trim()).filter(Boolean);
+  const kindIds = [...new Set(draft.kindIds.filter(Boolean))];
+  let interest: string | null = null;
+  if (kindIds.length) {
+    const { data: kinds } = await supabase.from("activity_kinds").select("id, title").in("id", kindIds);
+    const first = kindIds
+      .map((kindId) => (kinds ?? []).find((kind) => kind.id === kindId)?.title)
+      .find((value): value is string => Boolean(value));
+    interest = first ?? null;
+  }
+
+  let slug = existing.slug as string;
+  if (slug.startsWith("new-community-")) {
+    const next = slugify(title);
+    if (next) slug = next;
+  }
+
+  const row = {
+    title,
+    slug,
+    about: draft.about.trim() || null,
+    interest,
+    place_label: areas.length ? areas.join(" · ") : null,
+    areas,
+    contact_email: draft.contactEmail.trim() || null,
+    phone: draft.phone.trim() || null,
+    website_url: draft.websiteUrl.trim() || null,
+    instagram_url: draft.instagramUrl.trim() || null,
+    facebook_url: draft.facebookUrl.trim() || null,
+    tiktok_url: draft.tiktokUrl.trim() || null,
+    founder_name: draft.founderName.trim() || null,
+    founder_email: draft.founderEmail.trim() || null,
+    interest_keywords: draft.interestKeywords.trim() || null,
+    scale_id: draft.scaleId || null,
+    status: communityStatus(draft.status),
+    is_featured: draft.isFeatured,
+    social_url: (existing.social_url as string | null) ?? null,
+    updated_by: staff.id,
+  };
+
+  let saved = await supabase.from("communities").update(row).eq("id", id);
+  if (saved.error && /duplicate|unique/i.test(saved.error.message)) {
+    slug = `${slugify(title)}-${id.slice(0, 8)}`;
+    saved = await supabase.from("communities").update({ ...row, slug }).eq("id", id);
+  }
+  if (saved.error) return { ok: false as const, error: saved.error.message };
+
+  await supabase.from("community_activity_kinds").delete().eq("community_id", id);
+  if (kindIds.length) {
+    const { error } = await supabase
+      .from("community_activity_kinds")
+      .insert(kindIds.map((activityKindId) => ({ community_id: id, activity_kind_id: activityKindId })));
+    if (error) return { ok: false as const, error: error.message };
+  }
+
+  await supabase.from("community_personas").delete().eq("community_id", id);
+  const personaIds = [...new Set(draft.personaIds.filter(Boolean))];
+  if (personaIds.length) {
+    const { error } = await supabase
+      .from("community_personas")
+      .insert(personaIds.map((personaId) => ({ community_id: id, persona_id: personaId })));
+    if (error) return { ok: false as const, error: error.message };
+  }
+
+  revalidatePath("/communities");
+  revalidatePath(`/communities/${slug}`);
+  revalidatePath("/admin/communities");
+  revalidatePath("/");
+  redirect(`/admin/communities/${id}?done=1`);
+}
+
+export async function approveCommunityEvent(communityId: string, eventId: string) {
+  await requireStaff();
+  const supabase = await createClient();
+  if (!supabase || !communityId || !eventId) {
+    return { ok: false as const, error: "Could not approve that event." };
+  }
+  const { error } = await supabase
+    .from("community_events")
+    .update({ link_status: "approved" })
+    .eq("community_id", communityId)
+    .eq("event_id", eventId);
+  if (error) return { ok: false as const, error: error.message };
+  const { data: community } = await supabase.from("communities").select("slug").eq("id", communityId).maybeSingle();
+  revalidatePath("/admin/communities");
+  revalidatePath(`/admin/communities/${communityId}`);
+  if (community?.slug) revalidatePath(`/communities/${community.slug}`);
+  revalidatePath("/communities");
+  return { ok: true as const };
 }
 
 function slugify(value: string) {

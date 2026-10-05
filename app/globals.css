@@ -2848,6 +2848,10 @@ fieldset.field {
   color: var(--jade);
 }
 
+.cr-editor.is-single {
+  grid-template-columns: minmax(0, 1fr);
+}
+
 .cr-editor {
   display: grid;
   grid-template-columns: minmax(0, 1fr) 320px;

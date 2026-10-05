@@ -59,6 +59,11 @@ export default async function CommunityDetailPage({
         handle: community.facebookUrl,
         url: community.facebookUrl,
       },
+      {
+        platform: "tiktok",
+        handle: community.tiktokUrl,
+        url: community.tiktokUrl,
+      },
     ],
   });
   const showMemberPrice = user?.plan === "paid";

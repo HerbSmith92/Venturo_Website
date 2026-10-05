@@ -473,6 +473,17 @@ export async function createEventDraft(userId: string, input: CreateEventInput) 
 
   if (error || !event) throw new Error(error?.message ?? "Could not create event.");
 
+  const { data: owned } = await supabase.from("communities").select("id").eq("created_by", userId);
+  if (owned?.length) {
+    await supabase.from("community_events").insert(
+      owned.map((community) => ({
+        community_id: community.id,
+        event_id: event.id,
+        link_status: "pending",
+      })),
+    );
+  }
+
   if (input.ticketTypes?.length) {
     const { error: ticketError } = await supabase.from("event_ticket_types").insert(
       input.ticketTypes.map((ticket, index) => ({
