@@ -1,7 +1,14 @@
-import { saveCommunity } from "@/app/admin/content-actions";
-import { listCommunities } from "@/lib/communities";
+import { communityStatusLabel, listCommunities } from "@/lib/communities";
 
-const TABS = ["all", "draft", "published", "archived"] as const;
+const QUEUES = ["all", "requested", "draft", "archived", "suspended"] as const;
+
+const QUEUE_TITLE: Record<(typeof QUEUES)[number], string> = {
+  all: "All",
+  requested: "Requested",
+  draft: "Changes Requested",
+  archived: "Archived",
+  suspended: "Suspended",
+};
 
 export default async function AdminCommunitiesPage({
   searchParams,
@@ -9,8 +16,8 @@ export default async function AdminCommunitiesPage({
   searchParams: Promise<{ status?: string; error?: string }>;
 }) {
   const { status = "all", error } = await searchParams;
-  const current = TABS.includes(status as (typeof TABS)[number])
-    ? (status as (typeof TABS)[number])
+  const current = QUEUES.includes(status as (typeof QUEUES)[number])
+    ? (status as (typeof QUEUES)[number])
     : "all";
   const rows = await listCommunities(current);
 
@@ -18,31 +25,15 @@ export default async function AdminCommunitiesPage({
     <section>
       <p className="eyebrow">Content</p>
       <h1>Communities</h1>
-      <p className="lede muted">
-        Publish a community here and the website and the app can follow the same record.
-      </p>
+      <p className="lede muted">{QUEUE_TITLE[current]}</p>
       {error ? <p className="error">{error}</p> : null}
-      <form action={saveCommunity} className="cr-panel" style={{ marginBottom: 24 }}>
-        <h2>New Community</h2>
-        <label className="field">
-          <span>Title</span>
-          <input name="title" required placeholder="Family Weekends" />
-        </label>
-        <label className="field">
-          <span>About</span>
-          <textarea name="about" rows={3} />
-        </label>
-        <button className="btn btn-primary" type="submit">
-          Create Draft
-        </button>
-      </form>
       <div className="stack-list">
-        {rows.length === 0 ? <p className="muted">No communities in this list.</p> : null}
+        {rows.length === 0 ? <p className="muted">Nothing in this queue.</p> : null}
         {rows.map((row) => (
           <article key={row.id}>
             <div className="section-head" style={{ marginBottom: 0 }}>
               <div>
-                <span className={`status-pill ${row.status}`}>{row.status}</span>
+                <span className={`status-pill ${row.status}`}>{communityStatusLabel(row.status)}</span>
                 <h2 style={{ marginTop: 8 }}>{row.title}</h2>
                 <p className="muted">
                   {row.placeLabel || "Anywhere"}

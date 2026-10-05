@@ -1,6 +1,7 @@
 "use client";
 
 import { createListing } from "@/app/admin/actions";
+import { createCommunity } from "@/app/admin/content-actions";
 import type { StaffSession } from "@/lib/auth";
 import { isAdmin } from "@/lib/roles";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
@@ -14,7 +15,7 @@ type Leaf = {
   id: string;
   label: string;
   href?: string;
-  action?: "create-listing" | "sign-out";
+  action?: "create-listing" | "create-community" | "sign-out";
 };
 
 type Heading = {
@@ -86,13 +87,15 @@ function menu(admin: boolean, name: string): Group[] {
         },
         {
           id: "community",
-          label: "Community",
+          label: "Communities",
           href: "/admin/communities",
           leaves: [
             { id: "all", label: "All", href: "/admin/communities" },
-            { id: "draft", label: "Drafts", href: "/admin/communities?status=draft" },
-            { id: "published", label: "Published", href: "/admin/communities?status=published" },
+            { id: "add-community", label: "+ Add new Community", action: "create-community" },
+            { id: "requested", label: "Requested", href: "/admin/communities?status=requested" },
+            { id: "changes", label: "Changes Requested", href: "/admin/communities?status=draft" },
             { id: "archived", label: "Archived", href: "/admin/communities?status=archived" },
+            { id: "suspended", label: "Suspended", href: "/admin/communities?status=suspended" },
           ],
         },
         {
@@ -318,6 +321,10 @@ function HeadingRow({
           {heading.leaves.map((leaf) =>
             leaf.action === "create-listing" ? (
               <form key={leaf.id} action={createListing}>
+                <button type="submit">{leaf.label}</button>
+              </form>
+            ) : leaf.action === "create-community" ? (
+              <form key={leaf.id} action={createCommunity}>
                 <button type="submit">{leaf.label}</button>
               </form>
             ) : (
