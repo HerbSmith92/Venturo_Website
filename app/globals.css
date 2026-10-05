@@ -6559,9 +6559,23 @@ button.listing-cost-toggle {
   aspect-ratio: 4 / 3;
 }
 
+.landing .home-rail .card-kicker {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  line-height: 1.3;
+  min-height: 1.3em;
+}
+
+.landing .home-rail > * {
+  display: flex;
+  height: auto;
+}
+
 .landing .home-rail .card {
   display: flex;
   flex-direction: column;
+  width: 100%;
   height: 100%;
 }
 
@@ -6603,6 +6617,7 @@ button.listing-cost-toggle {
 
   .landing .home-rail {
     display: flex;
+    align-items: stretch;
     width: 100%;
     max-width: 100%;
     overflow-x: auto;
