@@ -563,6 +563,11 @@ body:has(.landing) .chrome.chrome-solid {
   padding: 28px 0 64px;
 }
 
+.landing-directory > section {
+  min-width: 0;
+  max-width: 100%;
+}
+
 .landing-band-head {
   display: flex;
   justify-content: space-between;
@@ -6547,6 +6552,68 @@ button.listing-cost-toggle {
   .guide-rec-copy,
   .guide-rec-flip .guide-rec-copy {
     padding: 4px 6px 8px;
+  }
+}
+
+.landing .home-rail .card-image-post {
+  aspect-ratio: 4 / 3;
+}
+
+.landing .home-rail .card {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+}
+
+.landing .home-rail .card-body {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+}
+
+.landing .home-rail .card-body h3,
+.landing .home-rail .card-meta {
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+.landing .home-rail .card-body h3 {
+  line-height: 1.15;
+  min-height: calc(1.15em * 2);
+  -webkit-line-clamp: 2;
+}
+
+.landing .home-rail .card-meta {
+  line-height: 1.35;
+  min-height: calc(1.35em * 2);
+  -webkit-line-clamp: 2;
+}
+
+.landing .home-rail .price-row {
+  align-items: flex-end;
+  min-height: 2.6em;
+  margin-top: auto;
+}
+
+@media (max-width: 720px) {
+  .logo {
+    width: min(144px, 33.6vw);
+  }
+
+  .landing .home-rail {
+    display: flex;
+    width: 100%;
+    max-width: 100%;
+    overflow-x: auto;
+    overscroll-behavior-x: contain;
+  }
+
+  .landing .home-rail > * {
+    flex: 0 0 78%;
+    width: 78%;
+    max-width: 280px;
+    min-width: 0;
   }
 }
 
