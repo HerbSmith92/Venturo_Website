@@ -5,6 +5,36 @@ import { redirect } from "next/navigation";
 import { requireStaff } from "@/lib/auth";
 import { createClient } from "@/lib/supabase/server";
 
+const COMMUNITY_STATUSES = ["draft", "requested", "published", "archived", "suspended"] as const;
+
+function communityStatus(value: string) {
+  return COMMUNITY_STATUSES.includes(value as (typeof COMMUNITY_STATUSES)[number]) ? value : "draft";
+}
+
+export async function createCommunity() {
+  const staff = await requireStaff();
+  const supabase = await createClient();
+  if (!supabase) redirect("/admin/communities?error=Could+not+create+that+community.");
+
+  const slug = `new-community-${crypto.randomUUID().slice(0, 8)}`;
+  const { data, error } = await supabase
+    .from("communities")
+    .insert({
+      title: "New Community",
+      slug,
+      status: "requested",
+      created_by: staff.id,
+      updated_by: staff.id,
+    })
+    .select("id")
+    .single();
+  if (error || !data?.id) {
+    redirect(`/admin/communities?error=${encodeURIComponent(error?.message ?? "Could not create that community.")}`);
+  }
+  revalidatePath("/admin/communities");
+  redirect(`/admin/communities/${data.id}`);
+}
+
 function slugify(value: string) {
   return value
     .trim()
@@ -39,7 +69,7 @@ export async function saveCommunity(formData: FormData) {
     facebook_url: String(formData.get("facebook_url") ?? "").trim() || null,
     founder_name: String(formData.get("founder_name") ?? "").trim() || null,
     founder_email: String(formData.get("founder_email") ?? "").trim() || null,
-    status: String(formData.get("status") ?? "draft"),
+    status: communityStatus(String(formData.get("status") ?? "draft")),
     is_featured: formData.get("is_featured") === "on",
     updated_by: staff.id,
   };

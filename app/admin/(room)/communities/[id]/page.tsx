@@ -1,6 +1,6 @@
 import { notFound } from "next/navigation";
 import { saveCommunity } from "@/app/admin/content-actions";
-import { getCommunityById, listCommunityEventIds } from "@/lib/communities";
+import { communityStatusLabel, getCommunityById, listCommunityEventIds, type CommunityStatus } from "@/lib/communities";
 import { listAdminEvents } from "@/lib/events";
 
 export default async function AdminCommunityEditPage({
@@ -99,9 +99,11 @@ export default async function AdminCommunityEditPage({
         <label className="field">
           <span>Status</span>
           <select name="status" defaultValue={community.status}>
-            <option value="draft">Draft</option>
-            <option value="published">Published</option>
-            <option value="archived">Archived</option>
+            {(["requested", "draft", "published", "archived", "suspended"] as CommunityStatus[]).map((status) => (
+              <option key={status} value={status}>
+                {communityStatusLabel(status)}
+              </option>
+            ))}
           </select>
         </label>
         <label className="field">

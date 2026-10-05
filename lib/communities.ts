@@ -1,6 +1,21 @@
 import { createClient } from "@/lib/supabase/server";
 
-export type CommunityStatus = "draft" | "published" | "archived";
+export type CommunityStatus = "draft" | "requested" | "published" | "archived" | "suspended";
+
+export function communityStatusLabel(status: CommunityStatus) {
+  switch (status) {
+    case "requested":
+      return "Requested";
+    case "draft":
+      return "Changes Requested";
+    case "published":
+      return "Published";
+    case "archived":
+      return "Archived";
+    case "suspended":
+      return "Suspended";
+  }
+}
 
 export type CommunityRecord = {
   id: string;
