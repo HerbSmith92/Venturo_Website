@@ -1,4 +1,4 @@
-import { AuthForm } from "@/components/AuthForm";
+import { AuthSplit } from "@/components/AuthSplit";
 import { getCurrentUser } from "@/lib/auth";
 import { isSupabaseConfigured } from "@/lib/env";
 import { safeNextPath } from "@/lib/member-auth";
@@ -32,8 +32,7 @@ export default async function SignupPage({
 
   return (
     <main className="shell">
-      <AuthForm
-        mode="signup"
+      <AuthSplit
         configured={isSupabaseConfigured()}
         next={next}
         initialError={params.error?.trim() || null}

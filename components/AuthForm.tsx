@@ -25,14 +25,16 @@ export function AuthForm({
   next = "/onboarding",
   initialError = null,
   surface = "site",
+  entry = "methods",
 }: {
   mode: "login" | "signup";
   configured: boolean;
   next?: string;
   initialError?: string | null;
   surface?: "site" | "portal" | "companion";
+  entry?: "methods" | "email";
 }) {
-  const [step, setStep] = useState<Step>("methods");
+  const [step, setStep] = useState<Step>(entry === "email" ? "email" : "methods");
   const [email, setEmail] = useState("");
   const [firstName, setFirstName] = useState("");
   const [error, setError] = useState<string | null>(initialError);
@@ -42,8 +44,9 @@ export function AuthForm({
   const heading = useMemo(() => {
     if (surface === "companion") return "Log In To Companion";
     if (surface === "portal") return mode === "login" ? "Log In To Event Host" : "Join As A Host";
+    if (entry === "email") return mode === "login" ? "Log In" : "Sign Up";
     return mode === "login" ? "Log In" : "Sign Up Free";
-  }, [mode, surface]);
+  }, [mode, surface, entry]);
 
   const eyebrow =
     surface === "companion"
@@ -226,7 +229,7 @@ export function AuthForm({
         <p className="lede muted">
           {mode === "login"
             ? "Enter your email & we will send a one-time code."
-            : "Enter your name & email — we will send a one-time code."}
+            : "Enter your name & email. We will send a one-time code."}
         </p>
         {mode === "signup" && (
           <label className="field">
@@ -257,19 +260,45 @@ export function AuthForm({
         <button className="btn btn-primary" type="submit" disabled={!configured || pending}>
           {pending ? "Please Wait" : "Email Me A Code"}
         </button>
-        <p className="muted" style={{ marginTop: 16 }}>
-          <button
-            type="button"
-            className="linkish"
-            onClick={() => {
-              setStep("methods");
-              setError(null);
-            }}
-          >
-            Other ways to{" "}
-            {mode === "login" ? "log in" : surface === "portal" || surface === "companion" ? "join" : "sign up"}
-          </button>
-        </p>
+        {entry === "email" ? (
+          <div className="auth-methods" style={{ marginTop: 18 }}>
+            {METHODS.filter((method) => method.id !== "email").map((method) => {
+              const provider = method.id as OAuthProvider;
+              const busy = oauthPending === provider;
+              return (
+                <button
+                  key={method.id}
+                  type="button"
+                  className={`auth-method auth-method-${method.id}`}
+                  disabled={!configured || Boolean(oauthPending)}
+                  onClick={() => pickMethod(provider)}
+                >
+                  <span className="auth-method-mark" aria-hidden>
+                    <AuthProviderIcon provider={provider} />
+                  </span>
+                  <span className="auth-method-copy">
+                    <strong>{busy ? "Redirecting…" : method.label}</strong>
+                    <span>{method.hint}</span>
+                  </span>
+                </button>
+              );
+            })}
+          </div>
+        ) : (
+          <p className="muted" style={{ marginTop: 16 }}>
+            <button
+              type="button"
+              className="linkish"
+              onClick={() => {
+                setStep("methods");
+                setError(null);
+              }}
+            >
+              Other ways to{" "}
+              {mode === "login" ? "log in" : surface === "portal" || surface === "companion" ? "join" : "sign up"}
+            </button>
+          </p>
+        )}
       </form>
     );
   }
