@@ -18,6 +18,7 @@ export type EventTicketType = {
   id: string;
   eventId: string;
   name: string;
+  description: string;
   kind: TicketKind;
   priceCents: number;
   memberPriceCents: number | null;

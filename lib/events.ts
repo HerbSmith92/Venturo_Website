@@ -90,6 +90,7 @@ type TicketTypeRow = {
   id: string;
   event_id: string;
   name: string;
+  description: string | null;
   kind: TicketKind;
   price_cents: number;
   member_price_cents: number | null;
@@ -108,6 +109,7 @@ function mapTicket(row: TicketTypeRow): EventTicketType {
     id: row.id,
     eventId: row.event_id,
     name: row.name,
+    description: row.description ?? "",
     kind: row.kind,
     priceCents: row.price_cents,
     memberPriceCents: row.member_price_cents,
@@ -191,7 +193,7 @@ const EVENT_SELECT = `
   latitude, longitude, show_map, visibility, status, organiser_id, review_note,
   parking, prohibited_items,
   event_ticket_types (
-    id, event_id, name, kind, price_cents, member_price_cents,
+    id, event_id, name, description, kind, price_cents, member_price_cents,
     member_discount_kind, member_discount_value, members_only, pass_fees_to_buyer,
     pass_commission_to_buyer, quantity, sold_count, sort_order
   )
@@ -436,6 +438,7 @@ export type CreateEventInput = {
   ticketTypes?: {
     id?: string;
     name: string;
+    description?: string;
     kind: TicketKind;
     priceCents: number;
     memberPriceCents?: number | null;
@@ -513,6 +516,7 @@ export async function createEventDraft(userId: string, input: CreateEventInput) 
       input.ticketTypes.map((ticket, index) => ({
         event_id: event.id,
         name: ticket.name.trim(),
+        description: ticket.description?.trim() || "",
         kind: ticket.kind,
         price_cents: ticket.kind === "free" ? 0 : ticket.priceCents,
         member_price_cents:
@@ -546,6 +550,7 @@ function ticketInsertRows(eventId: string, tickets: TicketInput[]) {
   return tickets.map((ticket, index) => ({
     event_id: eventId,
     name: ticket.name.trim() || "Standard Ticket",
+    description: ticket.description?.trim() || "",
     kind: ticket.kind,
     price_cents: ticket.kind === "free" ? 0 : ticket.priceCents,
     member_price_cents: ticket.kind === "free" ? null : (ticket.memberPriceCents ?? null),

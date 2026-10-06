@@ -47,10 +47,11 @@ import {
   type CreateEventStep,
 } from "@/lib/portal";
 
-type TicketDraft = TicketFeeDraft & {
+type TicketDraft = Omit<TicketFeeDraft, "kind"> & {
   id?: string;
   name: string;
-  kind: TicketKind;
+  description: string;
+  kind: TicketKind | "";
 };
 
 const STEPS: { id: CreateEventStep; label: string }[] = [
@@ -62,10 +63,11 @@ const STEPS: { id: CreateEventStep; label: string }[] = [
 const IMAGE_ORDER: EventImageKind[] = ["story", "banner", "listing"];
 const INTEREST_SET = new Set<string>(EVENT_INTERESTS);
 
-const emptyTicket = (kind: TicketKind = "paid"): TicketDraft => ({
-  name: kind === "free" ? "Free Ticket" : kind === "donation" ? "Donation" : "Standard Ticket",
-  kind,
-  priceRands: kind === "free" ? "0.00" : "",
+const emptyTicket = (): TicketDraft => ({
+  name: "",
+  description: "",
+  kind: "",
+  priceRands: "",
   discountKind: "none",
   discountValue: "",
   membersOnly: false,
@@ -79,6 +81,7 @@ function fromEventTickets(event: VenturoEvent | null): TicketDraft[] {
   return event.ticketTypes.map((ticket) => ({
     id: ticket.id,
     name: ticket.name,
+    description: ticket.description,
     kind: ticket.kind,
     priceRands: (ticket.priceCents / 100).toFixed(2),
     discountKind: ticket.memberDiscountKind,
@@ -170,7 +173,6 @@ export function CreateEventWizard({
   const prohibitedItems = event?.prohibitedItems ?? "";
   const parking = event?.parking ?? "";
   const [tickets, setTickets] = useState<TicketDraft[]>(() => fromEventTickets(event));
-  const [addOpen, setAddOpen] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [pending, setPending] = useState(false);
   const [uploading, setUploading] = useState<EventImageKind | null>(null);
@@ -228,6 +230,7 @@ export function CreateEventWizard({
   function validateTickets(rows = ticketRows()) {
     if (!rows.length) return "Add at least one ticket.";
     for (const ticket of rows) {
+      if (!ticket.kind) return "Choose whether the ticket is free or paid.";
       if (!ticket.name.trim()) return "Name each ticket.";
       const qty = Number(ticket.quantity);
       if (!Number.isFinite(qty) || qty < 1) return "Set how many tickets are available.";
@@ -267,9 +270,10 @@ export function CreateEventWizard({
       ticketTypes: rows.map((ticket) => ({
         id: ticket.id,
         name: ticket.name,
-        kind: ticket.kind,
+        description: ticket.kind === "free" ? ticket.description.trim() : "",
+        kind: ticket.kind || "paid",
         priceCents: ticket.kind === "free" ? 0 : parseRandsToCents(ticket.priceRands),
-        memberPriceCents: ticketMemberCents(ticket),
+        memberPriceCents: ticketMemberCents({ ...ticket, kind: ticket.kind || "paid" }),
         memberDiscountKind: (ticket.kind === "free" ? "none" : ticket.discountKind) as MemberDiscountKind,
         memberDiscountValue:
           ticket.kind === "free" || ticket.discountKind === "none" || !ticket.discountValue
@@ -628,11 +632,11 @@ export function CreateEventWizard({
 
       {step === "tickets" ? (
         <StudioSection title="Tickets">
-          <p className="muted">Each ticket&apos;s quantity is how many you can sell of that type.</p>
+          <p className="muted">Choose free or paid for each ticket.</p>
           <ul className="studio-tickets">
             {ticketRows().map((ticket, index) => (
               <TicketTypeCard
-                key={`${ticket.kind}-${index}`}
+                key={ticket.id ?? `ticket-${index}`}
                 ticket={ticket}
                 fees={fees}
                 onChange={(patch) => {
@@ -651,25 +655,13 @@ export function CreateEventWizard({
             </p>
           ) : null}
           <div className="studio-add-ticket">
-            <button className="btn btn-secondary" type="button" onClick={() => setAddOpen((open) => !open)}>
+            <button
+              className="btn btn-secondary"
+              type="button"
+              onClick={() => setTickets((prev) => [...(prev.length ? prev : ticketRows()), emptyTicket()])}
+            >
               Add
             </button>
-            {addOpen && (
-              <div className="studio-add-menu">
-                {(["paid", "free", "donation"] as TicketKind[]).map((kind) => (
-                  <button
-                    key={kind}
-                    type="button"
-                    onClick={() => {
-                      setTickets((prev) => [...(prev.length ? prev : ticketRows()), emptyTicket(kind)]);
-                      setAddOpen(false);
-                    }}
-                  >
-                    {kind === "paid" ? "Paid Ticket" : kind === "free" ? "Free Ticket" : "Donation"}
-                  </button>
-                ))}
-              </div>
-            )}
           </div>
         </StudioSection>
       ) : null}
