@@ -5015,7 +5015,7 @@ code {
 
 .studio-when-pair {
   display: grid;
-  grid-template-columns: 1fr 1fr;
+  grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
   gap: 16px;
 }
 
@@ -5066,6 +5066,88 @@ code {
 }
 
 .studio-when-picks .field {
+  margin-bottom: 0;
+}
+
+.studio-cal {
+  display: grid;
+  gap: 8px;
+  max-width: 360px;
+}
+
+.studio-cal-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.studio-cal-head strong {
+  font-family: "Social Gothic Rough", "Arial Black", sans-serif;
+  font-size: 18px;
+  letter-spacing: 0.04em;
+}
+
+.studio-cal-nav {
+  display: flex;
+  gap: 6px;
+}
+
+.studio-cal-nav button,
+.studio-cal-today {
+  min-height: 36px;
+  padding: 0 10px;
+  border-radius: var(--radius-sm);
+  border: 1px solid color-mix(in srgb, var(--snow) 24%, transparent);
+  background: transparent;
+  color: var(--snow);
+  cursor: pointer;
+}
+
+.studio-cal-grid {
+  display: grid;
+  grid-template-columns: repeat(7, minmax(0, 1fr));
+  gap: 4px;
+}
+
+.studio-cal-dow {
+  text-align: center;
+  font-size: 11px;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: color-mix(in srgb, var(--snow) 62%, transparent);
+}
+
+.studio-cal-day {
+  aspect-ratio: 1;
+  min-height: 0;
+  padding: 0;
+  display: grid;
+  place-items: center;
+  border-radius: 10px;
+  border: 1px solid transparent;
+  background: transparent;
+  color: var(--snow);
+  cursor: pointer;
+}
+
+.studio-cal-day.is-out {
+  color: color-mix(in srgb, var(--snow) 35%, transparent);
+}
+
+.studio-cal-day.is-today {
+  border-color: var(--canary);
+}
+
+.studio-cal-day.is-selected {
+  background: var(--canary);
+  color: var(--night);
+  border-color: var(--canary);
+}
+
+.studio-when-time {
+  max-width: 360px;
   margin-bottom: 0;
 }
 
