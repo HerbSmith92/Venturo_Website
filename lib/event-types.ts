@@ -111,6 +111,14 @@ export const EVENT_ENERGY_SCALES = [
 
 export const EVENT_GENDERS = EVENT_PERSONAS;
 
+export const EVENT_AGE_OPTIONS = [
+  "All ages",
+  "No under 13s",
+  "No under 16s",
+  "No under 18s",
+  "No under 21s",
+] as const;
+
 const ENERGY_MIN = 1;
 const ENERGY_MAX = 5;
 

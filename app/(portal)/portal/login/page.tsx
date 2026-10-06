@@ -1,18 +1,19 @@
 import { AuthForm } from "@/components/AuthForm";
 import { getCurrentUser } from "@/lib/auth";
 import { isSupabaseConfigured } from "@/lib/env";
-import { PORTAL_HOME } from "@/lib/portal";
+import { portalReturnPath } from "@/lib/portal";
 import { redirect } from "next/navigation";
 
 export default async function PortalLoginPage({
   searchParams,
 }: {
-  searchParams: Promise<{ join?: string; error?: string }>;
+  searchParams: Promise<{ join?: string; error?: string; next?: string }>;
 }) {
-  const user = await getCurrentUser();
-  if (user) redirect(PORTAL_HOME);
-
   const params = await searchParams;
+  const next = portalReturnPath(params.next);
+  const user = await getCurrentUser();
+  if (user) redirect(next);
+
   const join = params.join === "1";
 
   return (
@@ -20,7 +21,7 @@ export default async function PortalLoginPage({
       <AuthForm
         mode={join ? "signup" : "login"}
         configured={isSupabaseConfigured()}
-        next={PORTAL_HOME}
+        next={next}
         surface="portal"
         initialError={params.error?.trim() || null}
       />
