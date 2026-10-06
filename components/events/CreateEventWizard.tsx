@@ -189,7 +189,7 @@ export function CreateEventWizard({
     }
     if (!interests.length) return "Pick at least one interest.";
     if (!description.trim()) return "Add a description.";
-    if (!venueName.trim()) return "Add the venue.";
+    if (!venueName.trim()) return "Add the location.";
     return null;
   }
 
@@ -412,7 +412,7 @@ export function CreateEventWizard({
               onChange={(change) => setTitle(change.target.value)}
               maxLength={120}
               required
-              placeholder="Mario Kart Night"
+              placeholder="Event Name"
             />
           </label>
           <p className="muted">Pick a start &amp; an end on the calendar. Times are 24-hour.</p>
@@ -430,11 +430,11 @@ export function CreateEventWizard({
             />
           </label>
           <label className="field">
-            <span>Venue</span>
+            <span>Location</span>
             <input
               value={venueName}
               onChange={(change) => setVenueName(change.target.value)}
-              placeholder="Modderfontein Reserve"
+              placeholder="Location"
             />
           </label>
           <label className="field">

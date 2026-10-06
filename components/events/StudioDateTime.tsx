@@ -275,7 +275,7 @@ export function StudioDateTime({
           onBlur={padTimeDraft}
           inputMode="numeric"
           autoComplete="off"
-          placeholder="18:30"
+          placeholder="00:00"
           aria-label={`${label} time, 24-hour`}
           maxLength={5}
         />
