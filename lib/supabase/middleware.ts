@@ -2,16 +2,12 @@ import { createServerClient } from "@supabase/ssr";
 import { NextResponse, type NextRequest } from "next/server";
 import { isSupabaseConfigured } from "@/lib/env";
 import { COMPANION_HOME, COMPANION_LOGIN, isCompanionPath } from "@/lib/companion";
-import { isPortalPath, EVENT_HOST, PORTAL_HOME, PORTAL_LOGIN } from "@/lib/portal";
+import { isPortalPath, PORTAL_HOME, PORTAL_LOGIN, portalReturnPath } from "@/lib/portal";
 import { roleFromClaims } from "@/lib/roles";
 
 export async function updateSession(request: NextRequest) {
   let response = NextResponse.next({ request });
   const path = request.nextUrl.pathname;
-
-  if (path === "/events/create") {
-    return NextResponse.redirect(new URL(EVENT_HOST, request.url));
-  }
 
   if (!isSupabaseConfigured()) return response;
 
@@ -63,10 +59,15 @@ export async function updateSession(request: NextRequest) {
 
   const isPortalLogin = path === PORTAL_LOGIN;
   if (isPortalPath(path) && !isPortalLogin && !signedIn) {
-    return NextResponse.redirect(new URL(PORTAL_LOGIN, request.url));
+    const login = new URL(PORTAL_LOGIN, request.url);
+    const returnTo = `${path}${request.nextUrl.search}`;
+    if (returnTo !== PORTAL_HOME) login.searchParams.set("next", returnTo);
+    return NextResponse.redirect(login);
   }
   if (isPortalLogin && signedIn) {
-    return NextResponse.redirect(new URL(PORTAL_HOME, request.url));
+    return NextResponse.redirect(
+      new URL(portalReturnPath(request.nextUrl.searchParams.get("next")), request.url),
+    );
   }
 
   const isCompanionLogin = path === COMPANION_LOGIN;

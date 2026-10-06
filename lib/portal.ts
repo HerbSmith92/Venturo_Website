@@ -1,9 +1,15 @@
+import { safeNextPath } from "@/lib/safe-path";
+
 export const PORTAL_HOME = "/portal";
 export const PORTAL_LOGIN = "/portal/login";
 export const PORTAL_EVENTS = "/portal/events";
+export const PORTAL_EVENTS_NEW = "/portal/events/new";
+export const PORTAL_SETUP = "/portal/setup";
 export const PORTAL_SETTINGS = "/portal/settings";
 export const PORTAL_SETTINGS_BANK = `${PORTAL_SETTINGS}?tab=bank`;
 export const EVENT_HOST = "/event-host";
+
+export type CreateEventStep = "details" | "tickets" | "assets";
 
 export const PORTAL_NAV = [
   { href: PORTAL_HOME, label: "Home", exact: true },
@@ -99,6 +105,42 @@ export function isPortalPath(path: string) {
   return path === PORTAL_HOME || path.startsWith(`${PORTAL_HOME}/`);
 }
 
-export function portalLoginHref(join = false) {
-  return join ? `${PORTAL_LOGIN}?join=1` : PORTAL_LOGIN;
+export function portalLoginHref(join = false, next?: string) {
+  const params = new URLSearchParams();
+  if (join) params.set("join", "1");
+  if (next && next !== PORTAL_HOME) params.set("next", next);
+  const query = params.toString();
+  return query ? `${PORTAL_LOGIN}?${query}` : PORTAL_LOGIN;
+}
+
+/** Same-origin Event Host path. Login never follows a next value outside the portal. */
+export function portalReturnPath(raw: unknown) {
+  const next = safeNextPath(raw, PORTAL_HOME);
+  const pathOnly = next.split("?")[0] || next;
+  if (
+    pathOnly.includes("\\") ||
+    pathOnly.includes("//") ||
+    pathOnly.split("/").includes("..")
+  ) {
+    return PORTAL_HOME;
+  }
+  if (!isPortalPath(pathOnly) || pathOnly === PORTAL_LOGIN) return PORTAL_HOME;
+  return next;
+}
+
+/** Joining from the event wizard still collects host details & bank first. */
+export function portalSignupNext(next: string) {
+  const pathOnly = next.split("?")[0] || next;
+  if (pathOnly === PORTAL_EVENTS_NEW) return PORTAL_SETUP;
+  return next;
+}
+
+export function portalNewEventHref(id?: string | null, step: CreateEventStep = "details") {
+  if (!id) return PORTAL_EVENTS_NEW;
+  const params = new URLSearchParams({ id, step });
+  return `${PORTAL_EVENTS_NEW}?${params.toString()}`;
+}
+
+export function portalSetupHref(step: "details" | "bank" = "details") {
+  return step === "bank" ? `${PORTAL_SETUP}?step=bank` : PORTAL_SETUP;
 }

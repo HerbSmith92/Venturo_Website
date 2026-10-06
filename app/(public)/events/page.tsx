@@ -4,7 +4,7 @@ import { getCurrentUser } from "@/lib/auth";
 import { EVENT_CATEGORIES, listPublicEvents } from "@/lib/events";
 import { eventCategoryChipInk, eventCategoryColour } from "@/lib/event-style";
 import { COLORS } from "@/lib/brand";
-import { EVENT_HOST } from "@/lib/portal";
+import { EVENT_HOST, PORTAL_EVENTS_NEW } from "@/lib/portal";
 
 export const metadata: Metadata = {
   title: "What's On · Venturo",
@@ -52,7 +52,10 @@ export default async function EventsPage({
               the kind of quality time worth keeping.
             </p>
             <div className="hero-actions">
-              <a className="btn btn-secondary" href="/list-your-business">
+              <a
+                className="btn btn-secondary"
+                href={user ? PORTAL_EVENTS_NEW : `/login?next=${encodeURIComponent(PORTAL_EVENTS_NEW)}`}
+              >
                 Create An Event
               </a>
             </div>
