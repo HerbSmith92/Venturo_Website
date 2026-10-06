@@ -123,10 +123,12 @@ export function CreateEventWizard({
   const [personas, setPersonas] = useState(() => parseEventPersonas(event?.audienceGender));
   const [energyLow, setEnergyLow] = useState(String(energyStart.low));
   const [energyHigh, setEnergyHigh] = useState(String(energyStart.high));
-  const [category, setCategory] = useState(event?.category || EVENT_INTERESTS[0]);
-  const [interests, setInterests] = useState(() =>
-    (event?.tags ?? []).filter((tag) => INTEREST_SET.has(tag)),
-  );
+  const [interests, setInterests] = useState(() => {
+    const fromTags = (event?.tags ?? []).filter((tag) => INTEREST_SET.has(tag));
+    if (fromTags.length) return fromTags;
+    if (event?.category && INTEREST_SET.has(event.category)) return [event.category];
+    return [];
+  });
   const [otherTags] = useState(() => (event?.tags ?? []).filter((tag) => !INTEREST_SET.has(tag)));
   const [bannerUrl, setBannerUrl] = useState(event?.bannerUrl ?? "");
   const [listingImageUrl, setListingImageUrl] = useState(event?.listingImageUrl ?? "");
@@ -185,6 +187,7 @@ export function CreateEventWizard({
     if (new Date(endIso).getTime() < new Date(startIso).getTime()) {
       return "End time must be after the start.";
     }
+    if (!interests.length) return "Pick at least one interest.";
     if (!description.trim()) return "Add a description.";
     if (!venueName.trim()) return "Add the venue.";
     return null;
@@ -208,7 +211,7 @@ export function CreateEventWizard({
       ageRestriction,
       audienceGender: serializeEventPersonas(personas),
       format: serializeEventEnergy(Number(energyLow) || 3, Number(energyHigh) || 3),
-      category,
+      category: interests[0] ?? "",
       tags,
       bannerUrl: publicImageUrl(bannerUrl),
       listingImageUrl: publicImageUrl(listingImageUrl),
@@ -481,19 +484,9 @@ export function CreateEventWizard({
               </select>
             </label>
           </div>
-          <label className="field">
-            <span>Event Category</span>
-            <select value={category} onChange={(change) => setCategory(change.target.value)}>
-              {withCurrentOption(EVENT_INTERESTS, category).map((item) => (
-                <option key={item} value={item}>
-                  {item}
-                </option>
-              ))}
-            </select>
-          </label>
           <div className="studio-personas">
             <p className="eyebrow">Interests</p>
-            <p className="muted">Extra interests, on top of the category.</p>
+            <p className="muted">What this day is about. Pick as many as fit.</p>
             <div className="chips tag-list">
               {EVENT_INTERESTS.map((interest) => {
                 const on = interests.includes(interest);
