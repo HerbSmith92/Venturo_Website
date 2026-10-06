@@ -37,8 +37,8 @@ export function SiteHeaderNav({ user }: { user: CurrentUser | null }) {
           {profileLabel}
         </a>
       ) : (
-        <a className="btn btn-primary nav-signup" href="/signup">
-          Sign Up
+        <a className="btn btn-primary nav-signup" href="/login">
+          Log In / Sign Up
         </a>
       )}
 
@@ -70,7 +70,7 @@ export function SiteHeaderNav({ user }: { user: CurrentUser | null }) {
                 </form>
               </>
             ) : (
-              <a href="/login">Log In</a>
+              <a href="/login">Log In / Sign Up</a>
             )}
           </nav>
         </div>

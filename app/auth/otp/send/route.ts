@@ -12,7 +12,7 @@ function loginUnknownMessage(message: string, next: string) {
   ) {
     return isPortalPath(next)
       ? "No profile for that email yet. Join as a host first."
-      : "No profile for that email yet. Sign up free first.";
+      : "No profile for that email yet. Sign up first.";
   }
   if (lower.includes("rate limit") || lower.includes("security purposes")) {
     return "Hang tight — wait a moment before requesting another code.";

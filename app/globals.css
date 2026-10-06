@@ -1265,6 +1265,41 @@ a.chip.active {
   padding: 32px 28px;
 }
 
+.auth-split {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  gap: 24px;
+  align-items: start;
+  width: min(960px, 100%);
+  margin: 32px auto 80px;
+}
+
+.auth-split .auth-card {
+  width: 100%;
+  margin: 0;
+}
+
+@media (max-width: 720px) {
+  .auth-split {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .site-header {
+    gap: 8px;
+  }
+
+  .nav-actions {
+    gap: 6px;
+    flex-wrap: nowrap;
+  }
+
+  .nav-signup {
+    padding: 6px 8px;
+    font-size: 12px;
+    white-space: nowrap;
+  }
+}
+
 .auth-methods {
   display: grid;
   gap: 10px;
