@@ -157,6 +157,11 @@ export function TicketCheckoutForm({
             <div className="ticket-row" key={ticket.id}>
               <div>
                 <strong>{ticket.name}</strong>
+                {ticket.description ? (
+                  <p className="muted" style={{ margin: "4px 0 0" }}>
+                    {ticket.description}
+                  </p>
+                ) : null}
                 {ticket.membersOnly && (
                   <p className="eyebrow" style={{ margin: "4px 0 0" }}>
                     Paid members

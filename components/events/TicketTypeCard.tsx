@@ -5,6 +5,12 @@ import { ticketSalesPreview, type TicketFeeDraft } from "@/lib/event-fees";
 import type { MemberDiscountKind, TicketKind } from "@/lib/event-types";
 import type { PlatformFees } from "@/lib/event-types";
 
+type TicketCardModel = Omit<TicketFeeDraft, "kind"> & {
+  name: string;
+  description?: string;
+  kind: TicketKind | "";
+};
+
 function Readout({ value }: { value: string }) {
   return <input readOnly tabIndex={-1} value={value} aria-live="polite" />;
 }
@@ -15,34 +21,97 @@ export function TicketTypeCard({
   onChange,
   onRemove,
 }: {
-  ticket: TicketFeeDraft & { name: string; kind: TicketKind };
+  ticket: TicketCardModel;
   fees: PlatformFees;
-  onChange: (patch: Partial<TicketFeeDraft & { name: string }>) => void;
+  onChange: (patch: Partial<TicketCardModel>) => void;
   onRemove: () => void;
 }) {
-  const sales = ticketSalesPreview(ticket, fees);
-  const paid = ticket.kind !== "free";
+  const sales = ticketSalesPreview({ ...ticket, kind: ticket.kind || "paid" }, fees);
+  const paid = ticket.kind === "paid" || ticket.kind === "donation";
   const memberSales = sales.memberGross ?? (ticket.membersOnly ? sales.standardGross : 0);
 
   return (
     <li className="studio-ticket">
-      <div className="studio-ticket-row">
-        <label className="field">
-          <span>Ticket Name</span>
-          <input
-            value={ticket.name}
-            onChange={(event) => onChange({ name: event.target.value })}
-          />
-        </label>
-        <label className="field">
-          <span>Qty Available</span>
-          <input
-            inputMode="numeric"
-            value={ticket.quantity}
-            onChange={(event) => onChange({ quantity: event.target.value.replace(/[^\d]/g, "") })}
-          />
-        </label>
-        {paid ? (
+      <p className="muted" style={{ marginTop: 0 }}>
+        Is this ticket free or paid?
+      </p>
+      <div className="studio-ticket-kind" role="group" aria-label="Free or paid">
+        <button
+          type="button"
+          className={`chip${ticket.kind === "free" ? " on" : ""}`}
+          aria-pressed={ticket.kind === "free"}
+          onClick={() =>
+            onChange({
+              kind: "free",
+              membersOnly: false,
+              passFeesToBuyer: false,
+              passCommissionToBuyer: false,
+              discountKind: "none",
+            })
+          }
+        >
+          Free
+        </button>
+        <button
+          type="button"
+          className={`chip${ticket.kind === "paid" ? " on" : ""}`}
+          aria-pressed={ticket.kind === "paid"}
+          onClick={() => onChange({ kind: "paid", description: "" })}
+        >
+          Paid
+        </button>
+      </div>
+
+      {ticket.kind === "free" ? (
+        <div className="studio-ticket-free-fields">
+          <div className="studio-ticket-free-top">
+            <label className="field">
+              <span>Ticket Name</span>
+              <input
+                value={ticket.name}
+                placeholder="Ticket Name"
+                onChange={(event) => onChange({ name: event.target.value })}
+              />
+            </label>
+            <label className="field">
+              <span>Qty Available</span>
+              <input
+                inputMode="numeric"
+                value={ticket.quantity}
+                onChange={(event) => onChange({ quantity: event.target.value.replace(/[^\d]/g, "") })}
+              />
+            </label>
+          </div>
+          <label className="field">
+            <span>Description</span>
+            <textarea
+              rows={3}
+              value={ticket.description ?? ""}
+              placeholder="What this ticket includes."
+              onChange={(event) => onChange({ description: event.target.value })}
+            />
+          </label>
+        </div>
+      ) : null}
+
+      {paid ? (
+        <div className="studio-ticket-row">
+          <label className="field">
+            <span>Ticket Name</span>
+            <input
+              value={ticket.name}
+              placeholder="Ticket Name"
+              onChange={(event) => onChange({ name: event.target.value })}
+            />
+          </label>
+          <label className="field">
+            <span>Qty Available</span>
+            <input
+              inputMode="numeric"
+              value={ticket.quantity}
+              onChange={(event) => onChange({ quantity: event.target.value.replace(/[^\d]/g, "") })}
+            />
+          </label>
           <label className="field">
             <span>Ticket Price</span>
             <div className="money-input">
@@ -54,20 +123,15 @@ export function TicketTypeCard({
               />
             </div>
           </label>
-        ) : (
           <label className="field">
-            <span>Ticket Price</span>
-            <Readout value="Free" />
+            <span>Potential Sales</span>
+            <div className="money-input">
+              <span>R</span>
+              <Readout value={(sales.standardGross / 100).toFixed(2)} />
+            </div>
           </label>
-        )}
-        <label className="field">
-          <span>Potential Sales</span>
-          <div className="money-input">
-            <span>R</span>
-            <Readout value={(sales.standardGross / 100).toFixed(2)} />
-          </div>
-        </label>
-      </div>
+        </div>
+      ) : null}
 
       {paid ? (
         <>

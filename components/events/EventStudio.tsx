@@ -8,6 +8,7 @@ import { StudioSection } from "@/components/events/StudioSection";
 import { TicketTypeCard } from "@/components/events/TicketTypeCard";
 import { EnergySpectrum } from "@/components/EnergySpectrum";
 import {
+  EVENT_AGE_OPTIONS,
   EVENT_ENERGY_SCALES,
   EVENT_IMAGE_MAX_BYTES,
   EVENT_IMAGE_MAX_MB,
@@ -38,6 +39,7 @@ import { PORTAL_SETTINGS_BANK } from "@/lib/portal";
 type TicketDraft = {
   id?: string;
   name: string;
+  description: string;
   kind: TicketKind;
   priceRands: string;
   discountKind: MemberDiscountKind;
@@ -48,18 +50,11 @@ type TicketDraft = {
   passCommissionToBuyer: boolean;
 };
 
-const AGE_OPTIONS = [
-  "All ages",
-  "No under 13s",
-  "No under 16s",
-  "No under 18s",
-  "No under 21s",
-];
-
 const STUDIO_IMAGE_ORDER: EventImageKind[] = ["banner", "listing", "story"];
 
 const emptyTicket = (kind: TicketKind = "paid"): TicketDraft => ({
   name: kind === "free" ? "Free Ticket" : kind === "donation" ? "Donation" : "Standard Ticket",
+  description: "",
   kind,
   priceRands: kind === "free" ? "0.00" : "",
   discountKind: "none",
@@ -75,6 +70,7 @@ function fromEventTickets(event: VenturoEvent): TicketDraft[] {
   return event.ticketTypes.map((ticket) => ({
     id: ticket.id,
     name: ticket.name,
+    description: ticket.description,
     kind: ticket.kind,
     priceRands: (ticket.priceCents / 100).toFixed(2),
     discountKind: ticket.memberDiscountKind,
@@ -122,7 +118,7 @@ export function EventStudio({
 }) {
   const [title, setTitle] = useState(event.title);
   const [description, setDescription] = useState(event.description);
-  const [ageRestriction, setAgeRestriction] = useState(event.ageRestriction || AGE_OPTIONS[0]);
+  const [ageRestriction, setAgeRestriction] = useState(event.ageRestriction || EVENT_AGE_OPTIONS[0]);
   const [personas, setPersonas] = useState(() => parseEventPersonas(event.audienceGender));
   const energyStart = parseEventEnergy(event.format);
   const [energyLow, setEnergyLow] = useState(String(energyStart.low));
@@ -186,6 +182,7 @@ export function EventStudio({
         id: `preview-${index}`,
         eventId: event.id,
         name: ticket.name,
+        description: ticket.description,
         kind: ticket.kind,
         priceCents,
         memberPriceCents,
@@ -293,6 +290,7 @@ export function EventStudio({
       ticketTypes: tickets.map((ticket) => ({
         id: ticket.id,
         name: ticket.name,
+        description: ticket.kind === "free" ? ticket.description.trim() : "",
         kind: ticket.kind,
         priceCents: ticket.kind === "free" ? 0 : parseRandsToCents(ticket.priceRands),
         memberPriceCents: ticketMemberCents(ticket),
@@ -649,7 +647,7 @@ export function EventStudio({
             <label className="field">
               <span>Age Requirement</span>
               <select value={ageRestriction} onChange={(event) => setAgeRestriction(event.target.value)}>
-                {AGE_OPTIONS.map((item) => (
+                {EVENT_AGE_OPTIONS.map((item) => (
                   <option key={item} value={item}>
                     {item}
                   </option>
@@ -679,7 +677,7 @@ export function EventStudio({
                   fees={{ commissionPct, bookingFeeCents }}
                   onChange={(patch) => {
                     const next = [...tickets];
-                    next[index] = { ...ticket, ...patch };
+                    next[index] = { ...ticket, ...patch, kind: patch.kind || ticket.kind };
                     setTickets(next);
                   }}
                   onRemove={() => setTickets(tickets.filter((_, item) => item !== index))}

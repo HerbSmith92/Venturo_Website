@@ -5162,6 +5162,36 @@ code {
   align-items: end;
 }
 
+.studio-ticket-kind {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin: 4px 0 14px;
+}
+
+.studio-ticket-free-fields {
+  display: grid;
+  gap: 10px;
+}
+
+.studio-ticket-free-top {
+  display: grid;
+  grid-template-columns: minmax(0, 1.6fr) minmax(0, 0.55fr);
+  gap: 10px;
+  align-items: end;
+}
+
+.studio-ticket .field textarea {
+  width: 100%;
+  min-height: 88px;
+  padding: 12px 18px;
+  border: 0;
+  border-radius: 16px;
+  background: var(--snow);
+  color: var(--night);
+  resize: vertical;
+}
+
 .studio-ticket-free {
   margin: 0 0 14px;
   padding-bottom: 12px;
@@ -5218,16 +5248,24 @@ code {
 }
 
 .studio-ticket .field select {
+  appearance: none;
+  -webkit-appearance: none;
   background-color: var(--snow);
   background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%232A2D35' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'><path d='M6 9l6 6 6-6'/></svg>");
+  background-repeat: no-repeat;
+  background-position: right 16px center;
+  background-size: 16px;
   color: var(--night);
   border: 0;
   border-radius: 999px;
 }
 
-.studio-ticket .field input,
-.studio-ticket .field select {
+.studio-ticket .field input {
   padding: 0 18px;
+}
+
+.studio-ticket .field select {
+  padding: 0 40px 0 18px;
 }
 
 .studio-ticket .money-input {
@@ -5427,6 +5465,7 @@ code {
   .studio-when-pair,
   .studio-when-picks,
   .studio-ticket-row,
+  .studio-ticket-free-top,
   .studio-fee-board {
     grid-template-columns: 1fr;
   }
