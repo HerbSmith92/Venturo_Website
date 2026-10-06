@@ -412,10 +412,10 @@ export function CreateEventWizard({
               placeholder="Mario Kart Night"
             />
           </label>
-          <p className="muted">One date, with a start &amp; an end. Times are 24-hour.</p>
+          <p className="muted">Pick a start &amp; an end on the calendar. Times are 24-hour.</p>
           <div className="studio-when-pair">
-            <StudioDateTime label="Starts" value={startsAt} onChange={setStartsAt} />
-            <StudioDateTime label="Ends" value={endsAt} onChange={setEndsAt} />
+            <StudioDateTime label="Start Date" value={startsAt} onChange={setStartsAt} />
+            <StudioDateTime label="End Date" value={endsAt} onChange={setEndsAt} />
           </div>
           <label className="field">
             <span>Description</span>
