@@ -11,6 +11,8 @@ import {
   getEventBySlug,
   getPlatformFees,
 } from "@/lib/events";
+import { nextOccurrence, repeatPhrase } from "@/lib/event-repeat";
+import { formatEventWhen } from "@/lib/event-types";
 import { isSaved } from "@/lib/saves";
 import { notFound } from "next/navigation";
 
@@ -37,7 +39,10 @@ export default async function EventDetailPage({
     user?.role === "editor";
   if (!canView) notFound();
 
-  const past = Boolean(event.endsAt) && new Date(event.endsAt).getTime() < Date.now();
+  const nextDate = nextOccurrence(event.startsAt, event.endsAt, event.repeatEvery, event.repeatUntil);
+  const whenStart = nextDate?.startsAt ?? event.startsAt;
+  const whenEnd = nextDate?.endsAt ?? event.endsAt;
+  const past = !nextDate && Boolean(event.endsAt) && new Date(event.endsAt).getTime() < Date.now();
   const soldOut =
     event.ticketTypes.length > 0 &&
     event.ticketTypes.every((ticket) => ticket.quantity - ticket.soldCount <= 0);
@@ -45,7 +50,10 @@ export default async function EventDetailPage({
 
   const address = eventAddressText(event);
   const ticketsReady = event.status === "approved" && event.ticketTypes.length > 0;
-  const windowLabel = formatEventWindow(event.startsAt, event.endsAt, event.timezone);
+  const windowLabel = formatEventWindow(whenStart, whenEnd, event.timezone);
+  const repeatLabel = event.repeatEvery
+    ? `${repeatPhrase(event.repeatEvery)}${event.repeatUntil ? ` until ${formatEventWhen(event.repeatUntil, event.timezone)}` : ""}`
+    : "";
   const place = [event.venueName, event.city].filter(Boolean).join(" · ");
 
   return (
@@ -65,6 +73,7 @@ export default async function EventDetailPage({
         <div className="event-live-bar-item">
           <span className="eyebrow">When</span>
           <strong>{windowLabel}</strong>
+          {repeatLabel ? <p className="muted">{repeatLabel}</p> : null}
         </div>
         <div className="event-live-bar-item">
           <span className="eyebrow">Where</span>

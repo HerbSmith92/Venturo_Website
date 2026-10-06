@@ -146,10 +146,12 @@ export function StudioDateTime({
   label,
   value,
   onChange,
+  dateOnly = false,
 }: {
   label: string;
   value: string;
   onChange: (next: string) => void;
+  dateOnly?: boolean;
 }) {
   const [parts, setParts] = useState(() => initialParts(value));
   const [timeDraft, setTimeDraft] = useState(() => timeDraftFromParts(initialParts(value)));
@@ -179,12 +181,22 @@ export function StudioDateTime({
 
   function pickDay(cell: DayCell) {
     setView({ year: cell.year, month: cell.month });
-    commit({ ...parts, year: cell.year, month: cell.month, day: cell.day });
+    const next = {
+      ...parts,
+      year: cell.year,
+      month: cell.month,
+      day: cell.day,
+      ...(dateOnly ? { hour: 23, minute: 59 } : {}),
+    };
+    if (dateOnly) setTimeDraft("23:59");
+    commit(next);
   }
 
   function pickToday() {
     setView(today);
-    commit({ ...parts, ...today });
+    const next = { ...parts, ...today, ...(dateOnly ? { hour: 23, minute: 59 } : {}) };
+    if (dateOnly) setTimeDraft("23:59");
+    commit(next);
   }
 
   function onTimeInput(raw: string) {
@@ -267,6 +279,7 @@ export function StudioDateTime({
           })}
         </div>
       </div>
+      {dateOnly ? null : (
       <label className="field studio-when-time">
         <span>Time</span>
         <input
@@ -280,6 +293,7 @@ export function StudioDateTime({
           maxLength={5}
         />
       </label>
+      )}
     </div>
   );
 }
