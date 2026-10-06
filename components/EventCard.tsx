@@ -9,6 +9,7 @@ import {
   type VenturoEvent,
 } from "@/lib/event-types";
 import { eventCategoryColour } from "@/lib/event-style";
+import { repeatPhrase } from "@/lib/event-repeat";
 
 export type EventCardModel = Pick<
   VenturoEvent,
@@ -24,7 +25,7 @@ export type EventCardModel = Pick<
   | "fromPriceCents"
   | "memberFromPriceCents"
   | "membersOnly"
-> & { slug?: string };
+> & { slug?: string; repeatEvery?: VenturoEvent["repeatEvery"] };
 
 export function EventCard({
   event,
@@ -72,6 +73,7 @@ export function EventCard({
           {event.startsAt
             ? formatEventWhen(event.startsAt, event.timezone)
             : "Date coming"}
+          {event.repeatEvery ? ` · ${repeatPhrase(event.repeatEvery)}` : ""}
           {event.city ? ` · ${event.city}` : ""}
         </p>
         <div className="price-row">

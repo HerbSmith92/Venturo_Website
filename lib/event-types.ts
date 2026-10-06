@@ -7,6 +7,9 @@
  */
 
 export type EventStatus = "draft" | "review" | "approved" | "rejected" | "cancelled" | "archived";
+export type RepeatOrdinal = "first" | "second" | "third" | "fourth" | "last";
+export type RepeatWeekday = "mon" | "tue" | "wed" | "thu" | "fri" | "sat" | "sun";
+export type RepeatEvery = "week" | "month" | `${RepeatOrdinal}-${RepeatWeekday}`;
 export type EventVisibility = "public" | "private";
 export type TicketKind = "paid" | "free" | "donation";
 export type MemberDiscountKind = "none" | "percent" | "amount";
@@ -43,6 +46,8 @@ export type VenturoEvent = {
   storyImageUrl: string | null;
   startsAt: string;
   endsAt: string;
+  repeatEvery: RepeatEvery | null;
+  repeatUntil: string | null;
   timezone: string;
   venueName: string;
   addressLine1: string | null;

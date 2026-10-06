@@ -4,6 +4,15 @@ import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { EnergySpectrum } from "@/components/EnergySpectrum";
 import { StudioDateTime } from "@/components/events/StudioDateTime";
+import {
+  REPEAT_ORDINALS,
+  REPEAT_WEEKDAYS,
+  parseRepeat,
+  repeatCode,
+  repeatPhrase,
+  weekdayFromDateInput,
+} from "@/lib/event-repeat";
+import type { RepeatOrdinal, RepeatWeekday } from "@/lib/event-types";
 import { StudioSection } from "@/components/events/StudioSection";
 import { TicketTypeCard } from "@/components/events/TicketTypeCard";
 import { ticketMemberCents, type TicketFeeDraft } from "@/lib/event-fees";
@@ -135,6 +144,19 @@ export function CreateEventWizard({
   const [storyImageUrl, setStoryImageUrl] = useState(event?.storyImageUrl ?? "");
   const [startsAt, setStartsAt] = useState(isoToDatetimeLocal(event?.startsAt));
   const [endsAt, setEndsAt] = useState(isoToDatetimeLocal(event?.endsAt));
+  const savedRepeat = parseRepeat(event?.repeatEvery);
+  const [repeatMode, setRepeatMode] = useState<"" | "week" | "month" | "weekday">(
+    savedRepeat?.kind === "weekday" ? "weekday" : (savedRepeat?.kind ?? ""),
+  );
+  const [repeatOrdinal, setRepeatOrdinal] = useState<RepeatOrdinal>(
+    savedRepeat?.kind === "weekday" ? savedRepeat.ordinal : "first",
+  );
+  const [repeatWeekday, setRepeatWeekday] = useState<RepeatWeekday>(
+    savedRepeat?.kind === "weekday" ? savedRepeat.weekday : "thu",
+  );
+  const [repeatUntil, setRepeatUntil] = useState(isoToDatetimeLocal(event?.repeatUntil));
+  const repeatEvery =
+    repeatMode === "weekday" ? repeatCode(repeatOrdinal, repeatWeekday) : repeatMode;
   const [venueName, setVenueName] = useState(event?.venueName ?? "");
   const [addressLine1, setAddressLine1] = useState(event?.addressLine1 ?? "");
   const [addressLine2, setAddressLine2] = useState(event?.addressLine2 ?? "");
@@ -187,6 +209,16 @@ export function CreateEventWizard({
     if (new Date(endIso).getTime() < new Date(startIso).getTime()) {
       return "End time must be after the start.";
     }
+    if (repeatEvery) {
+      const untilIso = datetimeLocalToIso(repeatUntil);
+      if (!untilIso) return "Choose when the repeat ends.";
+      if (new Date(untilIso).getTime() < new Date(startIso).getTime()) {
+        return "The last date must be on or after the start.";
+      }
+      const yearLater = new Date(startIso);
+      yearLater.setUTCFullYear(yearLater.getUTCFullYear() + 1);
+      if (new Date(untilIso).getTime() > yearLater.getTime()) return "Keep a repeat within one year.";
+    }
     if (!interests.length) return "Pick at least one interest.";
     if (!description.trim()) return "Add a description.";
     if (!venueName.trim()) return "Add the location.";
@@ -218,6 +250,8 @@ export function CreateEventWizard({
       storyImageUrl: publicImageUrl(storyImageUrl),
       startsAt: datetimeLocalToIso(startsAt),
       endsAt: datetimeLocalToIso(endsAt),
+      repeatEvery: repeatEvery || null,
+      repeatUntil: repeatEvery ? datetimeLocalToIso(repeatUntil) : null,
       venueName: venueName.trim(),
       addressLine1,
       addressLine2,
@@ -420,6 +454,58 @@ export function CreateEventWizard({
             <StudioDateTime label="Start Date" value={startsAt} onChange={setStartsAt} />
             <StudioDateTime label="End Date" value={endsAt} onChange={setEndsAt} />
           </div>
+          <label className="field">
+            <span>Repeat</span>
+            <select
+              value={repeatMode}
+              onChange={(change) => {
+                const mode = change.target.value as "" | "week" | "month" | "weekday";
+                setRepeatMode(mode);
+                if (mode === "weekday") setRepeatWeekday(weekdayFromDateInput(startsAt));
+              }}
+            >
+              <option value="">Does not repeat</option>
+              <option value="week">Weekly</option>
+              <option value="month">Monthly</option>
+              <option value="weekday">A set weekday</option>
+            </select>
+          </label>
+          {repeatMode === "weekday" ? (
+            <>
+              <div className="field-row">
+                <label className="field">
+                  <span>Which</span>
+                  <select
+                    value={repeatOrdinal}
+                    onChange={(change) => setRepeatOrdinal(change.target.value as RepeatOrdinal)}
+                  >
+                    {REPEAT_ORDINALS.map((item) => (
+                      <option key={item.id} value={item.id}>
+                        {item.label}
+                      </option>
+                    ))}
+                  </select>
+                </label>
+                <label className="field">
+                  <span>Day</span>
+                  <select
+                    value={repeatWeekday}
+                    onChange={(change) => setRepeatWeekday(change.target.value as RepeatWeekday)}
+                  >
+                    {REPEAT_WEEKDAYS.map((item) => (
+                      <option key={item.id} value={item.id}>
+                        {item.label}
+                      </option>
+                    ))}
+                  </select>
+                </label>
+              </div>
+              <p className="muted">{repeatPhrase(repeatCode(repeatOrdinal, repeatWeekday))}.</p>
+            </>
+          ) : null}
+          {repeatMode ? (
+            <StudioDateTime label="Repeat Until" value={repeatUntil} onChange={setRepeatUntil} dateOnly />
+          ) : null}
           <label className="field">
             <span>Description</span>
             <textarea

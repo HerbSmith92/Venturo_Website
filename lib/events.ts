@@ -22,6 +22,8 @@ import {
   type VenturoEvent,
   EVENT_CATEGORIES,
 } from "@/lib/event-types";
+import { nextOccurrence } from "@/lib/event-repeat";
+import type { RepeatEvery } from "@/lib/event-types";
 
 export type {
   EventStatus,
@@ -63,6 +65,8 @@ type EventRow = {
   story_image_url: string | null;
   starts_at: string | null;
   ends_at: string | null;
+  repeat_every: RepeatEvery | null;
+  repeat_until: string | null;
   timezone: string;
   venue_name: string;
   address_line1: string | null;
@@ -151,6 +155,8 @@ function mapEvent(row: EventRow): VenturoEvent {
     storyImageUrl: row.story_image_url,
     startsAt: row.starts_at ?? "",
     endsAt: row.ends_at ?? "",
+    repeatEvery: row.repeat_every ?? null,
+    repeatUntil: row.repeat_until ?? null,
     timezone: row.timezone,
     venueName: row.venue_name,
     addressLine1: row.address_line1,
@@ -180,7 +186,7 @@ function mapEvent(row: EventRow): VenturoEvent {
 
 const EVENT_SELECT = `
   id, slug, title, description, age_restriction, audience_gender, format, category, tags,
-  banner_url, listing_image_url, story_image_url,   starts_at, ends_at, timezone,
+  banner_url, listing_image_url, story_image_url, starts_at, ends_at, repeat_every, repeat_until, timezone,
   venue_name, address_line1, address_line2, city, postal_code, country,
   latitude, longitude, show_map, visibility, status, organiser_id, review_note,
   parking, prohibited_items,
@@ -215,6 +221,8 @@ export async function listPublicEvents(options?: {
   if (!supabase) return [];
 
   const when = options?.when ?? "upcoming";
+  const now = new Date();
+  const nowIso = now.toISOString();
   let query = supabase
     .from("events")
     .select(EVENT_SELECT)
@@ -222,9 +230,11 @@ export async function listPublicEvents(options?: {
     .eq("visibility", "public");
 
   if (when === "past") {
-    query = query.lt("ends_at", new Date().toISOString()).order("starts_at", { ascending: false });
+    query = query.lt("ends_at", nowIso).order("starts_at", { ascending: false });
   } else {
-    query = query.gte("ends_at", new Date().toISOString()).order("starts_at", { ascending: true });
+    query = query
+      .or(`ends_at.gte."${nowIso}",repeat_until.gte."${nowIso}"`)
+      .order("starts_at", { ascending: true });
   }
 
   if (options?.category && options.category !== "all") {
@@ -237,6 +247,16 @@ export async function listPublicEvents(options?: {
   const { data, error } = await query;
   if (error || !data) return [];
   let events = (data as EventRow[]).map(mapEvent);
+  if (when === "past") {
+    events = events.filter(
+      (event) => !nextOccurrence(event.startsAt, event.endsAt, event.repeatEvery, event.repeatUntil, now),
+    );
+  } else {
+    events = events.flatMap((event) => {
+      const next = nextOccurrence(event.startsAt, event.endsAt, event.repeatEvery, event.repeatUntil, now);
+      return next ? [{ ...event, startsAt: next.startsAt, endsAt: next.endsAt }] : [];
+    });
+  }
 
   if (when === "weekend") {
     const start = nextWeekendStart();
@@ -398,6 +418,8 @@ export type CreateEventInput = {
   storyImageUrl?: string;
   startsAt?: string;
   endsAt?: string;
+  repeatEvery?: RepeatEvery | null;
+  repeatUntil?: string | null;
   timezone?: string;
   venueName?: string;
   addressLine1?: string;
@@ -450,6 +472,8 @@ export async function createEventDraft(userId: string, input: CreateEventInput) 
       story_image_url: input.storyImageUrl || null,
       starts_at: input.startsAt || null,
       ends_at: input.endsAt || null,
+      repeat_every: input.repeatEvery || null,
+      repeat_until: input.repeatUntil || null,
       timezone: input.timezone || "Africa/Johannesburg",
       venue_name: (input.venueName ?? "").trim(),
       address_line1: input.addressLine1 || null,
@@ -611,6 +635,9 @@ export async function saveEventDraft(
       story_image_url: input.storyImageUrl || null,
       starts_at: input.startsAt || null,
       ends_at: input.endsAt || null,
+      ...(input.repeatEvery !== undefined
+        ? { repeat_every: input.repeatEvery || null, repeat_until: input.repeatUntil || null }
+        : {}),
       timezone: input.timezone || "Africa/Johannesburg",
       venue_name: (input.venueName ?? "").trim(),
       address_line1: input.addressLine1 || null,
