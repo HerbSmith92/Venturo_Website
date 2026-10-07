@@ -1,58 +1,113 @@
 "use client";
 
 import { useState } from "react";
+import type { ListingCostGroup, ListingCostItem } from "@/lib/listing-costs";
 
-export type ListingCostRow = {
-  id: string;
-  name: string;
-  priceLabel: string;
-  memberLabel: string | null;
-  saveLabel: string | null;
-  inclusions: string | null;
-};
+function Chevron({ open }: { open: boolean }) {
+  return <span className={open ? "listing-cost-chevron is-open" : "listing-cost-chevron"} aria-hidden="true" />;
+}
 
-export function ListingCostList({ rows }: { rows: ListingCostRow[] }) {
+function Figures({ item }: { item: ListingCostItem }) {
+  if (item.wasLabel) {
+    return (
+      <span className="listing-cost-figures">
+        <s className="listing-cost-was">{item.wasLabel}</s>
+        <b>{item.priceLabel}</b>
+      </span>
+    );
+  }
+  return (
+    <span className="listing-cost-figures">
+      <span>{item.priceLabel}</span>
+    </span>
+  );
+}
+
+function CostLine({ item, title }: { item: ListingCostItem; title?: string }) {
+  return (
+    <>
+      <span className="listing-cost-copy">
+        <strong>{title ?? item.name}</strong>
+        {item.saveLabel ? <span className="listing-cost-save">{item.saveLabel}</span> : null}
+        {item.note ? <span className="listing-cost-note">{item.note}</span> : null}
+      </span>
+      <Figures item={item} />
+    </>
+  );
+}
+
+export function ListingCostList({ groups }: { groups: ListingCostGroup[] }) {
   const [openId, setOpenId] = useState<string | null>(null);
 
   return (
     <ul className="listing-cost-list">
-      {rows.map((row) => {
-        const extra = Boolean(row.inclusions || row.saveLabel || row.memberLabel);
-        const open = openId === row.id;
+      {groups.map((group) => {
+        const open = openId === group.id;
+        const single = group.items.length === 1 ? group.items[0] : null;
+        const detailId = `cost-detail-${group.id}`;
+
+        if (single) {
+          const row = (
+            <>
+              <CostLine item={single} title={group.name} />
+              {group.description ? <Chevron open={open} /> : null}
+            </>
+          );
+          return (
+            <li className="listing-cost-card" key={group.id}>
+              {group.description ? (
+                <button
+                  type="button"
+                  className="listing-cost-toggle"
+                  aria-expanded={open}
+                  aria-controls={detailId}
+                  onClick={() => setOpenId(open ? null : group.id)}
+                >
+                  {row}
+                </button>
+              ) : (
+                <div className="listing-cost-toggle">{row}</div>
+              )}
+              {open && group.description ? (
+                <p className="listing-cost-detail" id={detailId}>
+                  {group.description}
+                </p>
+              ) : null}
+            </li>
+          );
+        }
+
         return (
-          <li className="listing-cost-card" key={row.id}>
-            {extra ? (
+          <li className="listing-cost-card listing-cost-group" key={group.id}>
+            {group.description ? (
               <button
                 type="button"
-                className="listing-cost-toggle"
+                className="listing-cost-toggle listing-cost-head"
                 aria-expanded={open}
-                onClick={() => setOpenId(open ? null : row.id)}
+                aria-controls={detailId}
+                onClick={() => setOpenId(open ? null : group.id)}
               >
-                <strong>{row.name}</strong>
-                <span className="listing-cost-figures">
-                  <span>
-                    {row.priceLabel}
-                    <span
-                      className={open ? "listing-cost-chevron is-open" : "listing-cost-chevron"}
-                      aria-hidden="true"
-                    />
-                  </span>
-                </span>
+                <strong>{group.name}</strong>
+                <Chevron open={open} />
               </button>
             ) : (
-              <div className="listing-cost-toggle">
-                <strong>{row.name}</strong>
-                <span className="listing-cost-figures">
-                  <span>{row.priceLabel}</span>
-                </span>
+              <div className="listing-cost-toggle listing-cost-head">
+                <strong>{group.name}</strong>
               </div>
             )}
-            {open ? (
-              <div className="listing-cost-detail">
-                {row.saveLabel ? <p>{row.saveLabel}</p> : null}
-                {row.inclusions ? <p className="muted">{row.inclusions}</p> : null}
-                {row.memberLabel ? <p className="listing-cost-member">{row.memberLabel}</p> : null}
-              </div>
+            <ul className="listing-cost-subs">
+              {group.items.map((item) => (
+                <li className="listing-cost-sub" key={item.id}>
+                  <div className="listing-cost-toggle">
+                    <CostLine item={item} />
+                  </div>
+                </li>
+              ))}
+            </ul>
+            {open && group.description ? (
+              <p className="listing-cost-detail" id={detailId}>
+                {group.description}
+              </p>
             ) : null}
           </li>
         );

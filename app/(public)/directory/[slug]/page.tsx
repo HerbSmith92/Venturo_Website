@@ -1,5 +1,5 @@
 import { ListingContact, listingContactLinks } from "@/components/ListingContact";
-import { ListingCostList, type ListingCostRow } from "@/components/ListingCostList";
+import { ListingCostList } from "@/components/ListingCostList";
 import { SaveForm } from "@/components/SaveForm";
 import { getCurrentUser } from "@/lib/auth";
 import {
@@ -10,7 +10,7 @@ import {
 } from "@/lib/listings";
 import { listPublicEvents } from "@/lib/events";
 import { formatDay, formatHours, formatRand } from "@/lib/control-room-shared";
-import { priceUnitLabel } from "@/lib/listing-draft";
+import { buildListingCostGroups } from "@/lib/listing-costs";
 import { isSaved } from "@/lib/saves";
 import { notFound } from "next/navigation";
 
@@ -82,33 +82,7 @@ export default async function ListingDetailPage({
     if (repeated && sameName) return [];
     return [{ ...activity, shortDescription: repeated ? null : activity.shortDescription }];
   });
-  const costRows: ListingCostRow[] = listing.prices.map((price) => {
-    const memberDeal =
-      price.memberPrice !== null &&
-      price.standardPrice !== null &&
-      price.memberPrice < price.standardPrice;
-    const unit = priceUnitLabel(price.appliesTo ?? "");
-    const suffix = unit ? ` ${unit}` : "";
-    const save =
-      memberDeal && price.standardPrice !== null && price.memberPrice !== null
-        ? price.standardPrice - price.memberPrice
-        : null;
-    const priceLabel =
-      price.standardPrice === 0 ? "Free" : `${formatRand(price.standardPrice)}${suffix}`;
-    const memberLabel = memberDeal
-      ? price.memberPrice === 0
-        ? "Members free"
-        : `Members ${formatRand(price.memberPrice)}${suffix}`
-      : null;
-    return {
-      id: price.id,
-      name: price.name,
-      priceLabel,
-      memberLabel,
-      saveLabel: save !== null && save > 0 ? `Save ${formatRand(save)}${suffix}` : null,
-      inclusions: price.inclusions,
-    };
-  });
+  const costGroups = buildListingCostGroups(listing);
   const contactLinks = listingContactLinks(listing);
 
   return (
@@ -284,28 +258,12 @@ export default async function ListingDetailPage({
             <div className="colour-bar" aria-hidden="true" />
             <p className="eyebrow">Prices</p>
             <h2>What It Costs</h2>
-            {listing.prices.some(
-              (price) =>
-                price.memberPrice !== null &&
-                price.standardPrice !== null &&
-                price.memberPrice < price.standardPrice,
-            ) ? (
-              <p className="listing-cost-hint">
-                Member prices are on.
-                {!paid ? (
-                  <>
-                    {" "}
-                    <a href="/join/subscribe">Subscribe with PayFast</a>.
-                  </>
-                ) : null}
-              </p>
-            ) : null}
-            {costRows.length === 0 ? (
+            {costGroups.length === 0 ? (
               <p className="muted">
                 From {formatFromPrice(listing.fromPrice)}. Full price list soon.
               </p>
             ) : (
-              <ListingCostList rows={costRows} />
+              <ListingCostList groups={costGroups} />
             )}
 
             {listing.hours.length > 0 && (

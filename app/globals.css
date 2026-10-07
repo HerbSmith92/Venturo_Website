@@ -5887,28 +5887,18 @@ label.check {
   margin: 8px 0 16px;
 }
 
-.listing-cost-hint {
-  margin: 0 0 14px;
-  color: color-mix(in srgb, var(--snow) 62%, transparent);
-  font-size: 14px;
-}
-
-.listing-cost-hint a {
-  color: var(--canary);
-}
-
 .listing-cost-list {
   list-style: none;
   padding: 0;
   margin: 16px 0 0;
   display: grid;
-  gap: 8px;
+  gap: 10px;
 }
 
 .listing-cost-card {
-  border-radius: 14px;
-  border: 1px solid color-mix(in srgb, var(--canary) 72%, transparent);
-  background: color-mix(in srgb, var(--night) 35%, transparent);
+  border-radius: 16px;
+  border: 1px solid color-mix(in srgb, var(--canary) 78%, transparent);
+  background: color-mix(in srgb, var(--night) 42%, transparent);
   overflow: hidden;
 }
 
@@ -5930,31 +5920,47 @@ button.listing-cost-toggle {
   cursor: pointer;
 }
 
+.listing-cost-copy {
+  min-width: 0;
+  display: grid;
+  gap: 2px;
+}
+
 .listing-cost-card strong {
   display: block;
   font-size: 15px;
-  font-weight: 500;
+  font-weight: 600;
+  line-height: 1.3;
 }
 
-.listing-cost-card p {
-  margin: 4px 0 0;
+.listing-cost-save {
+  color: var(--jade);
   font-size: 13px;
-  color: color-mix(in srgb, var(--snow) 72%, transparent);
+  font-weight: 600;
+}
+
+.listing-cost-note {
+  color: color-mix(in srgb, var(--snow) 68%, transparent);
+  font-size: 13px;
+  font-weight: 200;
 }
 
 .listing-cost-figures {
   flex: 0 0 auto;
   display: grid;
   gap: 2px;
+  justify-items: end;
   text-align: right;
+  font-size: 14px;
+  font-weight: 400;
+  white-space: nowrap;
 }
 
-.listing-cost-figures span {
-  display: inline-flex;
-  align-items: center;
-  justify-content: flex-end;
-  gap: 6px;
-  font-size: 14px;
+.listing-cost-was {
+  color: color-mix(in srgb, var(--snow) 55%, transparent);
+  font-size: 13px;
+  font-weight: 400;
+  text-decoration: line-through;
 }
 
 .listing-cost-figures b {
@@ -5964,10 +5970,12 @@ button.listing-cost-toggle {
 }
 
 .listing-cost-chevron {
+  flex: 0 0 auto;
   width: 7px;
   height: 7px;
-  border-right: 1.5px solid color-mix(in srgb, var(--snow) 70%, transparent);
-  border-bottom: 1.5px solid color-mix(in srgb, var(--snow) 70%, transparent);
+  margin-left: 2px;
+  border-right: 1.5px solid color-mix(in srgb, var(--snow) 75%, transparent);
+  border-bottom: 1.5px solid color-mix(in srgb, var(--snow) 75%, transparent);
   transform: rotate(45deg) translateY(-2px);
   transition: transform 160ms ease;
 }
@@ -5976,14 +5984,35 @@ button.listing-cost-toggle {
   transform: rotate(225deg) translateY(-1px);
 }
 
-.listing-cost-detail {
-  padding: 0 14px 12px;
+.listing-cost-head {
+  padding-bottom: 8px;
 }
 
-.listing-cost-member {
-  margin: 6px 0 0;
-  color: var(--canary);
-  font-weight: 600;
+.listing-cost-subs {
+  list-style: none;
+  margin: 0;
+  padding: 0 10px 10px;
+  display: grid;
+  gap: 8px;
+}
+
+.listing-cost-sub {
+  border-radius: 12px;
+  border: 1px solid color-mix(in srgb, var(--canary) 78%, transparent);
+  background: color-mix(in srgb, var(--night) 28%, transparent);
+}
+
+.listing-cost-sub .listing-cost-toggle {
+  padding: 10px 12px;
+}
+
+.listing-cost-detail {
+  margin: 0;
+  padding: 2px 14px 14px;
+  white-space: pre-wrap;
+  color: color-mix(in srgb, var(--snow) 88%, transparent);
+  font-size: 14px;
+  font-weight: 200;
 }
 
 .preview-ticket-list {
