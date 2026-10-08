@@ -380,7 +380,9 @@ export function ListingAppPreview({
                     <article className="cr-phone-cost-card" key={`${row.name}-${index}`}>
                       <strong>{row.name}</strong>
                       <div className="cr-phone-cost-prices">
-                        {row.free ? (
+                        {row.varies ? (
+                          <span>Cost varies</span>
+                        ) : row.free ? (
                           <b className="free">Free</b>
                         ) : (
                           <>

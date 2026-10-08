@@ -396,6 +396,7 @@ export type PublicListingDetail = Listing & {
     durationMinutes: number | null;
     bookingRequired: boolean;
     fromAmount: number | null;
+    costVaried: boolean;
   }[];
   prices: {
     id: string;
@@ -429,6 +430,7 @@ type DetailRow = LiveRow & {
     status: string | null;
     show_on_discover?: boolean | null;
     show_on_from?: boolean | null;
+    cost_varied?: boolean | null;
   }[];
   operating_hours?: {
     day_of_week: number;
@@ -490,7 +492,7 @@ export async function getPublicListingBySlug(
       listing_media ( public_url, is_cover, sort_order, alt_text, is_pending ),
       listing_activity_kinds ( is_primary, activity_kinds ( key ) ),
       listing_activities!listing_activities_listing_id_fkey (
-        id, name, short_description, description, duration_minutes, booking_required, sort_order, status, show_on_discover, show_on_from
+        id, name, short_description, description, duration_minutes, booking_required, sort_order, status, show_on_discover, show_on_from, cost_varied
       ),
       operating_hours ( day_of_week, opens_at, closes_at, is_closed ),
       price_options (
@@ -514,7 +516,7 @@ export async function getPublicListingBySlug(
       listing_media ( public_url, is_cover, sort_order, alt_text, is_pending ),
       listing_activity_kinds ( is_primary, activity_kinds ( key ) ),
       listing_activities!listing_activities_listing_id_fkey (
-        id, name, short_description, description, duration_minutes, booking_required, sort_order, status, show_on_discover, show_on_from
+        id, name, short_description, description, duration_minutes, booking_required, sort_order, status, show_on_discover, show_on_from, cost_varied
       ),
       operating_hours ( day_of_week, opens_at, closes_at, is_closed ),
       price_options (
@@ -598,7 +600,8 @@ export async function getPublicListingBySlug(
         shortDescription: (a.description ?? a.short_description ?? "").trim() || null,
         durationMinutes: a.duration_minutes,
         bookingRequired: Boolean(a.booking_required),
-        fromAmount: amount,
+        fromAmount: a.cost_varied ? null : amount,
+        costVaried: Boolean(a.cost_varied),
       };
     });
 

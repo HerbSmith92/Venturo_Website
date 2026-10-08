@@ -969,13 +969,26 @@ export function ListingEditor({
                 <article className="cr-activity-board" key={activity.clientKey}>
                   <div className="cr-activity-kicker">
                     <p>Activity {activityIndex + 1}</p>
-                    <button
-                      type="button"
-                      className="cr-text-remove"
-                      onClick={() => removeActivity(activity.clientKey)}
-                    >
-                      Remove
-                    </button>
+                    <div className="cr-activity-tools">
+                      <label className="cr-include cr-cost-varied">
+                        <span>Cost varied</span>
+                        <input
+                          type="checkbox"
+                          checked={activity.cost_varied}
+                          aria-label={`Activity ${activityIndex + 1} cost varied`}
+                          onChange={(e) =>
+                            patchActivity(activity.clientKey, { cost_varied: e.target.checked })
+                          }
+                        />
+                      </label>
+                      <button
+                        type="button"
+                        className="cr-text-remove"
+                        onClick={() => removeActivity(activity.clientKey)}
+                      >
+                        Remove
+                      </button>
+                    </div>
                   </div>
                   <label className="field cr-quiet">
                     <span className="sr-only">Activity Name</span>
