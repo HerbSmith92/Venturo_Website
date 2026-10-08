@@ -112,7 +112,9 @@ export default async function ListingDetailPage({
               </p>
             ) : null}
             <div className="price-row" style={{ marginTop: 12 }}>
-              <span className="from-price">{formatFromPrice(listing.fromPrice)}</span>
+              {listing.fromPrice != null ? (
+                <span className="from-price">{formatFromPrice(listing.fromPrice)}</span>
+              ) : null}
               {listing.memberFromPrice !== null &&
                 (paid ? (
                   <span className="member-price">
@@ -262,7 +264,9 @@ export default async function ListingDetailPage({
             <h2>What It Costs</h2>
             {costGroups.length === 0 ? (
               <p className="muted">
-                From {formatFromPrice(listing.fromPrice)}. Full price list soon.
+                {listing.fromPrice != null
+                  ? `From ${formatFromPrice(listing.fromPrice)}. Full price list soon.`
+                  : "Price to follow."}
               </p>
             ) : (
               <ListingCostList groups={costGroups} />

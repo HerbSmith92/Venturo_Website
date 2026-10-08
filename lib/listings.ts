@@ -21,7 +21,7 @@ export type Listing = {
   category: CategoryId;
   vibe: string;
   energy: "Low" | "Medium" | "High";
-  fromPrice: number;
+  fromPrice: number | null;
   memberFromPrice: number | null;
   image: string;
   featured: boolean;
@@ -112,7 +112,7 @@ function mapLiveRow(row: LiveRow): Listing {
   });
   const image = media.find((item) => item.public_url)?.public_url ?? FALLBACK_IMAGE;
 
-  const fromListed = asNumber(row.price_from) ?? 0;
+  const fromListed = asNumber(row.price_from);
   const activePrices = (row.price_options ?? []).filter((item) => item.is_active !== false);
   const memberPrices = activePrices
     .map((item) => asNumber(item.member_price))
@@ -134,7 +134,9 @@ function mapLiveRow(row: LiveRow): Listing {
     energy: "Medium",
     fromPrice: fromListed,
     memberFromPrice:
-      memberFromPrice !== null && memberFromPrice < fromListed ? memberFromPrice : null,
+      memberFromPrice !== null && fromListed != null && memberFromPrice < fromListed
+        ? memberFromPrice
+        : null,
     image,
     featured: Boolean(row.is_featured),
     latitude: asNumber(row.latitude),
@@ -326,7 +328,9 @@ export async function searchDirectory(query: DirectoryQuery) {
   }
   const maxPrice = Number(query.price);
   if (Number.isFinite(maxPrice) && maxPrice > 0) {
-    listings = listings.filter((listing) => listing.fromPrice === 0 || listing.fromPrice <= maxPrice);
+    listings = listings.filter(
+      (listing) => listing.fromPrice === 0 || (listing.fromPrice != null && listing.fromPrice <= maxPrice),
+    );
   }
   const lat = Number(query.lat);
   const lng = Number(query.lng);
@@ -340,7 +344,7 @@ export async function searchDirectory(query: DirectoryQuery) {
         : null,
   }));
   scored.sort((a, b) => {
-    if (sort === "price") return a.listing.fromPrice - b.listing.fromPrice;
+    if (sort === "price") return (a.listing.fromPrice ?? Number.POSITIVE_INFINITY) - (b.listing.fromPrice ?? Number.POSITIVE_INFINITY);
     if (sort === "rating") return (b.listing.rating ?? 0) - (a.listing.rating ?? 0);
     if (sort === "distance") return (a.km ?? 9999) - (b.km ?? 9999);
     return a.listing.name.localeCompare(b.listing.name);
@@ -348,13 +352,18 @@ export async function searchDirectory(query: DirectoryQuery) {
   return scored.map((row) => row.listing);
 }
 
-export function formatFromPrice(rand: number) {
+export function formatFromPrice(rand: number | null | undefined) {
+  if (rand == null) return "";
   if (rand === 0) return "Free";
   return `From R ${rand.toFixed(2)}`;
 }
 
 export function hasMemberDiscount(listing: Listing) {
-  return listing.memberFromPrice !== null && listing.memberFromPrice < listing.fromPrice;
+  return (
+    listing.fromPrice != null &&
+    listing.memberFromPrice !== null &&
+    listing.memberFromPrice < listing.fromPrice
+  );
 }
 
 export function categoryLabel(id: CategoryId) {
