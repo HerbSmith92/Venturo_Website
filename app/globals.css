@@ -5953,26 +5953,6 @@ label.check {
   user-select: none;
 }
 
-@media (max-width: 520px) {
-  .listing-cost-card.is-locked .listing-cost-copy,
-  .listing-cost-sub.is-locked .listing-cost-copy {
-    padding-right: 0;
-  }
-
-  .listing-cost-card.is-locked .listing-cost-amount,
-  .listing-cost-card.is-locked .listing-cost-audience,
-  .listing-cost-sub.is-locked .listing-cost-amount,
-  .listing-cost-sub.is-locked .listing-cost-audience {
-    align-self: start;
-  }
-
-  .listing-cost-lock {
-    position: static;
-    width: 100%;
-    transform: none;
-    margin-top: 2px;
-  }
-}
 
 .listing-cost-card {
   border-radius: 16px;
@@ -6001,11 +5981,6 @@ button.listing-cost-toggle {
   display: grid;
   gap: 2px;
   padding: 12px 0 12px 14px;
-}
-
-.listing-cost-card.is-locked .listing-cost-copy,
-.listing-cost-sub.is-locked .listing-cost-copy {
-  padding-right: 118px;
 }
 
 .listing-cost-card strong {
@@ -6128,6 +6103,45 @@ button.listing-cost-toggle {
   color: color-mix(in srgb, var(--snow) 88%, transparent);
   font-size: 14px;
   font-weight: 200;
+}
+
+@media (max-width: 520px) {
+  .listing-cost-card.is-locked > .listing-cost-toggle,
+  .listing-cost-sub.is-locked > .listing-cost-toggle {
+    position: relative;
+    padding-bottom: 30px;
+  }
+
+  .listing-cost-card.is-locked .listing-cost-copy,
+  .listing-cost-sub.is-locked .listing-cost-copy {
+    position: static;
+    padding-right: 0;
+  }
+
+  .listing-cost-card.is-locked .listing-cost-amount,
+  .listing-cost-card.is-locked .listing-cost-audience,
+  .listing-cost-sub.is-locked .listing-cost-amount,
+  .listing-cost-sub.is-locked .listing-cost-audience {
+    align-self: center;
+  }
+
+  .listing-cost-lock {
+    position: absolute;
+    left: 14px;
+    right: 14px;
+    top: auto;
+    bottom: 7px;
+    width: auto;
+    transform: none;
+  }
+
+  .listing-cost-lock span {
+    display: block;
+    font-size: 13px;
+    line-height: 1.2;
+    white-space: nowrap;
+    filter: blur(1.4px);
+  }
 }
 
 .preview-ticket-list {
