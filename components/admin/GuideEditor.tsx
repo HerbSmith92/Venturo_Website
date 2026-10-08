@@ -20,7 +20,7 @@ import {
   type GuideListingPreview,
   type GuidePlace,
 } from "@/lib/guide-shared";
-import type { EditorCatalog } from "@/lib/listing-draft";
+import { INTEREST_CHIPS, type EditorCatalog } from "@/lib/listing-draft";
 
 const FALLBACK_IMAGE = "/brand/images/climbing.jpg";
 
@@ -69,7 +69,6 @@ export function GuideEditor({
   const dragId = useRef<string | null>(null);
   const [saveError, setSaveError] = useState<string | null>(null);
   const [saveNotice, setSaveNotice] = useState<string | null>(null);
-  const [interestQuery, setInterestQuery] = useState("");
   const [listingQuery, setListingQuery] = useState("");
   const [listingResults, setListingResults] = useState<GuideListingPreview[]>([]);
   const [searching, setSearching] = useState(false);
@@ -114,13 +113,30 @@ export function GuideEditor({
     [catalog.interests, draft.interest_ids],
   );
 
-  const interestResults = useMemo(() => {
-    const q = interestQuery.trim().toLowerCase();
-    if (!q) return [];
-    return catalog.interests
-      .filter((item) => item.title.toLowerCase().includes(q))
-      .slice(0, 12);
-  }, [catalog.interests, interestQuery]);
+  const audienceGroups = useMemo(() => {
+    const byKind = new Map<string, { label: string; interests: EditorCatalog["interests"] }>();
+    for (const interest of catalog.interests) {
+      const known = INTEREST_CHIPS.find((chip) => chip.key === interest.kind_key);
+      const key = known?.key ?? (interest.kind_key || "other");
+      const group = byKind.get(key) ?? {
+        label: known?.label ?? (interest.kind_title || "Other"),
+        interests: [],
+      };
+      group.interests.push(interest);
+      byKind.set(key, group);
+    }
+    const ordered = INTEREST_CHIPS.flatMap((chip) => {
+      const group = byKind.get(chip.key);
+      return group ? [group] : [];
+    });
+    for (const [key, group] of byKind) {
+      if (!INTEREST_CHIPS.some((chip) => chip.key === key)) ordered.push(group);
+    }
+    return ordered.map((group) => ({
+      ...group,
+      interests: [...group.interests].sort((a, b) => a.title.localeCompare(b.title)),
+    }));
+  }, [catalog.interests]);
 
   const pickerSelectedInterests = useMemo(
     () => catalog.interests.filter((item) => pickerInterestIds.includes(item.id)),
@@ -535,45 +551,29 @@ export function GuideEditor({
             </button>
           </h2>
           <p className="muted cr-step-help">
-            Interests help us target this list later. They do not change who sees it yet.
+            Tap a card to include that interest. Tap it again to take it off.
           </p>
-          {selectedInterests.length > 0 && (
-            <div className="cr-chip-grid" style={{ marginBottom: 12 }}>
-              {selectedInterests.map((interest) => (
-                <button
-                  key={interest.id}
-                  type="button"
-                  className="cr-tag active"
-                  onClick={() => toggleInterest(interest.id)}
-                >
-                  {interest.title} ×
-                </button>
-              ))}
+          {audienceGroups.map((group) => (
+            <div key={group.label} className="cr-guide-audience-group">
+              <p className="cr-about-label">{group.label}</p>
+              <div className="cr-guide-audience">
+                {group.interests.map((interest) => {
+                  const active = draft.interest_ids.includes(interest.id);
+                  return (
+                    <button
+                      key={interest.id}
+                      type="button"
+                      className={active ? "cr-guide-audience-card active" : "cr-guide-audience-card"}
+                      aria-pressed={active}
+                      onClick={() => toggleInterest(interest.id)}
+                    >
+                      {interest.title}
+                    </button>
+                  );
+                })}
+              </div>
             </div>
-          )}
-          <label className="field">
-            <span>Search Interests</span>
-            <input
-              value={interestQuery}
-              onChange={(e) => setInterestQuery(e.target.value)}
-              placeholder="Kids, Adventure, Couples…"
-            />
-          </label>
-          {interestQuery.trim() && interestResults.length === 0 ? (
-            <p className="muted">No matching interests.</p>
-          ) : null}
-          <div className="cr-chip-grid">
-            {interestResults.map((interest) => (
-              <button
-                key={interest.id}
-                type="button"
-                className={draft.interest_ids.includes(interest.id) ? "cr-tag active" : "cr-tag"}
-                onClick={() => toggleInterest(interest.id)}
-              >
-                {interest.title}
-              </button>
-            ))}
-          </div>
+          ))}
         </section>
 
         <section className={stepOpen("window") ? "cr-step is-open" : "cr-step"} id="step-window">

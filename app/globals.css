@@ -6796,6 +6796,35 @@ button.listing-cost-toggle {
   margin: 0;
 }
 
+.cr-guide-audience-group + .cr-guide-audience-group {
+  margin-top: 16px;
+}
+
+.cr-guide-audience {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(148px, 1fr));
+  gap: 8px;
+}
+
+.cr-guide-audience-card {
+  min-height: 72px;
+  padding: 12px 14px;
+  border-radius: 14px;
+  border: 1.5px solid color-mix(in srgb, var(--night) 16%, transparent);
+  background: #fff;
+  color: var(--night);
+  font: inherit;
+  font-size: 15px;
+  line-height: 1.25;
+  text-align: left;
+  cursor: pointer;
+}
+
+.cr-guide-audience-card.active {
+  background: var(--canary);
+  border-color: var(--canary);
+}
+
 .cr-guide-items {
   display: grid;
   gap: 16px;
