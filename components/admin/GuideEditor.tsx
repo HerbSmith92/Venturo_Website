@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useRef, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
+import { saveGuideEvents } from "@/app/admin/content-actions";
 import { saveCuratedGuide } from "@/app/admin/guide-actions";
 import { GuideActions } from "@/components/admin/GuideActions";
 import { GuideExportModal } from "@/components/admin/guide-export/GuideExportModal";
@@ -18,6 +19,24 @@ import type { EditorCatalog } from "@/lib/listing-draft";
 
 const FALLBACK_IMAGE = "/brand/images/climbing.jpg";
 
+const GUIDE_STEPS = [
+  { key: "list", label: "The List" },
+  { key: "audience", label: "Audience" },
+  { key: "window", label: "Window" },
+  { key: "spots", label: "Recommendations" },
+  { key: "events", label: "Linked Events" },
+] as const;
+
+type GuideStepKey = (typeof GUIDE_STEPS)[number]["key"];
+
+function windowSummary(publish: string, expire: string) {
+  const short = (value: string) => value.replace("T", " ").slice(0, 16);
+  if (publish && expire) return `${short(publish)} – ${short(expire)}`;
+  if (publish) return `From ${short(publish)}`;
+  if (expire) return `Until ${short(expire)}`;
+  return "Evergreen";
+}
+
 function areaLabel(listing: GuideListingPreview | null) {
   if (!listing) return "Listing missing";
   return [listing.suburb, listing.city].filter(Boolean).join(", ") || "South Africa";
@@ -28,11 +47,15 @@ export function GuideEditor({
   catalog,
   notice,
   error,
+  events,
+  linkedEventIds,
 }: {
   guide: GuideEditorRecord;
   catalog: EditorCatalog;
   notice?: string;
   error?: string;
+  events: { id: string; title: string }[];
+  linkedEventIds: string[];
 }) {
   const router = useRouter();
   const [pending, startTransition] = useTransition();
@@ -46,7 +69,18 @@ export function GuideEditor({
   const [pickerFor, setPickerFor] = useState<"new" | string | null>(null);
   const [pickerInterestIds, setPickerInterestIds] = useState<string[]>(guide.interest_ids);
   const [pickerInterestQuery, setPickerInterestQuery] = useState("");
+  const [filterOpen, setFilterOpen] = useState(false);
+  const [titlesOpen, setTitlesOpen] = useState(false);
+  const [notesOpen, setNotesOpen] = useState<Record<string, boolean>>({});
   const [exportOpen, setExportOpen] = useState(false);
+  const [activeStep, setActiveStep] = useState<GuideStepKey>("list");
+  const [openSteps, setOpenSteps] = useState<Record<GuideStepKey, boolean>>({
+    list: true,
+    audience: guide.interest_ids.length > 0,
+    window: Boolean(guide.publish_at || guide.expire_at),
+    spots: true,
+    events: linkedEventIds.length > 0,
+  });
   const [draft, setDraft] = useState<GuideDraft>(() => ({
     title: guide.title === "Untitled Guide" ? "" : guide.title,
     intro: guide.intro ?? "",
@@ -63,9 +97,10 @@ export function GuideEditor({
 
   const interestResults = useMemo(() => {
     const q = interestQuery.trim().toLowerCase();
+    if (!q) return [];
     return catalog.interests
-      .filter((item) => !q || item.title.toLowerCase().includes(q))
-      .slice(0, 16);
+      .filter((item) => item.title.toLowerCase().includes(q))
+      .slice(0, 12);
   }, [catalog.interests, interestQuery]);
 
   const pickerSelectedInterests = useMemo(
@@ -75,10 +110,26 @@ export function GuideEditor({
 
   const pickerInterestResults = useMemo(() => {
     const q = pickerInterestQuery.trim().toLowerCase();
+    if (!q) return [];
     return catalog.interests
-      .filter((item) => !q || item.title.toLowerCase().includes(q))
-      .slice(0, 16);
+      .filter((item) => item.title.toLowerCase().includes(q))
+      .slice(0, 12);
   }, [catalog.interests, pickerInterestQuery]);
+
+  function stepOpen(key: GuideStepKey) {
+    return openSteps[key];
+  }
+
+  function jump(key: GuideStepKey) {
+    setActiveStep(key);
+    setOpenSteps((current) => ({ ...current, [key]: true }));
+    document.getElementById(`step-${key}`)?.scrollIntoView({ behavior: "smooth", block: "start" });
+  }
+
+  function toggleStep(key: GuideStepKey) {
+    setActiveStep(key);
+    setOpenSteps((current) => ({ ...current, [key]: !current[key] }));
+  }
 
   const pickerInterestKey = pickerInterestIds.join(",");
 
@@ -195,31 +246,66 @@ export function GuideEditor({
     });
   }
 
+  const isNew = guide.title === "Untitled Guide" && guide.items.length === 0;
+  const heading = draft.title.trim() || "Untitled Guide";
+  const audienceSummary =
+    selectedInterests.map((interest) => interest.title).join(", ") || "None yet";
+
   return (
     <div className="cr-editor-page">
+      <aside className="cr-edit-nav" aria-label="Edit guide">
+        <a className="cr-edit-spine" href="/admin/guides">
+          <span className="cr-edit-spine-mark" aria-hidden="true" />
+          <span>Guides</span>
+        </a>
+        <div className="cr-edit-nav-body">
+          <a className="cr-edit-brand" href="/admin/guides" aria-label="Guides">
+            <img src="/brand/logos/venturo-horizontal-simple-light.svg" alt="Venturo" />
+          </a>
+          <p className="cr-edit-title">Guides</p>
+          <p className="cr-edit-current">{isNew ? "New Guide" : "Edit Guide"}</p>
+          <p className="cr-edit-group">Content</p>
+          <p className="cr-edit-section">Guides</p>
+          <nav className="cr-edit-steps">
+            {GUIDE_STEPS.map((step) => (
+              <button
+                key={step.key}
+                type="button"
+                className={activeStep === step.key ? "active" : undefined}
+                aria-current={activeStep === step.key ? "true" : undefined}
+                onClick={() => jump(step.key)}
+              >
+                {step.label}
+              </button>
+            ))}
+          </nav>
+          <div className="cr-edit-actions">
+            <button className="btn cr-save" type="button" onClick={onSave} disabled={pending}>
+              {pending ? "Saving…" : "Save Guide"}
+            </button>
+            <GuideActions
+              guideId={guide.id}
+              status={guide.status}
+              onExportInstagram={() => setExportOpen(true)}
+            />
+          </div>
+          <div className={guide.status === "published" ? "cr-edit-status is-live" : "cr-edit-status"}>
+            <p>Guide Status</p>
+            <p>{guideStatusLabel(guide.status)}</p>
+          </div>
+        </div>
+      </aside>
+
+      <div className="cr-editor-stage">
       <header className="cr-editor-head">
         <div>
-          <p className="eyebrow">
-            <a href="/admin/guides">Guides</a> · {guideStatusLabel(guide.status)}
-          </p>
-          <h1>{draft.title.trim() || "Untitled Guide"}</h1>
-          <p className="lede muted">
-            Pick live listings. Name, place, price & hours fill in from the directory.
-          </p>
+          <p className="cr-editor-kicker">Guides</p>
+          <h1>{heading}</h1>
         </div>
-        <a className="btn btn-secondary" href="/admin/guides">
-          Back To Queue
-        </a>
       </header>
 
       {(error || saveError) && <p className="error">{error || saveError}</p>}
       {(notice || saveNotice) && <p className="notice">{notice || saveNotice}</p>}
-
-      <GuideActions
-        guideId={guide.id}
-        status={guide.status}
-        onExportInstagram={() => setExportOpen(true)}
-      />
 
       <GuideExportModal
         open={exportOpen}
@@ -229,10 +315,20 @@ export function GuideEditor({
         onClose={() => setExportOpen(false)}
       />
 
+      <div className="cr-editor is-single">
       <div className="cr-paper cr-guide-editor">
-        <section className="cr-step">
+        <section className={stepOpen("list") ? "cr-step is-open" : "cr-step"} id="step-list">
           <h2>
-            <span>1</span> The List
+            <button
+              type="button"
+              className="cr-step-toggle"
+              aria-expanded={stepOpen("list")}
+              onClick={() => toggleStep("list")}
+            >
+              <em>The List</em>
+              {!stepOpen("list") ? <small className="cr-guide-step-summary">{heading}</small> : null}
+              <i className="cr-step-caret" aria-hidden="true" />
+            </button>
           </h2>
           <label className="field">
             <span>Guide Title</span>
@@ -242,19 +338,27 @@ export function GuideEditor({
               placeholder="Top Things to Do This Weekend"
             />
           </label>
-          <p className="cr-field-hint">Tap a suggestion if you want a starting point.</p>
-          <div className="cr-chip-grid">
-            {SUGGESTED_GUIDE_TITLES.map((title) => (
-              <button
-                key={title}
-                type="button"
-                className={draft.title === title ? "cr-tag active" : "cr-tag"}
-                onClick={() => patch({ title })}
-              >
-                {title}
-              </button>
-            ))}
-          </div>
+          <button
+            className="cr-text-remove"
+            type="button"
+            onClick={() => setTitlesOpen((current) => !current)}
+          >
+            {titlesOpen ? "Hide suggested titles" : "Use a suggested title"}
+          </button>
+          {titlesOpen ? (
+            <div className="cr-chip-grid" style={{ marginTop: 12 }}>
+              {SUGGESTED_GUIDE_TITLES.map((title) => (
+                <button
+                  key={title}
+                  type="button"
+                  className={draft.title === title ? "cr-tag active" : "cr-tag"}
+                  onClick={() => patch({ title })}
+                >
+                  {title}
+                </button>
+              ))}
+            </div>
+          ) : null}
           <label className="field" style={{ marginTop: 18 }}>
             <span>Short Intro (optional)</span>
             <textarea
@@ -266,9 +370,20 @@ export function GuideEditor({
           </label>
         </section>
 
-        <section className="cr-step">
+        <section className={stepOpen("audience") ? "cr-step is-open" : "cr-step"} id="step-audience">
           <h2>
-            <span>2</span> Audience
+            <button
+              type="button"
+              className="cr-step-toggle"
+              aria-expanded={stepOpen("audience")}
+              onClick={() => toggleStep("audience")}
+            >
+              <em>Audience</em>
+              {!stepOpen("audience") ? (
+                <small className="cr-guide-step-summary">{audienceSummary}</small>
+              ) : null}
+              <i className="cr-step-caret" aria-hidden="true" />
+            </button>
           </h2>
           <p className="muted cr-step-help">
             Interests help us target this list later. They do not change who sees it yet.
@@ -295,6 +410,9 @@ export function GuideEditor({
               placeholder="Kids, Adventure, Couples…"
             />
           </label>
+          {interestQuery.trim() && interestResults.length === 0 ? (
+            <p className="muted">No matching interests.</p>
+          ) : null}
           <div className="cr-chip-grid">
             {interestResults.map((interest) => (
               <button
@@ -309,9 +427,22 @@ export function GuideEditor({
           </div>
         </section>
 
-        <section className="cr-step">
+        <section className={stepOpen("window") ? "cr-step is-open" : "cr-step"} id="step-window">
           <h2>
-            <span>3</span> Window
+            <button
+              type="button"
+              className="cr-step-toggle"
+              aria-expanded={stepOpen("window")}
+              onClick={() => toggleStep("window")}
+            >
+              <em>Window</em>
+              {!stepOpen("window") ? (
+                <small className="cr-guide-step-summary">
+                  {windowSummary(draft.publish_at, draft.expire_at)}
+                </small>
+              ) : null}
+              <i className="cr-step-caret" aria-hidden="true" />
+            </button>
           </h2>
           <p className="muted cr-step-help">
             Times are Africa/Johannesburg. Leave both empty for an evergreen list.
@@ -336,13 +467,29 @@ export function GuideEditor({
           </div>
         </section>
 
-        <section className="cr-step">
+        <section className={stepOpen("spots") ? "cr-step is-open" : "cr-step"} id="step-spots">
           <h2>
-            <span>4</span> Recommendations
+            <button
+              type="button"
+              className="cr-step-toggle"
+              aria-expanded={stepOpen("spots")}
+              onClick={() => toggleStep("spots")}
+            >
+              <em>Recommendations</em>
+              {!stepOpen("spots") ? (
+                <small className="cr-guide-step-summary">
+                  {draft.items.length === 0
+                    ? "None yet"
+                    : draft.items.length === 1
+                      ? "1 listing"
+                      : `${draft.items.length} listings`}
+                </small>
+              ) : null}
+              <i className="cr-step-caret" aria-hidden="true" />
+            </button>
           </h2>
           <p className="muted cr-step-help">
-            Move spots up or down, or drag the handle. Save Guide to keep the order. See More on
-            the public page opens the listing.
+            Drag the handle to reorder. Name, place, price & hours come from the listing.
           </p>
           <div className="cr-guide-items">
             {draft.items.length === 0 && (
@@ -388,47 +535,54 @@ export function GuideEditor({
                       ? ` · From ${formatRand(item.listing.price_from)}`
                       : ""}
                   </p>
-                  <p className="muted">
-                    {(item.listing?.short_description ?? "").trim() || "No short description yet."}
-                  </p>
-                  <label className="field">
-                    <span>Editorial Note (optional)</span>
-                    <textarea
-                      rows={2}
-                      value={item.editorial_note}
-                      onChange={(e) =>
-                        patch({
-                          items: draft.items.map((row) =>
-                            row.listing_id === item.listing_id
-                              ? { ...row, editorial_note: e.target.value }
-                              : row,
-                          ),
-                        })
-                      }
-                      placeholder="Worth it for the sunset views."
-                    />
-                  </label>
-                  <div className="cr-actions" style={{ marginBottom: 0 }}>
+                  {notesOpen[item.listing_id] || item.editorial_note.trim() ? (
+                    <label className="field">
+                      <span>Editorial Note (optional)</span>
+                      <textarea
+                        rows={2}
+                        value={item.editorial_note}
+                        onChange={(e) =>
+                          patch({
+                            items: draft.items.map((row) =>
+                              row.listing_id === item.listing_id
+                                ? { ...row, editorial_note: e.target.value }
+                                : row,
+                            ),
+                          })
+                        }
+                        placeholder="Worth it for the sunset views."
+                      />
+                    </label>
+                  ) : (
                     <button
-                      className="btn btn-secondary"
+                      className="cr-text-remove"
+                      type="button"
+                      onClick={() =>
+                        setNotesOpen((current) => ({ ...current, [item.listing_id]: true }))
+                      }
+                    >
+                      Add a note
+                    </button>
+                  )}
+                  <div className="cr-guide-item-tools">
+                    <button
                       type="button"
                       disabled={index === 0}
                       onClick={() => moveItem(item.listing_id, -1)}
                     >
-                      Move Up
+                      Up
                     </button>
                     <button
-                      className="btn btn-secondary"
                       type="button"
                       disabled={index === draft.items.length - 1}
                       onClick={() => moveItem(item.listing_id, 1)}
                     >
-                      Move Down
+                      Down
                     </button>
                     <button
-                      className="btn btn-secondary"
                       type="button"
                       onClick={() => {
+                        setFilterOpen(false);
                         setSearching(true);
                         setPickerFor(item.listing_id);
                         setListingQuery("");
@@ -436,11 +590,7 @@ export function GuideEditor({
                     >
                       Replace
                     </button>
-                    <button
-                      className="btn btn-secondary"
-                      type="button"
-                      onClick={() => removeItem(item.listing_id)}
-                    >
+                    <button type="button" onClick={() => removeItem(item.listing_id)}>
                       Remove
                     </button>
                   </div>
@@ -451,22 +601,40 @@ export function GuideEditor({
 
           <div className="cr-guide-picker">
             <button
-              className="btn btn-secondary"
+              className="cr-outline-btn"
               type="button"
               onClick={() => {
+                setFilterOpen(false);
                 setSearching(true);
-                setPickerFor("new");
+                setPickerFor(pickerFor === "new" ? null : "new");
                 setListingQuery("");
               }}
             >
-              + Add Recommendation
+              {pickerFor === "new" ? "Close search" : "Add recommendation"}
             </button>
             {pickerFor && (
               <div className="cr-guide-search">
+                <label className="field">
+                  <span>{pickerFor === "new" ? "Search Live Listings" : "Replace With"}</span>
+                  <input
+                    value={listingQuery}
+                    onChange={(e) => setListingQuery(e.target.value)}
+                    placeholder="Search by name"
+                    autoFocus
+                  />
+                </label>
                 <p className="muted">
-                  Filter by interest, then search by name. Listings without the selected tags will
-                  not appear. Clear chips to search all live listings.
+                  {pickerSelectedInterests.length
+                    ? `Filtered by ${pickerSelectedInterests.map((interest) => interest.title).join(", ")}.`
+                    : "Searching all live listings."}
                 </p>
+                <button
+                  className="cr-text-remove"
+                  type="button"
+                  onClick={() => setFilterOpen((current) => !current)}
+                >
+                  {filterOpen ? "Hide interest filter" : "Filter by interest"}
+                </button>
                 {pickerSelectedInterests.length > 0 && (
                   <div className="cr-chip-grid cr-selected-chips">
                     {pickerSelectedInterests.map((interest) => (
@@ -488,40 +656,37 @@ export function GuideEditor({
                     </button>
                   </div>
                 )}
-                <label className="field">
-                  <span>Filter Interests</span>
-                  <input
-                    value={pickerInterestQuery}
-                    onChange={(e) => setPickerInterestQuery(e.target.value)}
-                    placeholder="Kids, Adventure, Couples…"
-                  />
-                </label>
-                <div className="cr-chip-grid">
-                  {pickerInterestResults.map((interest) => (
-                    <button
-                      key={interest.id}
-                      type="button"
-                      className={pickerInterestIds.includes(interest.id) ? "cr-tag active" : "cr-tag"}
-                      onClick={() => togglePickerInterest(interest.id)}
-                    >
-                      {interest.title}
-                    </button>
-                  ))}
-                </div>
-                <label className="field">
-                  <span>{pickerFor === "new" ? "Search Live Listings" : "Replace With"}</span>
-                  <input
-                    value={listingQuery}
-                    onChange={(e) => setListingQuery(e.target.value)}
-                    placeholder="Search by name"
-                    autoFocus
-                  />
-                </label>
+                {filterOpen ? (
+                  <>
+                    <label className="field">
+                      <span>Filter Interests</span>
+                      <input
+                        value={pickerInterestQuery}
+                        onChange={(e) => setPickerInterestQuery(e.target.value)}
+                        placeholder="Kids, Adventure, Couples…"
+                      />
+                    </label>
+                    {pickerInterestQuery.trim() && pickerInterestResults.length === 0 ? (
+                      <p className="muted">No matching interests.</p>
+                    ) : null}
+                    <div className="cr-chip-grid">
+                      {pickerInterestResults.map((interest) => (
+                        <button
+                          key={interest.id}
+                          type="button"
+                          className={pickerInterestIds.includes(interest.id) ? "cr-tag active" : "cr-tag"}
+                          onClick={() => togglePickerInterest(interest.id)}
+                        >
+                          {interest.title}
+                        </button>
+                      ))}
+                    </div>
+                  </>
+                ) : null}
                 {searching && <p className="muted">Searching…</p>}
                 {!searching && pickerListings.length === 0 && (
                   <p className="muted">
-                    No live listings match. Try another interest, a name search, or clear the
-                    filter.
+                    No live listings match. Try another name, or clear the filter.
                   </p>
                 )}
                 <ul className="cr-guide-results">
@@ -537,23 +702,62 @@ export function GuideEditor({
                     </li>
                   ))}
                 </ul>
-                <button
-                  className="btn btn-secondary"
-                  type="button"
-                  onClick={() => setPickerFor(null)}
-                >
-                  Close Search
-                </button>
               </div>
             )}
           </div>
         </section>
 
-        <div className="cr-actions">
-          <button className="btn btn-primary" type="button" disabled={pending} onClick={onSave}>
-            {pending ? "Saving…" : "Save Guide"}
-          </button>
-        </div>
+        <form
+          action={saveGuideEvents}
+          className={stepOpen("events") ? "cr-step is-open" : "cr-step"}
+          id="step-events"
+        >
+          <h2>
+            <button
+              type="button"
+              className="cr-step-toggle"
+              aria-expanded={stepOpen("events")}
+              onClick={() => toggleStep("events")}
+            >
+              <em>Linked Events</em>
+              {!stepOpen("events") ? (
+                <small className="cr-guide-step-summary">
+                  {linkedEventIds.length === 0
+                    ? "None yet"
+                    : linkedEventIds.length === 1
+                      ? "1 event"
+                      : `${linkedEventIds.length} events`}
+                </small>
+              ) : null}
+              <i className="cr-step-caret" aria-hidden="true" />
+            </button>
+          </h2>
+          <p className="muted cr-step-help">
+            Activities stay in the list above. Tick the events this guide should open in the app.
+          </p>
+          <input type="hidden" name="guide_id" value={guide.id} />
+          {events.length === 0 ? <p className="muted">No live events yet.</p> : null}
+          <div className="cr-guide-event-list">
+            {events.map((event) => (
+              <label key={event.id} className="cr-guide-event">
+                <input
+                  type="checkbox"
+                  name="event_ids"
+                  value={event.id}
+                  defaultChecked={linkedEventIds.includes(event.id)}
+                />
+                <span>{event.title}</span>
+              </label>
+            ))}
+          </div>
+          {events.length > 0 ? (
+            <button className="cr-outline-btn" type="submit">
+              Save Event Links
+            </button>
+          ) : null}
+        </form>
+      </div>
+      </div>
       </div>
     </div>
   );

@@ -6721,7 +6721,79 @@ button.listing-cost-toggle {
 }
 
 .cr-guide-editor {
-  padding: 8px 28px 28px;
+  padding: 0 4px 8px 0;
+}
+
+.cr-guide-step-summary {
+  max-width: 46%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-family: Nunito, "Trebuchet MS", sans-serif;
+  font-size: 13px;
+  font-weight: 200;
+  font-style: normal;
+  letter-spacing: 0;
+  text-transform: none;
+  color: color-mix(in srgb, var(--night) 55%, transparent);
+}
+
+.cr-edit-actions .cr-actions {
+  display: grid;
+  gap: 8px;
+  margin: 0;
+}
+
+.cr-edit-actions .cr-actions form,
+.cr-edit-actions .cr-actions .btn {
+  width: 100%;
+  margin: 0;
+}
+
+.cr-guide-item-tools {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 14px;
+  margin-top: 8px;
+}
+
+.cr-guide-item-tools button {
+  border: 0;
+  background: none;
+  padding: 0;
+  color: var(--night);
+  font: inherit;
+  font-size: 14px;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+  cursor: pointer;
+}
+
+.cr-guide-item-tools button:disabled {
+  opacity: 0.35;
+  cursor: default;
+}
+
+.cr-guide-event-list {
+  display: grid;
+  gap: 2px;
+  max-height: 280px;
+  overflow: auto;
+  margin: 4px 0 14px;
+}
+
+.cr-guide-event {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-height: 36px;
+  color: var(--night);
+}
+
+.cr-guide-event input {
+  width: 16px;
+  height: 16px;
+  margin: 0;
 }
 
 .cr-guide-items {
@@ -6774,6 +6846,11 @@ button.listing-cost-toggle {
 .cr-guide-item h3 {
   margin: 0 0 4px;
   color: var(--night);
+}
+
+.cr-guide-item .eyebrow {
+  margin-bottom: 4px;
+  color: color-mix(in srgb, var(--night) 55%, transparent);
 }
 
 .cr-guide-picker {
