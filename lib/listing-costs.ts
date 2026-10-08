@@ -20,6 +20,7 @@ type CostActivity = {
   id: string;
   name: string;
   shortDescription: string | null;
+  costVaried?: boolean;
 };
 
 type CostPrice = {
@@ -171,7 +172,7 @@ function dedupePrices<T extends { price: CostPrice; label: string }>(rows: T[]) 
   return next;
 }
 
-type DraftGroup = ListingCostGroup & { matchKey: string; shortName: string };
+type DraftGroup = ListingCostGroup & { matchKey: string; shortName: string; costVaried?: boolean };
 
 function asSingle(id: string, matchKey: string, shortName: string, title: string, price: CostPrice, description: string | null): DraftGroup {
   return {
@@ -209,7 +210,30 @@ function variantFromTitle(title: string, shortName: string) {
   return title;
 }
 
+function variedGroup(activity: CostActivity, storyKey: string): DraftGroup {
+  const shortName = cleanName(activity.name) || tidy(activity.name);
+  return {
+    id: activity.id,
+    matchKey: norm(shortName),
+    shortName,
+    name: shortName,
+    description: activityDetail(activity, storyKey),
+    costVaried: true,
+    items: [
+      {
+        id: `${activity.id}-varies`,
+        name: shortName,
+        priceLabel: "Cost varies",
+        wasLabel: null,
+        saveLabel: null,
+        note: null,
+      },
+    ],
+  };
+}
+
 function absorb(existing: DraftGroup, incoming: ListingCostItem[], shortName: string) {
+  if (existing.costVaried) return;
   const known = new Set(existing.items.map((item) => item.id));
   const added = incoming
     .filter((item) => !known.has(item.id))
@@ -226,6 +250,7 @@ function absorb(existing: DraftGroup, incoming: ListingCostItem[], shortName: st
 }
 
 function realGroups(activity: CostActivity, prices: CostPrice[], storyKey: string): DraftGroup[] {
+  if (activity.costVaried) return [variedGroup(activity, storyKey)];
   const named = prices.filter((price) => price.name.trim());
   if (!named.length) return [];
   const detail = activityDetail(activity, storyKey);
@@ -333,6 +358,15 @@ export function buildListingCostGroups(listing: CostListing): ListingCostGroup[]
 
   const groups: DraftGroup[] = [];
   const byKey = new Map<string, DraftGroup>();
+  const variedBuckets = new Set<string>();
+
+  for (const activity of listing.activities) {
+    if (norm(activity.name) !== norm(listing.name) || !activity.costVaried) continue;
+    const group = variedGroup(activity, storyKey);
+    groups.push(group);
+    byKey.set(group.matchKey, group);
+    variedBuckets.add(activity.id);
+  }
 
   for (const activity of listing.activities) {
     if (norm(activity.name) === norm(listing.name)) continue;
@@ -350,6 +384,7 @@ export function buildListingCostGroups(listing: CostListing): ListingCostGroup[]
   }
 
   const bucketPrices = prices.filter((price) => {
+    if (price.activityId && variedBuckets.has(price.activityId)) return false;
     if (!price.activityId) return true;
     const activity = listing.activities.find((item) => item.id === price.activityId);
     return activity ? norm(activity.name) === norm(listing.name) : false;
@@ -358,6 +393,7 @@ export function buildListingCostGroups(listing: CostListing): ListingCostGroup[]
   for (const inferred of inferGroups(bucketPrices, described)) {
     const parentKey = inferred.matchKey.split("#")[0];
     const existing = byKey.get(inferred.matchKey) ?? (parentKey !== inferred.matchKey ? byKey.get(parentKey) : undefined);
+    if (existing?.costVaried) continue;
     if (existing) {
       absorb(existing, inferred.items, inferred.shortName);
       if (!existing.description && inferred.description) existing.description = inferred.description;

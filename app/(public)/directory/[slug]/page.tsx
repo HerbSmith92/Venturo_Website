@@ -179,7 +179,9 @@ export default async function ListingDetailPage({
                         ) : null}
                       </div>
                       <span className="muted">
-                        {activity.fromAmount !== null
+                        {activity.costVaried
+                          ? "Cost varies"
+                          : activity.fromAmount !== null
                           ? activity.fromAmount === 0
                             ? "From Free"
                             : `From ${formatRand(activity.fromAmount)}`

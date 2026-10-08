@@ -60,6 +60,7 @@ export type DraftActivity = {
   is_active: boolean;
   show_on_discover: boolean;
   show_on_from: boolean;
+  cost_varied: boolean;
   prices: DraftPrice[];
 };
 
@@ -372,6 +373,7 @@ export function emptyActivity(name = "General", sortOrder = 0): DraftActivity {
     is_active: true,
     show_on_discover: true,
     show_on_from: false,
+    cost_varied: false,
     prices: [emptyPrice(0)],
   };
 }
@@ -444,6 +446,7 @@ function activitiesFromListing(listing: ListingDetail): DraftActivity[] {
       is_active: activity.status !== "archived",
       show_on_discover: activity.show_on_discover !== false,
       show_on_from: Boolean(activity.show_on_from),
+      cost_varied: Boolean(activity.cost_varied),
       prices:
         linked.length > 0
           ? linked.map((price, i) => priceToDraft(price, i))
@@ -470,6 +473,7 @@ function activitiesFromListing(listing: ListingDetail): DraftActivity[] {
       is_active: true,
       show_on_discover: true,
       show_on_from: false,
+      cost_varied: false,
       prices: orphans.map((price, i) => priceToDraft(price, i)),
     });
   }
@@ -671,6 +675,7 @@ export function draftToPayload(draft: ListingDraft) {
       is_active: activity.is_active,
       show_on_discover: activity.show_on_discover,
       show_on_from: activity.show_on_from,
+      cost_varied: activity.cost_varied,
       prices: activity.prices.map((price, priceIndex) => {
         const hasDiscount = Boolean(price.discount_rand.trim() || price.discount_percent.trim());
         return {
@@ -809,6 +814,7 @@ export function applyPendingPayload(draft: ListingDraft, raw: unknown): ListingD
         is_active: pendingBool(activity.is_active, true),
         show_on_discover: pendingBool(activity.show_on_discover, true),
         show_on_from: pendingBool(activity.show_on_from, false),
+        cost_varied: pendingBool(activity.cost_varied, false),
         prices:
           prices.length > 0
             ? prices.map((priceItem, priceIndex) => {
@@ -971,10 +977,24 @@ export function previewPrices(draft: ListingDraft, limit = 8) {
     unit: string;
     free: boolean;
     from: boolean;
+    varies?: boolean;
   }[] = [];
 
   for (const activity of draft.activities) {
     if (!activity.is_active || !activity.show_on_discover) continue;
+    if (activity.cost_varied) {
+      rows.push({
+        name: activity.name.trim() || "Activity",
+        standard: null,
+        member: null,
+        unit: "",
+        free: false,
+        from: false,
+        varies: true,
+      });
+      if (rows.length >= limit) return rows;
+      continue;
+    }
     for (const price of activity.prices) {
       if (!price.is_active || !price.name.trim()) continue;
       const standardOk = price.standard_price.trim() === "" ? null : Number(price.standard_price);

@@ -72,6 +72,7 @@ export type ListingActivity = {
   status: string;
   show_on_discover?: boolean | null;
   show_on_from?: boolean | null;
+  cost_varied?: boolean | null;
 };
 
 export type ListingMedia = {

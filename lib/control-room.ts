@@ -269,7 +269,7 @@ export async function loadListing(id: string): Promise<ListingDetail | null> {
       listing_activities!listing_activities_listing_id_fkey (
         id, name, slug, short_description, description,
         duration_minutes, minimum_age, maximum_age, booking_required,
-        sort_order, status, show_on_discover, show_on_from
+        sort_order, status, show_on_discover, show_on_from, cost_varied
       ),
       operating_hours ( id, day_of_week, opens_at, closes_at, is_closed, vacation_opens_at, vacation_closes_at, vacation_is_closed ),
       price_options (

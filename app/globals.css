@@ -3438,6 +3438,18 @@ fieldset.field {
   color: var(--night);
 }
 
+.cr-activity-tools {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-left: auto;
+}
+
+.cr-cost-varied {
+  min-height: 40px;
+  padding: 0 12px;
+}
+
 .cr-sub {
   display: grid;
   gap: 12px;
