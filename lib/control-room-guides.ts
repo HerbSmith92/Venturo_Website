@@ -2,6 +2,7 @@ import { createClient } from "@/lib/supabase/server";
 import {
   GUIDE_FILL_LIMIT,
   GUIDE_NEAR_KM,
+  guideFromPrice,
   isGuideStatus,
   pickPricedGuideListings,
   type GuideDraftItem,
@@ -312,15 +313,28 @@ export async function searchPricedGuideListings(input: {
 
   const { data, error } = await supabase
     .from("directory_listings")
-    .select(LISTING_SELECT)
+    .select(
+      `
+      ${LISTING_SELECT},
+      listing_activities ( id, cost_varied, status ),
+      price_options ( standard_price, is_active, show_on_from, listing_activity_id )
+    `,
+    )
     .eq("status", "approved")
-    .not("price_from", "is", null)
-    .gte("price_from", 0)
-    .lte("price_from", input.maxPrice)
     .limit(500);
   if (error || !data) return { listings: [], total: 0 };
 
-  const picked = pickPricedGuideListings(data as unknown as ListingRow[], {
+  const priced = (
+    data as unknown as (ListingRow & {
+      price_options?: Parameters<typeof guideFromPrice>[0];
+      listing_activities?: Parameters<typeof guideFromPrice>[1];
+    })[]
+  ).map((row) => ({
+    ...row,
+    price_from: guideFromPrice(row.price_options, row.listing_activities),
+  }));
+
+  const picked = pickPricedGuideListings(priced, {
     maxPrice: input.maxPrice,
     lat: input.lat,
     lng: input.lng,

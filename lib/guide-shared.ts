@@ -80,6 +80,43 @@ export function distanceKm(lat1: number, lng1: number, lat2: number, lng2: numbe
   return 2 * 6371 * Math.asin(Math.sqrt(a));
 }
 
+export type GuideFromPriceSource = {
+  standard_price: number | string | null;
+  is_active?: boolean | null;
+  show_on_from?: boolean | null;
+  listing_activity_id?: string | null;
+};
+
+export type GuideFromActivity = {
+  id: string;
+  cost_varied?: boolean | null;
+  status?: string | null;
+};
+
+/** Lowest standard price among rows ticked Include in From. Unticked prices do not count. */
+export function guideFromPrice(
+  prices: GuideFromPriceSource[] | null | undefined,
+  activities: GuideFromActivity[] | null | undefined,
+) {
+  const skip = new Set(
+    (activities ?? [])
+      .filter((activity) => activity.cost_varied || activity.status === "archived")
+      .map((activity) => activity.id),
+  );
+  const amounts: number[] = [];
+  for (const price of prices ?? []) {
+    if (price.is_active === false || price.show_on_from !== true) continue;
+    if (price.listing_activity_id && skip.has(price.listing_activity_id)) continue;
+    if (price.standard_price == null || price.standard_price === "") continue;
+    const amount =
+      typeof price.standard_price === "number" ? price.standard_price : Number(price.standard_price);
+    if (!Number.isFinite(amount) || amount < 0) continue;
+    amounts.push(amount);
+  }
+  if (!amounts.length) return null;
+  return Math.min(...amounts);
+}
+
 export function pickPricedGuideListings<
   T extends {
     name: string;

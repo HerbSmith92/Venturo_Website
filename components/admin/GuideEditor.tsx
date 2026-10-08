@@ -460,7 +460,8 @@ export function GuideEditor({
             <>
               <p className="muted cr-step-help">
                 Change the amount or the place and the matching businesses replace Recommendations.
-                Notes on listings that stay are kept.
+                Only prices ticked Include in From are counted. Unticked prices stay out. Notes on
+                listings that stay are kept.
               </p>
               <div className="field-row">
                 <label className="field">
