@@ -1,6 +1,6 @@
 import { notFound } from "next/navigation";
 import { GuideEditor } from "@/components/admin/GuideEditor";
-import { loadGuideEditor } from "@/lib/control-room-guides";
+import { loadGuideEditor, loadGuidePlaces } from "@/lib/control-room-guides";
 import { loadEditorCatalog } from "@/lib/control-room";
 import { listAdminEvents } from "@/lib/events";
 import { listGuideEventIds } from "@/lib/guides";
@@ -17,10 +17,11 @@ export default async function GuideEditPage({
   const guide = await loadGuideEditor(id);
   if (!guide) notFound();
 
-  const [catalog, events, linkedIds] = await Promise.all([
+  const [catalog, events, linkedIds, places] = await Promise.all([
     loadEditorCatalog(),
     listAdminEvents("approved"),
     listGuideEventIds(id),
+    loadGuidePlaces(),
   ]);
   const linked = new Set(linkedIds);
   const notice =
@@ -44,6 +45,7 @@ export default async function GuideEditPage({
       error={error}
       events={events.map((event) => ({ id: event.id, title: event.title }))}
       linkedEventIds={[...linked]}
+      places={places}
     />
   );
 }

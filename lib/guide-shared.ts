@@ -17,6 +17,114 @@ export const SUGGESTED_GUIDE_TITLES = [
   "School Holiday Adventures",
 ] as const;
 
+export const UNDER_PRICE_TITLE = "Under R200 Adventures";
+export const GUIDE_NEAR_KM = 25;
+export const GUIDE_FILL_LIMIT = 24;
+
+export type GuidePlace = {
+  id: string;
+  name: string;
+  lat: number;
+  lng: number;
+};
+
+const UNDER_PRICE_TITLE_RE = /^Under R(\d+) Adventures(?: in and around (.+))?$/;
+
+export function underPriceTitle(amount: number, placeName: string | null) {
+  const rounded = Math.round(amount);
+  const base = `Under R${rounded} Adventures`;
+  const place = placeName?.trim();
+  return place ? `${base} in and around ${place}` : base;
+}
+
+export function parseUnderPriceTitle(title: string) {
+  const match = title.trim().match(UNDER_PRICE_TITLE_RE);
+  if (!match) return null;
+  const amount = Number(match[1]);
+  if (!Number.isFinite(amount) || amount <= 0) return null;
+  return { amount, placeName: match[2]?.trim() || null };
+}
+
+export function pricedGuideSummary(
+  shown: number,
+  total: number,
+  amount: number,
+  placeName: string | null,
+) {
+  const rounded = Math.round(amount);
+  if (total === 0) {
+    return placeName
+      ? `No live listings under R${rounded} in and around ${placeName}.`
+      : `No live listings under R${rounded}.`;
+  }
+  const noun = total === 1 ? "live listing" : "live listings";
+  if (shown < total) {
+    const order = placeName ? "nearest first" : "lowest price first";
+    const where = placeName
+      ? `under R${rounded} within ${GUIDE_NEAR_KM} km of ${placeName}`
+      : `under R${rounded}`;
+    return `Showing ${shown} of ${total} ${noun} ${where}, ${order}.`;
+  }
+  return placeName
+    ? `${total} ${noun} under R${rounded} in and around ${placeName}.`
+    : `${total} ${noun} under R${rounded}.`;
+}
+
+export function distanceKm(lat1: number, lng1: number, lat2: number, lng2: number) {
+  const toRad = (deg: number) => (deg * Math.PI) / 180;
+  const dLat = toRad(lat2 - lat1);
+  const dLng = toRad(lng2 - lng1);
+  const a =
+    Math.sin(dLat / 2) ** 2 +
+    Math.cos(toRad(lat1)) * Math.cos(toRad(lat2)) * Math.sin(dLng / 2) ** 2;
+  return 2 * 6371 * Math.asin(Math.sqrt(a));
+}
+
+export function pickPricedGuideListings<
+  T extends {
+    name: string;
+    price_from: number | string | null;
+    latitude?: number | string | null;
+    longitude?: number | string | null;
+  },
+>(
+  rows: T[],
+  input: {
+    maxPrice: number;
+    lat?: number | null;
+    lng?: number | null;
+    radiusKm?: number;
+    limit?: number;
+  },
+) {
+  const maxPrice = input.maxPrice;
+  const limit = input.limit ?? GUIDE_FILL_LIMIT;
+  const hasPlace = input.lat != null && input.lng != null;
+  const radius = input.radiusKm ?? GUIDE_NEAR_KM;
+  const priced = rows.flatMap((row) => {
+    if (row.price_from == null || row.price_from === "") return [];
+    const price = typeof row.price_from === "number" ? row.price_from : Number(row.price_from);
+    if (!Number.isFinite(price) || price < 0 || price > maxPrice) return [];
+    const lat = row.latitude == null || row.latitude === "" ? null : Number(row.latitude);
+    const lng = row.longitude == null || row.longitude === "" ? null : Number(row.longitude);
+    const km =
+      hasPlace && lat != null && lng != null && Number.isFinite(lat) && Number.isFinite(lng)
+        ? distanceKm(input.lat as number, input.lng as number, lat, lng)
+        : null;
+    if (hasPlace && (km == null || km > radius)) return [];
+    return [{ row, price, km: km ?? Number.POSITIVE_INFINITY }];
+  });
+  priced.sort((a, b) => {
+    if (hasPlace && a.km !== b.km) return a.km - b.km;
+    if (a.price !== b.price) return a.price - b.price;
+    return a.row.name.localeCompare(b.row.name);
+  });
+  return {
+    total: priced.length,
+    matches: priced.slice(0, limit).map((item) => item.row),
+  };
+}
+
 export function isGuideStatus(value: string): value is GuideStatus {
   return GUIDE_STATUSES.includes(value as GuideStatus);
 }

@@ -10,10 +10,15 @@ import { formatRand } from "@/lib/control-room-shared";
 import type { GuideEditorRecord } from "@/lib/control-room-guides";
 import {
   SUGGESTED_GUIDE_TITLES,
+  UNDER_PRICE_TITLE,
   guideStatusLabel,
+  parseUnderPriceTitle,
+  pricedGuideSummary,
   toZaLocalInput,
+  underPriceTitle,
   type GuideDraft,
   type GuideListingPreview,
+  type GuidePlace,
 } from "@/lib/guide-shared";
 import type { EditorCatalog } from "@/lib/listing-draft";
 
@@ -49,6 +54,7 @@ export function GuideEditor({
   error,
   events,
   linkedEventIds,
+  places,
 }: {
   guide: GuideEditorRecord;
   catalog: EditorCatalog;
@@ -56,6 +62,7 @@ export function GuideEditor({
   error?: string;
   events: { id: string; title: string }[];
   linkedEventIds: string[];
+  places: GuidePlace[];
 }) {
   const router = useRouter();
   const [pending, startTransition] = useTransition();
@@ -70,7 +77,19 @@ export function GuideEditor({
   const [pickerInterestIds, setPickerInterestIds] = useState<string[]>(guide.interest_ids);
   const [pickerInterestQuery, setPickerInterestQuery] = useState("");
   const [filterOpen, setFilterOpen] = useState(false);
-  const [titlesOpen, setTitlesOpen] = useState(false);
+  const [titlesOpen, setTitlesOpen] = useState(true);
+  const savedPrice = parseUnderPriceTitle(guide.title === "Untitled Guide" ? "" : guide.title);
+  const savedPlace = places.find((place) => place.name === savedPrice?.placeName) ?? null;
+  const [priceOn, setPriceOn] = useState(Boolean(savedPrice));
+  const [priceAmount, setPriceAmount] = useState(savedPrice?.amount ?? 200);
+  const [amountText, setAmountText] = useState(String(savedPrice?.amount ?? 200));
+  const [placeId, setPlaceId] = useState(savedPlace?.id ?? "");
+  const [fillKey, setFillKey] = useState(0);
+  const [filling, setFilling] = useState(false);
+  const [matchNote, setMatchNote] = useState("");
+  const fillSkip = useRef(true);
+  const placesRef = useRef(places);
+  placesRef.current = places;
   const [notesOpen, setNotesOpen] = useState<Record<string, boolean>>({});
   const [exportOpen, setExportOpen] = useState(false);
   const [activeStep, setActiveStep] = useState<GuideStepKey>("list");
@@ -159,6 +178,68 @@ export function GuideEditor({
       window.clearTimeout(handle);
     };
   }, [listingQuery, pickerFor, pickerInterestKey]);
+
+  useEffect(() => {
+    if (fillSkip.current) {
+      fillSkip.current = false;
+      return;
+    }
+    if (!priceOn) return;
+    const place = placesRef.current.find((item) => item.id === placeId) ?? null;
+    const amount = Math.round(priceAmount);
+    if (!Number.isFinite(amount) || amount <= 0) return;
+
+    let cancelled = false;
+    const handle = window.setTimeout(async () => {
+      setFilling(true);
+      try {
+        const params = new URLSearchParams({ maxPrice: String(amount) });
+        if (place) {
+          params.set("lat", String(place.lat));
+          params.set("lng", String(place.lng));
+        }
+        const res = await fetch(`/api/admin/guides/listings?${params.toString()}`);
+        const body = (await res.json()) as {
+          listings?: GuideListingPreview[];
+          total?: number;
+          error?: string;
+        };
+        if (cancelled) return;
+        if (!res.ok) {
+          setMatchNote(body.error || "Those listings could not be loaded.");
+          return;
+        }
+        const listings = body.listings ?? [];
+        const total = body.total ?? listings.length;
+        setDraft((current) => {
+          const notes = new Map(current.items.map((item) => [item.listing_id, item.editorial_note]));
+          return {
+            ...current,
+            title: underPriceTitle(amount, place?.name ?? null),
+            items: listings.map((listing) => ({
+              listing_id: listing.id,
+              editorial_note: notes.get(listing.id) ?? "",
+              listing,
+            })),
+          };
+        });
+        setMatchNote(pricedGuideSummary(listings.length, total, amount, place?.name ?? null));
+        setOpenSteps((current) => ({ ...current, spots: true }));
+        setActiveStep("spots");
+        setSaveNotice(null);
+        document.getElementById("step-spots")?.scrollIntoView({ behavior: "smooth", block: "start" });
+      } catch {
+        if (!cancelled) setMatchNote("Those listings could not be loaded.");
+      } finally {
+        if (!cancelled) setFilling(false);
+      }
+    }, 280);
+
+    return () => {
+      cancelled = true;
+      window.clearTimeout(handle);
+    };
+  }, [fillKey, placeId, priceAmount, priceOn]);
 
   function patch(partial: Partial<GuideDraft>) {
     setDraft((current) => ({ ...current, ...partial }));
@@ -351,13 +432,80 @@ export function GuideEditor({
                 <button
                   key={title}
                   type="button"
-                  className={draft.title === title ? "cr-tag active" : "cr-tag"}
-                  onClick={() => patch({ title })}
+                  className={
+                    (title === UNDER_PRICE_TITLE ? priceOn : !priceOn && draft.title === title)
+                      ? "cr-tag active"
+                      : "cr-tag"
+                  }
+                  onClick={() => {
+                    if (title === UNDER_PRICE_TITLE) {
+                      setPriceOn(true);
+                      setPriceAmount(200);
+                      setAmountText("200");
+                      setPlaceId("");
+                      setFillKey((current) => current + 1);
+                      return;
+                    }
+                    setPriceOn(false);
+                    setMatchNote("");
+                    patch({ title });
+                  }}
                 >
                   {title}
                 </button>
               ))}
             </div>
+          ) : null}
+          {priceOn ? (
+            <>
+              <p className="muted cr-step-help">
+                Change the amount or the place and the matching businesses replace Recommendations.
+                Notes on listings that stay are kept.
+              </p>
+              <div className="field-row">
+                <label className="field">
+                  <span>At most (R)</span>
+                  <input
+                    type="number"
+                    min={1}
+                    step={50}
+                    value={amountText}
+                    aria-label="Maximum price in rand"
+                    onChange={(event) => setAmountText(event.target.value)}
+                    onBlur={() => {
+                      const amount = Math.round(Number(amountText));
+                      if (!Number.isFinite(amount) || amount <= 0) return;
+                      setAmountText(String(amount));
+                      setPriceAmount(amount);
+                      setFillKey((current) => current + 1);
+                    }}
+                  />
+                </label>
+                <label className="field">
+                  <span>In and around</span>
+                  <select
+                    value={placeId}
+                    aria-label="Place"
+                    onChange={(event) => {
+                      const amount = Math.round(Number(amountText));
+                      if (Number.isFinite(amount) && amount > 0) {
+                        setAmountText(String(amount));
+                        setPriceAmount(amount);
+                      }
+                      setPlaceId(event.target.value);
+                    }}
+                  >
+                    <option value="">Anywhere</option>
+                    {places.map((place) => (
+                      <option key={place.id} value={place.id}>
+                        {place.name}
+                      </option>
+                    ))}
+                  </select>
+                </label>
+              </div>
+              <p className="muted">{filling ? "Finding listings…" : matchNote}</p>
+            </>
           ) : null}
           <label className="field" style={{ marginTop: 18 }}>
             <span>Short Intro (optional)</span>
