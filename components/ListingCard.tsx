@@ -39,7 +39,11 @@ export function ListingCard({
           {listing.area} · {listing.vibe}
         </p>
         <div className="price-row">
-          <span className="from-price">{formatFromPrice(listing.fromPrice)}</span>
+          {listing.fromPrice != null ? (
+            <span className="from-price">{formatFromPrice(listing.fromPrice)}</span>
+          ) : (
+            <span className="from-price">Price to follow</span>
+          )}
           {discounted &&
             (showMemberPrice && listing.memberFromPrice !== null ? (
               <span className="member-price">

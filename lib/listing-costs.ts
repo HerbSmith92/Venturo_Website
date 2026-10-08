@@ -251,7 +251,13 @@ function absorb(existing: DraftGroup, incoming: ListingCostItem[], shortName: st
 
 function realGroups(activity: CostActivity, prices: CostPrice[], storyKey: string): DraftGroup[] {
   if (activity.costVaried) return [variedGroup(activity, storyKey)];
-  const named = prices.filter((price) => price.name.trim());
+  const activityName = tidy(activity.name);
+  const named = prices.flatMap((price) => {
+    if (price.standardPrice === null && price.memberPrice === null) return [];
+    const name = price.name.trim() || activityName;
+    if (!name) return [];
+    return [{ ...price, name }];
+  });
   if (!named.length) return [];
   const detail = activityDetail(activity, storyKey);
   const rows = dedupePrices(

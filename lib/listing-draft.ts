@@ -683,9 +683,13 @@ export function draftToPayload(draft: ListingDraft) {
       cost_varied: activity.cost_varied,
       prices: activity.prices.map((price, priceIndex) => {
         const hasDiscount = Boolean(price.discount_rand.trim() || price.discount_percent.trim());
+        const hasAmount =
+          price.standard_price.trim() !== "" ||
+          price.member_price.trim() !== "" ||
+          price.show_on_from;
         return {
           id: price.id || null,
-          name: price.name,
+          name: price.name.trim() || (hasAmount ? activity.name.trim() : ""),
           standard_price: price.standard_price,
           member_price: hasDiscount
             ? derivedMemberPrice(price.standard_price, price.discount_rand, price.discount_percent)
@@ -1001,14 +1005,16 @@ export function previewPrices(draft: ListingDraft, limit = 8) {
       continue;
     }
     for (const price of activity.prices) {
-      if (!price.is_active || !price.name.trim()) continue;
+      const hasAmount = price.standard_price.trim() !== "" || price.member_price.trim() !== "";
+      const name = price.name.trim() || (hasAmount ? activity.name.trim() : "");
+      if (!price.is_active || !name) continue;
       const standardOk = price.standard_price.trim() === "" ? null : Number(price.standard_price);
       const memberOk = price.member_price.trim() === "" ? null : Number(price.member_price);
       const standard = Number.isFinite(standardOk as number) ? standardOk : null;
       const member = Number.isFinite(memberOk as number) ? memberOk : null;
       const free = standard === 0 && (member === 0 || member === null);
       rows.push({
-        name: price.name,
+        name,
         standard,
         member,
         unit: priceUnitLabel(price.applies_to),
