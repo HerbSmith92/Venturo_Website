@@ -2,6 +2,7 @@ import { CategoryChips } from "@/components/CategoryChips";
 import { DirectorySearch } from "@/components/DirectorySearch";
 import { ListingCard } from "@/components/ListingCard";
 import { getCurrentUser } from "@/lib/auth";
+import { isStaff } from "@/lib/roles";
 import { searchDirectory } from "@/lib/listings";
 
 export default async function DirectoryPage({
@@ -21,7 +22,7 @@ export default async function DirectoryPage({
   const category = query.category ?? "all";
   const user = await getCurrentUser();
   const listings = await searchDirectory({ ...query, category });
-  const paid = user?.plan === "paid";
+  const revealMember = user?.plan === "paid" || isStaff(user?.role);
 
   return (
     <main className="shell">
@@ -50,12 +51,12 @@ export default async function DirectoryPage({
                 key={listing.id}
                 listing={listing}
                 href={`/directory/${listing.slug}`}
-                showMemberPrice={paid}
+                showMemberPrice={revealMember}
               />
             ))}
           </div>
         )}
-        {!paid ? (
+        {!revealMember ? (
           <p className="notice" style={{ marginTop: 24 }}>
             Member prices unlock with a subscription.{" "}
             <a href={user ? "/join/subscribe" : "/join"}>See membership</a>.
