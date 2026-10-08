@@ -2,6 +2,7 @@ import { ListingContact, listingContactLinks } from "@/components/ListingContact
 import { ListingCostList } from "@/components/ListingCostList";
 import { SaveForm } from "@/components/SaveForm";
 import { getCurrentUser } from "@/lib/auth";
+import { isStaff } from "@/lib/roles";
 import {
   categoryColour,
   categoryLabel,
@@ -49,7 +50,7 @@ export default async function ListingDetailPage({
   if (!listing) notFound();
 
   const user = await getCurrentUser();
-  const paid = user?.plan === "paid";
+  const revealMember = user?.plan === "paid" || isStaff(user?.role);
   const [saved, related] = await Promise.all([
     user ? isSaved(user.id, "listing", listing.id) : Promise.resolve(false),
     listPublicEvents({ limit: 12 }),
@@ -68,7 +69,7 @@ export default async function ListingDetailPage({
   ]
     .filter(Boolean)
     .join(", ");
-  const costGroups = presentListingCosts(buildListingCostGroups(listing), paid);
+  const costGroups = presentListingCosts(buildListingCostGroups(listing), revealMember);
   const memberLocked = costGroups.some((group) => group.items.some((item) => item.memberLocked));
   const contactLinks = listingContactLinks(listing);
 
@@ -103,7 +104,7 @@ export default async function ListingDetailPage({
                 <span className="from-price">{formatFromPrice(listing.fromPrice)}</span>
               ) : null}
               {listing.memberFromPrice !== null &&
-                (paid ? (
+                (revealMember ? (
                   <span className="member-price">
                     Members from {formatFromPrice(listing.memberFromPrice)}
                   </span>
@@ -244,7 +245,7 @@ export default async function ListingDetailPage({
               </div>
             )}
 
-            {!paid && (
+            {!revealMember && (
               <div className="hero-actions" style={{ marginTop: 24 }}>
                 <a className="btn btn-secondary" href="/join/subscribe">
                   Get Member Prices
