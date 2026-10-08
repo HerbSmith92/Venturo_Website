@@ -5,7 +5,11 @@ export type ListingCostItem = {
   name: string;
   priceLabel: string;
   wasLabel: string | null;
+  amountLabel: string;
+  wasAmount: string | null;
+  audience: string;
   saveLabel: string | null;
+  memberLocked: boolean;
   note: string | null;
 };
 
@@ -92,10 +96,15 @@ export function priceAudienceLabel(applies: string | null | undefined) {
   }
 }
 
-function moneyLine(amount: number | null, audience: string) {
+function moneyAmount(amount: number | null) {
   if (amount === null) return null;
   if (amount === 0) return "Free";
-  const amountLabel = formatRand(amount);
+  return formatRand(amount);
+}
+
+function moneyLine(amount: number | null, audience: string) {
+  const amountLabel = moneyAmount(amount);
+  if (!amountLabel) return null;
   return audience ? `${amountLabel} ${audience}` : amountLabel;
 }
 
@@ -105,14 +114,38 @@ function toItem(price: CostPrice, name: string, note: string | null): ListingCos
   const member = price.memberPrice;
   const deal = standard !== null && member !== null && member < standard;
   const save = deal ? standard - member : 0;
+  const current = deal ? member : standard;
   return {
     id: price.id,
     name,
-    priceLabel: moneyLine(deal ? member : standard, audience) ?? "—",
+    priceLabel: moneyLine(current, audience) ?? "—",
     wasLabel: deal ? moneyLine(standard, audience) : null,
+    amountLabel: moneyAmount(current) ?? "—",
+    wasAmount: deal ? moneyAmount(standard) : null,
+    audience,
     saveLabel: deal && save > 0 ? `Save ${moneyLine(save, audience)}` : null,
+    memberLocked: false,
     note,
   };
+}
+
+export function presentListingCosts(groups: ListingCostGroup[], revealMember: boolean) {
+  if (revealMember) return groups;
+  return groups.map((group) => ({
+    ...group,
+    items: group.items.map((item) => {
+      if (!item.wasAmount) return item;
+      return {
+        ...item,
+        amountLabel: item.wasAmount,
+        priceLabel: item.wasLabel ?? item.amountLabel,
+        wasAmount: null,
+        wasLabel: null,
+        saveLabel: null,
+        memberLocked: true,
+      };
+    }),
+  }));
 }
 
 function activityDetail(activity: CostActivity, storyKey: string) {
@@ -225,7 +258,11 @@ function variedGroup(activity: CostActivity, storyKey: string): DraftGroup {
         name: shortName,
         priceLabel: "Cost varies",
         wasLabel: null,
+        amountLabel: "Cost varies",
+        wasAmount: null,
+        audience: "",
         saveLabel: null,
+        memberLocked: false,
         note: null,
       },
     ],

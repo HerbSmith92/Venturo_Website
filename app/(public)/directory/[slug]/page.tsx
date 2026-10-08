@@ -9,8 +9,8 @@ import {
   getPublicListingBySlug,
 } from "@/lib/listings";
 import { listPublicEvents } from "@/lib/events";
-import { formatDay, formatHours, formatRand } from "@/lib/control-room-shared";
-import { buildListingCostGroups } from "@/lib/listing-costs";
+import { formatDay, formatHours } from "@/lib/control-room-shared";
+import { buildListingCostGroups, presentListingCosts } from "@/lib/listing-costs";
 import { isSaved } from "@/lib/saves";
 import { notFound } from "next/navigation";
 
@@ -68,21 +68,8 @@ export default async function ListingDetailPage({
   ]
     .filter(Boolean)
     .join(", ");
-  const story = (listing.description || listing.shortDescription || "").trim();
-  const storyKey = story.replace(/\s+/g, " ").trim().toLowerCase();
-  const activities = listing.activities.flatMap((activity) => {
-    const blurb = (activity.shortDescription ?? "").trim();
-    const repeated =
-      Boolean(blurb) &&
-      Boolean(storyKey) &&
-      blurb.replace(/\s+/g, " ").trim().toLowerCase() === storyKey;
-    const sameName =
-      activity.name.replace(/\s+/g, " ").trim().toLowerCase() ===
-      listing.name.replace(/\s+/g, " ").trim().toLowerCase();
-    if (repeated && sameName) return [];
-    return [{ ...activity, shortDescription: repeated ? null : activity.shortDescription }];
-  });
-  const costGroups = buildListingCostGroups(listing);
+  const costGroups = presentListingCosts(buildListingCostGroups(listing), paid);
+  const memberLocked = costGroups.some((group) => group.items.some((item) => item.memberLocked));
   const contactLinks = listingContactLinks(listing);
 
   return (
@@ -121,7 +108,7 @@ export default async function ListingDetailPage({
                     Members from {formatFromPrice(listing.memberFromPrice)}
                   </span>
                 ) : (
-                  <span className="member-price">Paid members save</span>
+                  <span className="member-price">Members save 15%</span>
                 ))}
             </div>
             <div className="hero-actions" style={{ marginTop: 16 }}>
@@ -162,40 +149,6 @@ export default async function ListingDetailPage({
                 {listing.media.slice(1, 5).map((item, index) => (
                   <img key={`${item.url}-${index}`} src={item.url} alt={item.alt ?? ""} />
                 ))}
-              </div>
-            )}
-
-            {activities.length > 0 && (
-              <div style={{ marginTop: 28 }}>
-                <p className="eyebrow">Activities</p>
-                <h2>Things To Do Here</h2>
-                <ul className="preview-ticket-list">
-                  {activities.map((activity) => (
-                    <li key={activity.id}>
-                      <div>
-                        <strong>{activity.name}</strong>
-                        {activity.shortDescription ? (
-                          <p className="muted" style={{ margin: "4px 0 0" }}>
-                            {activity.shortDescription}
-                          </p>
-                        ) : null}
-                      </div>
-                      <span className="muted">
-                        {activity.costVaried
-                          ? "Cost varies"
-                          : activity.fromAmount !== null
-                          ? activity.fromAmount === 0
-                            ? "From Free"
-                            : `From ${formatRand(activity.fromAmount)}`
-                          : activity.durationMinutes
-                            ? `${activity.durationMinutes} min`
-                            : activity.bookingRequired
-                              ? "Book ahead"
-                              : "Drop in"}
-                      </span>
-                    </li>
-                  ))}
-                </ul>
               </div>
             )}
 
@@ -262,6 +215,9 @@ export default async function ListingDetailPage({
             <div className="colour-bar" aria-hidden="true" />
             <p className="eyebrow">Prices</p>
             <h2>What It Costs</h2>
+            {memberLocked ? (
+              <p className="listing-cost-member-note">Members save 15%. Join to claim it.</p>
+            ) : null}
             {costGroups.length === 0 ? (
               <p className="muted">
                 {listing.fromPrice != null
