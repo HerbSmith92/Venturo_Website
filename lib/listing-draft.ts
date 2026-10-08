@@ -199,19 +199,24 @@ export const EDITOR_STEPS: { key: StepKey; label: string; number: number }[] = [
 export const APPLIES_TO_OPTIONS: { value: PriceAppliesTo; label: string }[] = [
   { value: "person", label: "Per Person" },
   { value: "couple", label: "Per Couple" },
-  { value: "adult", label: "Adult" },
-  { value: "child", label: "Child" },
-  { value: "pensioner", label: "Pensioner" },
+  { value: "adult", label: "Per Adult" },
+  { value: "child", label: "Per Child" },
+  { value: "pensioner", label: "Per Pensioner" },
   { value: "group", label: "Per Group" },
-  { value: "hour", label: "Per hour" },
-  { value: "item", label: "Per item" },
+  { value: "hour", label: "Per Hour" },
+  { value: "item", label: "Per Item" },
   { value: "custom", label: "Custom" },
 ];
 
 export const SUB_APPLIES_OPTIONS: { value: PriceAppliesTo; label: string }[] = [
   { value: "person", label: "Per Person" },
   { value: "couple", label: "Per Couple" },
+  { value: "adult", label: "Per Adult" },
+  { value: "child", label: "Per Child" },
+  { value: "pensioner", label: "Per Pensioner" },
   { value: "group", label: "Per Group" },
+  { value: "hour", label: "Per Hour" },
+  { value: "item", label: "Per Item" },
 ];
 
 export const PRICE_CATEGORY_OPTIONS: { value: PriceCategory; label: string }[] = [
@@ -938,9 +943,9 @@ export function previewHours(draft: ListingDraft) {
 export function priceUnitLabel(applies: PriceAppliesTo | string) {
   if (applies === "person") return "p.p";
   if (applies === "couple") return "per couple";
-  if (applies === "adult") return "adult";
-  if (applies === "child") return "child";
-  if (applies === "pensioner") return "pensioner";
+  if (applies === "adult") return "per adult";
+  if (applies === "child") return "per child";
+  if (applies === "pensioner") return "per pensioner";
   if (applies === "group") return "group";
   if (applies === "hour") return "/hr";
   if (applies === "item") return "";
