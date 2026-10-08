@@ -251,6 +251,9 @@ export type GuideDraft = {
   intro: string;
   publish_at: string;
   expire_at: string;
+  kind_ids: string[];
+  persona_ids: string[];
+  scale_id: string;
   interest_ids: string[];
   items: GuideDraftItem[];
 };

@@ -20,7 +20,12 @@ import {
   type GuideListingPreview,
   type GuidePlace,
 } from "@/lib/guide-shared";
-import { INTEREST_CHIPS, type EditorCatalog } from "@/lib/listing-draft";
+import {
+  INTEREST_CHIPS,
+  interestIdsFromKeywords,
+  interestKeywordsFromIds,
+  type EditorCatalog,
+} from "@/lib/listing-draft";
 
 const FALLBACK_IMAGE = "/brand/images/climbing.jpg";
 
@@ -40,6 +45,10 @@ function windowSummary(publish: string, expire: string) {
   if (publish) return `From ${short(publish)}`;
   if (expire) return `Until ${short(expire)}`;
   return "Evergreen";
+}
+
+function toggleId(ids: string[], id: string) {
+  return ids.includes(id) ? ids.filter((item) => item !== id) : [...ids, id];
 }
 
 function areaLabel(listing: GuideListingPreview | null) {
@@ -92,9 +101,16 @@ export function GuideEditor({
   const [notesOpen, setNotesOpen] = useState<Record<string, boolean>>({});
   const [exportOpen, setExportOpen] = useState(false);
   const [activeStep, setActiveStep] = useState<GuideStepKey>("list");
+  const [interestKeywords, setInterestKeywords] = useState(() =>
+    interestKeywordsFromIds(guide.interest_ids, catalog.interests),
+  );
   const [openSteps, setOpenSteps] = useState<Record<GuideStepKey, boolean>>({
     list: true,
-    audience: guide.interest_ids.length > 0,
+    audience:
+      guide.kind_ids.length > 0 ||
+      guide.persona_ids.length > 0 ||
+      Boolean(guide.scale_id) ||
+      guide.interest_ids.length > 0,
     window: Boolean(guide.publish_at || guide.expire_at),
     spots: true,
     events: linkedEventIds.length > 0,
@@ -104,39 +120,12 @@ export function GuideEditor({
     intro: guide.intro ?? "",
     publish_at: toZaLocalInput(guide.publish_at),
     expire_at: toZaLocalInput(guide.expire_at),
+    kind_ids: guide.kind_ids,
+    persona_ids: guide.persona_ids,
+    scale_id: guide.scale_id ?? "",
     interest_ids: guide.interest_ids,
     items: guide.items,
   }));
-
-  const selectedInterests = useMemo(
-    () => catalog.interests.filter((item) => draft.interest_ids.includes(item.id)),
-    [catalog.interests, draft.interest_ids],
-  );
-
-  const audienceGroups = useMemo(() => {
-    const byKind = new Map<string, { label: string; interests: EditorCatalog["interests"] }>();
-    for (const interest of catalog.interests) {
-      const known = INTEREST_CHIPS.find((chip) => chip.key === interest.kind_key);
-      const key = known?.key ?? (interest.kind_key || "other");
-      const group = byKind.get(key) ?? {
-        label: known?.label ?? (interest.kind_title || "Other"),
-        interests: [],
-      };
-      group.interests.push(interest);
-      byKind.set(key, group);
-    }
-    const ordered = INTEREST_CHIPS.flatMap((chip) => {
-      const group = byKind.get(chip.key);
-      return group ? [group] : [];
-    });
-    for (const [key, group] of byKind) {
-      if (!INTEREST_CHIPS.some((chip) => chip.key === key)) ordered.push(group);
-    }
-    return ordered.map((group) => ({
-      ...group,
-      interests: [...group.interests].sort((a, b) => a.title.localeCompare(b.title)),
-    }));
-  }, [catalog.interests]);
 
   const pickerSelectedInterests = useMemo(
     () => catalog.interests.filter((item) => pickerInterestIds.includes(item.id)),
@@ -262,14 +251,6 @@ export function GuideEditor({
     setSaveNotice(null);
   }
 
-  function toggleInterest(id: string) {
-    patch({
-      interest_ids: draft.interest_ids.includes(id)
-        ? draft.interest_ids.filter((item) => item !== id)
-        : [...draft.interest_ids, id],
-    });
-  }
-
   function togglePickerInterest(id: string) {
     setPickerInterestIds((current) =>
       current.includes(id) ? current.filter((item) => item !== id) : [...current, id].slice(0, 12),
@@ -328,6 +309,9 @@ export function GuideEditor({
         intro: draft.intro,
         publish_at: draft.publish_at,
         expire_at: draft.expire_at,
+        kind_ids: draft.kind_ids,
+        persona_ids: draft.persona_ids,
+        scale_id: draft.scale_id,
         interest_ids: draft.interest_ids,
         items: draft.items.map((item) => ({
           listing_id: item.listing_id,
@@ -345,8 +329,17 @@ export function GuideEditor({
 
   const isNew = guide.title === "Untitled Guide" && guide.items.length === 0;
   const heading = draft.title.trim() || "Untitled Guide";
-  const audienceSummary =
-    selectedInterests.map((interest) => interest.title).join(", ") || "None yet";
+  const audienceSummary = [
+    ...INTEREST_CHIPS.flatMap((chip) => {
+      const kind = catalog.kinds.find((row) => row.key === chip.key);
+      return kind && draft.kind_ids.includes(kind.id) ? [chip.label] : [];
+    }),
+    ...catalog.personas.filter((persona) => draft.persona_ids.includes(persona.id)).map((persona) => persona.title),
+    interestKeywords.trim(),
+    catalog.scales.find((scale) => scale.id === draft.scale_id)?.title ?? "",
+  ]
+    .filter(Boolean)
+    .join(", ") || "None yet";
 
   return (
     <div className="cr-editor-page">
@@ -550,30 +543,84 @@ export function GuideEditor({
               <i className="cr-step-caret" aria-hidden="true" />
             </button>
           </h2>
-          <p className="muted cr-step-help">
-            Tap a card to include that interest. Tap it again to take it off.
-          </p>
-          {audienceGroups.map((group) => (
-            <div key={group.label} className="cr-guide-audience-group">
-              <p className="cr-about-label">{group.label}</p>
-              <div className="cr-guide-audience">
-                {group.interests.map((interest) => {
-                  const active = draft.interest_ids.includes(interest.id);
+          <div className="cr-audience-well">
+            <div className="cr-audience-group">
+              <p className="cr-about-label">Interests</p>
+              <div className="cr-chip-grid">
+                {INTEREST_CHIPS.map((item) => {
+                  const kind = catalog.kinds.find((row) => row.key === item.key);
+                  if (!kind) return null;
+                  const active = draft.kind_ids.includes(kind.id);
                   return (
                     <button
-                      key={interest.id}
+                      key={kind.id}
                       type="button"
-                      className={active ? "cr-guide-audience-card active" : "cr-guide-audience-card"}
+                      className={active ? "cr-tag active" : "cr-tag"}
                       aria-pressed={active}
-                      onClick={() => toggleInterest(interest.id)}
+                      onClick={() => patch({ kind_ids: toggleId(draft.kind_ids, kind.id) })}
                     >
-                      {interest.title}
+                      {item.label}
                     </button>
                   );
                 })}
               </div>
             </div>
-          ))}
+            <div className="cr-audience-group">
+              <p className="cr-about-label">How you go out</p>
+              <div className="cr-chip-grid">
+                {catalog.personas.map((persona) => {
+                  const active = draft.persona_ids.includes(persona.id);
+                  return (
+                    <button
+                      key={persona.id}
+                      type="button"
+                      className={active ? "cr-tag active" : "cr-tag"}
+                      aria-pressed={active}
+                      onClick={() => patch({ persona_ids: toggleId(draft.persona_ids, persona.id) })}
+                    >
+                      {persona.title}
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+            <div className="cr-audience-group">
+              <p className="cr-about-label">Your Interests</p>
+              <label className="field cr-quiet">
+                <span className="sr-only">Your Interests</span>
+                <input
+                  value={interestKeywords}
+                  onChange={(event) => {
+                    const value = event.target.value;
+                    setInterestKeywords(value);
+                    patch({ interest_ids: interestIdsFromKeywords(value, catalog.interests) });
+                  }}
+                  placeholder='Keywords (Separate with ",")'
+                  aria-label="Your Interests"
+                />
+              </label>
+            </div>
+            <div className="cr-audience-group">
+              <p className="cr-about-label">Adventure Level</p>
+              <div className="cr-chip-grid">
+                {catalog.scales.map((scale) => {
+                  const active = draft.scale_id === scale.id;
+                  return (
+                    <button
+                      key={scale.id}
+                      type="button"
+                      className={active ? "cr-tag active" : "cr-tag"}
+                      title={scale.subtitle}
+                      aria-pressed={active}
+                      onClick={() => patch({ scale_id: active ? "" : scale.id })}
+                    >
+                      {scale.title}
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+          </div>
         </section>
 
         <section className={stepOpen("window") ? "cr-step is-open" : "cr-step"} id="step-window">
