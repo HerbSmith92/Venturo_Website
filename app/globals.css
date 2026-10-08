@@ -5904,7 +5904,74 @@ label.check {
   padding: 0;
   margin: 16px 0 0;
   display: grid;
-  gap: 10px;
+  grid-template-columns: minmax(0, 1fr) max-content max-content 16px;
+  column-gap: 10px;
+  row-gap: 10px;
+}
+
+.listing-cost-card,
+.listing-cost-toggle,
+.listing-cost-subs,
+.listing-cost-sub {
+  display: grid;
+  grid-template-columns: subgrid;
+  grid-column: 1 / -1;
+}
+
+.listing-cost-member-note {
+  margin: 0 0 12px;
+  color: color-mix(in srgb, var(--snow) 78%, transparent);
+  font-size: 14px;
+  font-weight: 200;
+}
+
+.listing-cost-card.is-locked .listing-cost-copy,
+.listing-cost-sub.is-locked .listing-cost-copy {
+  position: relative;
+  padding-right: 118px;
+}
+
+.listing-cost-lock {
+  position: absolute;
+  right: 0;
+  top: 50%;
+  width: 112px;
+  transform: translateY(-50%);
+  display: grid;
+  place-items: center;
+  pointer-events: none;
+  overflow: hidden;
+}
+
+.listing-cost-lock span {
+  color: var(--canary);
+  font-size: 12px;
+  font-weight: 600;
+  line-height: 1.15;
+  text-align: center;
+  filter: blur(2.4px);
+  user-select: none;
+}
+
+@media (max-width: 520px) {
+  .listing-cost-card.is-locked .listing-cost-copy,
+  .listing-cost-sub.is-locked .listing-cost-copy {
+    padding-right: 0;
+  }
+
+  .listing-cost-card.is-locked .listing-cost-amount,
+  .listing-cost-card.is-locked .listing-cost-audience,
+  .listing-cost-sub.is-locked .listing-cost-amount,
+  .listing-cost-sub.is-locked .listing-cost-audience {
+    align-self: start;
+  }
+
+  .listing-cost-lock {
+    position: static;
+    width: 100%;
+    transform: none;
+    margin-top: 2px;
+  }
 }
 
 .listing-cost-card {
@@ -5915,12 +5982,9 @@ label.check {
 }
 
 .listing-cost-toggle {
-  display: flex;
-  justify-content: space-between;
   align-items: center;
-  gap: 12px;
-  width: 100%;
-  padding: 12px 14px;
+  width: auto;
+  padding: 0;
   border: 0;
   background: transparent;
   color: inherit;
@@ -5936,6 +6000,12 @@ button.listing-cost-toggle {
   min-width: 0;
   display: grid;
   gap: 2px;
+  padding: 12px 0 12px 14px;
+}
+
+.listing-cost-card.is-locked .listing-cost-copy,
+.listing-cost-sub.is-locked .listing-cost-copy {
+  padding-right: 118px;
 }
 
 .listing-cost-card strong {
@@ -5958,14 +6028,29 @@ button.listing-cost-toggle {
 }
 
 .listing-cost-figures {
-  flex: 0 0 auto;
-  display: grid;
-  gap: 2px;
-  justify-items: end;
-  text-align: right;
+  display: contents;
   font-size: 14px;
   font-weight: 400;
+  font-variant-numeric: tabular-nums;
+}
+
+.listing-cost-amount,
+.listing-cost-audience {
+  padding: 12px 0;
   white-space: nowrap;
+}
+
+.listing-cost-amount {
+  display: grid;
+  justify-items: end;
+  align-content: end;
+  text-align: right;
+}
+
+.listing-cost-audience {
+  align-self: end;
+  padding-bottom: 12px;
+  text-align: left;
 }
 
 .listing-cost-was {
@@ -5975,20 +6060,25 @@ button.listing-cost-toggle {
   text-decoration: line-through;
 }
 
-.listing-cost-figures b {
+.listing-cost-figures b,
+.listing-cost-amount b {
   color: var(--canary);
   font-size: 14px;
   font-weight: 600;
 }
 
+.listing-cost-chevron-slot {
+  display: grid;
+  place-items: center;
+  padding-right: 14px;
+}
+
 .listing-cost-chevron {
-  flex: 0 0 auto;
   width: 7px;
   height: 7px;
-  margin-left: 2px;
   border-right: 1.5px solid color-mix(in srgb, var(--snow) 75%, transparent);
   border-bottom: 1.5px solid color-mix(in srgb, var(--snow) 75%, transparent);
-  transform: rotate(45deg) translateY(-2px);
+  transform: rotate(45deg) translateY(-1px);
   transition: transform 160ms ease;
 }
 
@@ -5996,29 +6086,42 @@ button.listing-cost-toggle {
   transform: rotate(225deg) translateY(-1px);
 }
 
-.listing-cost-head {
-  padding-bottom: 8px;
+.listing-cost-head strong {
+  min-width: 0;
+  padding: 12px 0 8px 14px;
+}
+
+.listing-cost-head .listing-cost-chevron-slot {
+  grid-column: 4;
 }
 
 .listing-cost-subs {
   list-style: none;
   margin: 0;
-  padding: 0 10px 10px;
-  display: grid;
-  gap: 8px;
+  padding: 0 0 10px;
+  row-gap: 8px;
 }
 
 .listing-cost-sub {
+  margin: 0 10px;
   border-radius: 12px;
   border: 1px solid color-mix(in srgb, var(--canary) 78%, transparent);
   background: color-mix(in srgb, var(--night) 28%, transparent);
 }
 
-.listing-cost-sub .listing-cost-toggle {
-  padding: 10px 12px;
+.listing-cost-sub .listing-cost-copy {
+  padding-top: 10px;
+  padding-bottom: 10px;
+}
+
+.listing-cost-sub .listing-cost-amount,
+.listing-cost-sub .listing-cost-audience {
+  padding-top: 10px;
+  padding-bottom: 10px;
 }
 
 .listing-cost-detail {
+  grid-column: 1 / -1;
   margin: 0;
   padding: 2px 14px 14px;
   white-space: pre-wrap;

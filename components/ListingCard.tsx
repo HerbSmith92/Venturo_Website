@@ -50,7 +50,7 @@ export function ListingCard({
                 Members {formatFromPrice(listing.memberFromPrice)}
               </span>
             ) : (
-              <span className="member-price">Paid members save</span>
+              <span className="member-price">Members save 15%</span>
             ))}
         </div>
       </div>

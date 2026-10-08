@@ -8,17 +8,21 @@ function Chevron({ open }: { open: boolean }) {
 }
 
 function Figures({ item }: { item: ListingCostItem }) {
-  if (item.wasLabel) {
-    return (
-      <span className="listing-cost-figures">
-        <s className="listing-cost-was">{item.wasLabel}</s>
-        <b>{item.priceLabel}</b>
-      </span>
-    );
-  }
   return (
     <span className="listing-cost-figures">
-      <span>{item.priceLabel}</span>
+      <span className="listing-cost-amount">
+        {item.wasAmount ? <s className="listing-cost-was">{item.wasAmount}</s> : null}
+        {item.wasAmount ? <b>{item.amountLabel}</b> : item.amountLabel}
+      </span>
+      <span className="listing-cost-audience">{item.audience}</span>
+    </span>
+  );
+}
+
+function MemberLock() {
+  return (
+    <span className="listing-cost-lock" aria-hidden="true">
+      <span>Members Exclusive Discount</span>
     </span>
   );
 }
@@ -30,6 +34,7 @@ function CostLine({ item, title }: { item: ListingCostItem; title?: string }) {
         <strong>{title ?? item.name}</strong>
         {item.saveLabel ? <span className="listing-cost-save">{item.saveLabel}</span> : null}
         {item.note ? <span className="listing-cost-note">{item.note}</span> : null}
+        {item.memberLocked ? <MemberLock /> : null}
       </span>
       <Figures item={item} />
     </>
@@ -50,11 +55,13 @@ export function ListingCostList({ groups }: { groups: ListingCostGroup[] }) {
           const row = (
             <>
               <CostLine item={single} title={group.name} />
-              {group.description ? <Chevron open={open} /> : null}
+              <span className="listing-cost-chevron-slot" aria-hidden="true">
+                {group.description ? <Chevron open={open} /> : null}
+              </span>
             </>
           );
           return (
-            <li className="listing-cost-card" key={group.id}>
+            <li className={single.memberLocked ? "listing-cost-card is-locked" : "listing-cost-card"} key={group.id}>
               {group.description ? (
                 <button
                   type="button"
@@ -88,7 +95,9 @@ export function ListingCostList({ groups }: { groups: ListingCostGroup[] }) {
                 onClick={() => setOpenId(open ? null : group.id)}
               >
                 <strong>{group.name}</strong>
-                <Chevron open={open} />
+                <span className="listing-cost-chevron-slot" aria-hidden="true">
+                  <Chevron open={open} />
+                </span>
               </button>
             ) : (
               <div className="listing-cost-toggle listing-cost-head">
@@ -97,9 +106,10 @@ export function ListingCostList({ groups }: { groups: ListingCostGroup[] }) {
             )}
             <ul className="listing-cost-subs">
               {group.items.map((item) => (
-                <li className="listing-cost-sub" key={item.id}>
+                <li className={item.memberLocked ? "listing-cost-sub is-locked" : "listing-cost-sub"} key={item.id}>
                   <div className="listing-cost-toggle">
                     <CostLine item={item} />
+                    <span className="listing-cost-chevron-slot" aria-hidden="true" />
                   </div>
                 </li>
               ))}
