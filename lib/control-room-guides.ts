@@ -30,6 +30,9 @@ export type GuideEditorRecord = {
   status: GuideStatus;
   publish_at: string | null;
   expire_at: string | null;
+  kind_ids: string[];
+  persona_ids: string[];
+  scale_id: string | null;
   interest_ids: string[];
   items: GuideDraftItem[];
 };
@@ -178,8 +181,10 @@ export async function loadGuideEditor(id: string): Promise<GuideEditorRecord | n
     .from("curated_guides")
     .select(
       `
-      id, title, slug, intro, status, publish_at, expire_at,
+      id, title, slug, intro, status, publish_at, expire_at, scale_id,
       curated_guide_interests ( interest_id ),
+      curated_guide_activity_kinds ( activity_kind_id ),
+      curated_guide_personas ( persona_id ),
       curated_guide_items (
         listing_id, sort_order, editorial_note,
         directory_listings ( ${LISTING_SELECT} )
@@ -206,7 +211,10 @@ export async function loadGuideEditor(id: string): Promise<GuideEditorRecord | n
     status: GuideStatus;
     publish_at: string | null;
     expire_at: string | null;
+    scale_id: string | null;
     curated_guide_interests?: { interest_id: string }[];
+    curated_guide_activity_kinds?: { activity_kind_id: string }[];
+    curated_guide_personas?: { persona_id: string }[];
     curated_guide_items?: ItemRow[];
   };
 
@@ -231,6 +239,9 @@ export async function loadGuideEditor(id: string): Promise<GuideEditorRecord | n
     status: row.status,
     publish_at: row.publish_at,
     expire_at: row.expire_at,
+    scale_id: row.scale_id,
+    kind_ids: (row.curated_guide_activity_kinds ?? []).map((item) => item.activity_kind_id),
+    persona_ids: (row.curated_guide_personas ?? []).map((item) => item.persona_id),
     interest_ids: (row.curated_guide_interests ?? []).map((item) => item.interest_id),
     items,
   };

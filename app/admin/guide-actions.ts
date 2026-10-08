@@ -38,6 +38,9 @@ export async function saveCuratedGuide(
     intro: string;
     publish_at: string;
     expire_at: string;
+    kind_ids: string[];
+    persona_ids: string[];
+    scale_id: string;
     interest_ids: string[];
     items: { listing_id: string; editorial_note: string }[];
   },
@@ -58,6 +61,9 @@ export async function saveCuratedGuide(
       intro: draft.intro,
       publish_at: fromZaLocalInput(draft.publish_at),
       expire_at: fromZaLocalInput(draft.expire_at),
+      kind_ids: draft.kind_ids,
+      persona_ids: draft.persona_ids,
+      scale_id: draft.scale_id,
       interest_ids: draft.interest_ids,
       items: draft.items.map((item, index) => ({
         listing_id: item.listing_id,
