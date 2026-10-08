@@ -1,5 +1,4 @@
 import { notFound } from "next/navigation";
-import { saveGuideEvents } from "@/app/admin/content-actions";
 import { GuideEditor } from "@/components/admin/GuideEditor";
 import { loadGuideEditor } from "@/lib/control-room-guides";
 import { loadEditorCatalog } from "@/lib/control-room";
@@ -33,35 +32,18 @@ export default async function GuideEditPage({
           ? "Guide unpublished."
           : done === "archive"
             ? "Guide archived."
-            : undefined;
+            : done === "links"
+              ? "Event links saved."
+              : undefined;
 
   return (
-    <>
-      <GuideEditor guide={guide} catalog={catalog} notice={notice} error={error} />
-      <form action={saveGuideEvents} className="cr-panel" style={{ marginTop: 28 }}>
-        <h2>Linked Events</h2>
-        <p className="muted">
-          Activities stay in the guide above. Tick the events this guide should open in the app.
-        </p>
-        <input type="hidden" name="guide_id" value={guide.id} />
-        {events.length === 0 ? <p className="muted">No live events yet.</p> : null}
-        {events.map((event) => (
-          <label key={event.id} className="field">
-            <span>
-              <input
-                type="checkbox"
-                name="event_ids"
-                value={event.id}
-                defaultChecked={linked.has(event.id)}
-              />{" "}
-              {event.title}
-            </span>
-          </label>
-        ))}
-        <button className="btn btn-secondary" type="submit">
-          Save Event Links
-        </button>
-      </form>
-    </>
+    <GuideEditor
+      guide={guide}
+      catalog={catalog}
+      notice={notice}
+      error={error}
+      events={events.map((event) => ({ id: event.id, title: event.title }))}
+      linkedEventIds={[...linked]}
+    />
   );
 }
