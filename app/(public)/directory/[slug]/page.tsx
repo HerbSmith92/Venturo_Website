@@ -216,7 +216,7 @@ export default async function ListingDetailPage({
             <p className="eyebrow">Prices</p>
             <h2>What It Costs</h2>
             {memberLocked ? (
-              <p className="listing-cost-member-note">Members save 15%. Join to claim it.</p>
+              <p className="listing-cost-member-note">Save up to 15% on this activity</p>
             ) : null}
             {costGroups.length === 0 ? (
               <p className="muted">
