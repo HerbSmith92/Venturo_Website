@@ -4,7 +4,9 @@ import {
   GUIDE_NEAR_KM,
   guideFromPrice,
   isGuideStatus,
+  listingMatchesGuideAudience,
   pickPricedGuideListings,
+  type GuideAudienceMatch,
   type GuideDraftItem,
   type GuideListingPreview,
   type GuidePlace,
@@ -45,6 +47,7 @@ type MediaRow = {
 };
 
 type KindRow = {
+  activity_kind_id?: string | null;
   is_primary?: boolean | null;
   activity_kinds?:
     | { key: string | null; title: string | null }
@@ -77,7 +80,7 @@ const LISTING_SELECT = `
   short_description, price_from, latitude, longitude, status,
   indoor_outdoor, booking_required,
   listing_media ( public_url, is_cover, sort_order, is_pending ),
-  listing_activity_kinds ( is_primary, activity_kinds ( key, title ) )
+  listing_activity_kinds ( activity_kind_id, is_primary, activity_kinds ( key, title ) )
 `;
 
 function coverFromMedia(media: MediaRow[] | undefined) {
@@ -312,10 +315,20 @@ export async function loadGuidePlaces(): Promise<GuidePlace[]> {
   );
 }
 
+function relationIds(rows: object[] | null | undefined, key: string) {
+  const ids: string[] = [];
+  for (const row of rows ?? []) {
+    const value = (row as Record<string, unknown>)[key];
+    if (typeof value === "string" && value && !ids.includes(value)) ids.push(value);
+  }
+  return ids;
+}
+
 export async function searchPricedGuideListings(input: {
   maxPrice: number;
   lat?: number | null;
   lng?: number | null;
+  audience?: GuideAudienceMatch;
 }): Promise<{ listings: GuideListingPreview[]; total: number }> {
   const supabase = await createClient();
   if (!supabase || !Number.isFinite(input.maxPrice) || input.maxPrice <= 0) {
@@ -328,7 +341,10 @@ export async function searchPricedGuideListings(input: {
       `
       ${LISTING_SELECT},
       listing_activities ( id, cost_varied, status ),
-      price_options ( standard_price, is_active, show_on_from, listing_activity_id )
+      price_options ( standard_price, is_active, show_on_from, listing_activity_id ),
+      listing_personas ( persona_id ),
+      listing_activity_scales ( activity_scale_id ),
+      listing_interests ( interest_id )
     `,
     )
     .eq("status", "approved")
@@ -339,11 +355,20 @@ export async function searchPricedGuideListings(input: {
     data as unknown as (ListingRow & {
       price_options?: Parameters<typeof guideFromPrice>[0];
       listing_activities?: Parameters<typeof guideFromPrice>[1];
+      listing_personas?: { persona_id: string | null }[];
+      listing_activity_scales?: { activity_scale_id: string | null }[];
+      listing_interests?: { interest_id: string | null }[];
     })[]
-  ).map((row) => ({
-    ...row,
-    price_from: guideFromPrice(row.price_options, row.listing_activities),
-  }));
+  )
+    .map((row) => ({
+      ...row,
+      price_from: guideFromPrice(row.price_options, row.listing_activities),
+      kind_ids: relationIds(row.listing_activity_kinds, "activity_kind_id"),
+      persona_ids: relationIds(row.listing_personas, "persona_id"),
+      scale_ids: relationIds(row.listing_activity_scales, "activity_scale_id"),
+      interest_ids: relationIds(row.listing_interests, "interest_id"),
+    }))
+    .filter((row) => listingMatchesGuideAudience(row, input.audience ?? {}));
 
   const picked = pickPricedGuideListings(priced, {
     maxPrice: input.maxPrice,

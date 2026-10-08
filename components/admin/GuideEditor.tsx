@@ -51,6 +51,26 @@ function toggleId(ids: string[], id: string) {
   return ids.includes(id) ? ids.filter((item) => item !== id) : [...ids, id];
 }
 
+function joinLabels(labels: string[]) {
+  if (labels.length <= 1) return labels[0] ?? "";
+  return `${labels.slice(0, -1).join(", ")} & ${labels[labels.length - 1]}`;
+}
+
+function audienceLabelsFor(
+  draft: Pick<GuideDraft, "kind_ids" | "persona_ids" | "scale_id" | "interest_ids">,
+  catalog: EditorCatalog,
+) {
+  return [
+    ...INTEREST_CHIPS.flatMap((chip) => {
+      const kind = catalog.kinds.find((row) => row.key === chip.key);
+      return kind && draft.kind_ids.includes(kind.id) ? [chip.label] : [];
+    }),
+    ...catalog.personas.filter((persona) => draft.persona_ids.includes(persona.id)).map((persona) => persona.title),
+    ...catalog.interests.filter((interest) => draft.interest_ids.includes(interest.id)).map((interest) => interest.title),
+    catalog.scales.find((scale) => scale.id === draft.scale_id)?.title ?? "",
+  ].filter(Boolean);
+}
+
 function areaLabel(listing: GuideListingPreview | null) {
   if (!listing) return "Listing missing";
   return [listing.suburb, listing.city].filter(Boolean).join(", ") || "South Africa";
@@ -155,6 +175,18 @@ export function GuideEditor({
     setOpenSteps((current) => ({ ...current, [key]: !current[key] }));
   }
 
+  const audienceKey = [
+    [...draft.kind_ids].sort().join(","),
+    [...draft.persona_ids].sort().join(","),
+    draft.scale_id,
+    [...draft.interest_ids].sort().join(","),
+  ].join("|");
+  const draftRef = useRef(draft);
+  draftRef.current = draft;
+  const catalogRef = useRef(catalog);
+  catalogRef.current = catalog;
+  const fillSnapshot = useRef({ audienceKey, fillKey, placeId, priceAmount, priceOn });
+
   const pickerInterestKey = pickerInterestIds.join(",");
 
   const pickerListings = useMemo(
@@ -185,6 +217,14 @@ export function GuideEditor({
   }, [listingQuery, pickerFor, pickerInterestKey]);
 
   useEffect(() => {
+    const previous = fillSnapshot.current;
+    const audienceOnly =
+      previous.audienceKey !== audienceKey &&
+      previous.fillKey === fillKey &&
+      previous.placeId === placeId &&
+      previous.priceAmount === priceAmount &&
+      previous.priceOn === priceOn;
+    fillSnapshot.current = { audienceKey, fillKey, placeId, priceAmount, priceOn };
     if (fillSkip.current) {
       fillSkip.current = false;
       return;
@@ -193,16 +233,22 @@ export function GuideEditor({
     const place = placesRef.current.find((item) => item.id === placeId) ?? null;
     const amount = Math.round(priceAmount);
     if (!Number.isFinite(amount) || amount <= 0) return;
+    const scrollToList = !audienceOnly;
 
     let cancelled = false;
     const handle = window.setTimeout(async () => {
       setFilling(true);
       try {
+        const audience = draftRef.current;
         const params = new URLSearchParams({ maxPrice: String(amount) });
         if (place) {
           params.set("lat", String(place.lat));
           params.set("lng", String(place.lng));
         }
+        if (audience.kind_ids.length) params.set("kinds", audience.kind_ids.join(","));
+        if (audience.persona_ids.length) params.set("personas", audience.persona_ids.join(","));
+        if (audience.scale_id) params.set("scale", audience.scale_id);
+        if (audience.interest_ids.length) params.set("interests", audience.interest_ids.join(","));
         const res = await fetch(`/api/admin/guides/listings?${params.toString()}`);
         const body = (await res.json()) as {
           listings?: GuideListingPreview[];
@@ -228,11 +274,14 @@ export function GuideEditor({
             })),
           };
         });
-        setMatchNote(pricedGuideSummary(listings.length, total, amount, place?.name ?? null));
+        const labels = audienceLabelsFor(audience, catalogRef.current);
+        setMatchNote(pricedGuideSummary(listings.length, total, amount, place?.name ?? null, joinLabels(labels) || null));
         setOpenSteps((current) => ({ ...current, spots: true }));
-        setActiveStep("spots");
         setSaveNotice(null);
-        document.getElementById("step-spots")?.scrollIntoView({ behavior: "smooth", block: "start" });
+        if (scrollToList) {
+          setActiveStep("spots");
+          document.getElementById("step-spots")?.scrollIntoView({ behavior: "smooth", block: "start" });
+        }
       } catch {
         if (!cancelled) setMatchNote("Those listings could not be loaded.");
       } finally {
@@ -244,7 +293,7 @@ export function GuideEditor({
       cancelled = true;
       window.clearTimeout(handle);
     };
-  }, [fillKey, placeId, priceAmount, priceOn]);
+  }, [audienceKey, fillKey, placeId, priceAmount, priceOn]);
 
   function patch(partial: Partial<GuideDraft>) {
     setDraft((current) => ({ ...current, ...partial }));
@@ -329,17 +378,7 @@ export function GuideEditor({
 
   const isNew = guide.title === "Untitled Guide" && guide.items.length === 0;
   const heading = draft.title.trim() || "Untitled Guide";
-  const audienceSummary = [
-    ...INTEREST_CHIPS.flatMap((chip) => {
-      const kind = catalog.kinds.find((row) => row.key === chip.key);
-      return kind && draft.kind_ids.includes(kind.id) ? [chip.label] : [];
-    }),
-    ...catalog.personas.filter((persona) => draft.persona_ids.includes(persona.id)).map((persona) => persona.title),
-    interestKeywords.trim(),
-    catalog.scales.find((scale) => scale.id === draft.scale_id)?.title ?? "",
-  ]
-    .filter(Boolean)
-    .join(", ") || "None yet";
+  const audienceSummary = joinLabels(audienceLabelsFor(draft, catalog)) || "None yet";
 
   return (
     <div className="cr-editor-page">
@@ -468,9 +507,10 @@ export function GuideEditor({
           {priceOn ? (
             <>
               <p className="muted cr-step-help">
-                Change the amount or the place and the matching businesses replace Recommendations.
-                Only prices ticked Include in From are counted. Unticked prices stay out. Notes on
-                listings that stay are kept.
+                Change the amount, the place, or the audience and the matching businesses replace
+                Recommendations. A listing has to fit every audience group you turn on. Only prices
+                ticked Include in From are counted. Unticked prices stay out. Notes on listings that
+                stay are kept.
               </p>
               <div className="field-row">
                 <label className="field">
@@ -621,6 +661,11 @@ export function GuideEditor({
               </div>
             </div>
           </div>
+          {priceOn ? (
+            <p className="muted">{filling ? "Finding listings…" : matchNote || "Turn a choice on to narrow Recommendations."}</p>
+          ) : (
+            <p className="muted">Choose Under R Adventures to fill Recommendations from these choices.</p>
+          )}
         </section>
 
         <section className={stepOpen("window") ? "cr-step is-open" : "cr-step"} id="step-window">

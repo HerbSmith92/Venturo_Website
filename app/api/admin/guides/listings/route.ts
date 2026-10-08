@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { getStaffSession } from "@/lib/auth";
 import { searchGuideListings, searchPricedGuideListings } from "@/lib/control-room-guides";
-import { parseGuideInterestIds } from "@/lib/guide-shared";
+import { parseGuideIds, parseGuideInterestIds } from "@/lib/guide-shared";
 
 function coordinate(value: string | null) {
   if (!value) return null;
@@ -28,6 +28,12 @@ export async function GET(request: Request) {
       maxPrice,
       lat: lat != null && lng != null ? lat : null,
       lng: lat != null && lng != null ? lng : null,
+      audience: {
+        kindIds: parseGuideIds(url.searchParams.get("kinds"), 10),
+        personaIds: parseGuideIds(url.searchParams.get("personas"), 8),
+        scaleId: parseGuideIds(url.searchParams.get("scale"), 1)[0] ?? "",
+        interestIds: parseGuideInterestIds(url.searchParams.get("interests")),
+      },
     });
     return NextResponse.json(result);
   }
