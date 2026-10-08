@@ -5949,8 +5949,6 @@ label.check {
   font-weight: 600;
   line-height: 1.15;
   text-align: center;
-  filter: blur(2.4px);
-  user-select: none;
 }
 
 
@@ -6140,7 +6138,6 @@ button.listing-cost-toggle {
     font-size: 13px;
     line-height: 1.2;
     white-space: nowrap;
-    filter: blur(1.4px);
   }
 }
 
