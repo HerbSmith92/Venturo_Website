@@ -50,24 +50,55 @@ export function pricedGuideSummary(
   total: number,
   amount: number,
   placeName: string | null,
+  audience: string | null = null,
 ) {
   const rounded = Math.round(amount);
-  if (total === 0) {
-    return placeName
-      ? `No live listings under R${rounded} in and around ${placeName}.`
-      : `No live listings under R${rounded}.`;
-  }
+  const where = placeName
+    ? `under R${rounded} in and around ${placeName}`
+    : `under R${rounded}`;
+  const scoped = audience ? `${where} for ${audience}` : where;
+  if (total === 0) return `No live listings ${scoped}.`;
   const noun = total === 1 ? "live listing" : "live listings";
   if (shown < total) {
     const order = placeName ? "nearest first" : "lowest price first";
-    const where = placeName
+    const near = placeName
       ? `under R${rounded} within ${GUIDE_NEAR_KM} km of ${placeName}`
       : `under R${rounded}`;
-    return `Showing ${shown} of ${total} ${noun} ${where}, ${order}.`;
+    const limited = audience ? `${near} for ${audience}` : near;
+    return `Showing ${shown} of ${total} ${noun} ${limited}, ${order}.`;
   }
-  return placeName
-    ? `${total} ${noun} under R${rounded} in and around ${placeName}.`
-    : `${total} ${noun} under R${rounded}.`;
+  return `${total} ${noun} ${scoped}.`;
+}
+
+export type GuideAudienceMatch = {
+  kindIds?: string[];
+  personaIds?: string[];
+  scaleId?: string | null;
+  interestIds?: string[];
+};
+
+/** A listing must fit every audience group that is turned on. Inside a group, any tag is enough. */
+export function listingMatchesGuideAudience(
+  listing: {
+    kind_ids?: string[] | null;
+    persona_ids?: string[] | null;
+    scale_ids?: string[] | null;
+    interest_ids?: string[] | null;
+  },
+  audience: GuideAudienceMatch,
+) {
+  const wanted = (ids: string[] | null | undefined) => (ids ?? []).filter(Boolean);
+  const hasAny = (ids: string[], have: string[] | null | undefined) =>
+    ids.some((id) => (have ?? []).includes(id));
+  const kinds = wanted(audience.kindIds);
+  const personas = wanted(audience.personaIds);
+  const interests = wanted(audience.interestIds);
+  const scale = audience.scaleId?.trim() ?? "";
+  if (kinds.length && !hasAny(kinds, listing.kind_ids)) return false;
+  if (personas.length && !hasAny(personas, listing.persona_ids)) return false;
+  if (interests.length && !hasAny(interests, listing.interest_ids)) return false;
+  if (scale && !(listing.scale_ids ?? []).includes(scale)) return false;
+  return true;
 }
 
 export function distanceKm(lat1: number, lng1: number, lat2: number, lng2: number) {
@@ -261,12 +292,16 @@ export type GuideDraft = {
 const UUID_RE =
   /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
-export function parseGuideInterestIds(value: string | null): string[] {
+export function parseGuideIds(value: string | null, limit = 12): string[] {
   if (!value) return [];
   const ids: string[] = [];
   for (const part of value.split(",")) {
     const id = part.trim();
     if (UUID_RE.test(id) && !ids.includes(id)) ids.push(id);
   }
-  return ids.slice(0, 12);
+  return ids.slice(0, limit);
+}
+
+export function parseGuideInterestIds(value: string | null): string[] {
+  return parseGuideIds(value, 12);
 }
