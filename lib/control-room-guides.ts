@@ -1,8 +1,12 @@
 import { createClient } from "@/lib/supabase/server";
 import {
+  GUIDE_FILL_LIMIT,
+  GUIDE_NEAR_KM,
   isGuideStatus,
+  pickPricedGuideListings,
   type GuideDraftItem,
   type GuideListingPreview,
+  type GuidePlace,
   type GuideStatus,
 } from "@/lib/guide-shared";
 
@@ -55,6 +59,8 @@ type ListingRow = {
   postal_code?: string | null;
   short_description: string | null;
   price_from: number | string | null;
+  latitude?: number | string | null;
+  longitude?: number | string | null;
   status: string;
   indoor_outdoor?: string | null;
   booking_required?: boolean | null;
@@ -64,7 +70,7 @@ type ListingRow = {
 
 const LISTING_SELECT = `
   id, name, slug, suburb, city, street_address_1, street_address_2, postal_code,
-  short_description, price_from, status,
+  short_description, price_from, latitude, longitude, status,
   indoor_outdoor, booking_required,
   listing_media ( public_url, is_cover, sort_order, is_pending ),
   listing_activity_kinds ( is_primary, activity_kinds ( key, title ) )
@@ -268,4 +274,61 @@ export async function searchGuideListings(
   const { data, error } = await query;
   if (error || !data) return [];
   return (data as ListingRow[]).map(mapListingPreview);
+}
+
+export async function loadGuidePlaces(): Promise<GuidePlace[]> {
+  const supabase = await createClient();
+  if (!supabase) return [];
+
+  const { data, error } = await supabase
+    .from("places")
+    .select("id, name, lat, lng")
+    .eq("is_active", true)
+    .not("lat", "is", null)
+    .not("lng", "is", null)
+    .order("name");
+  if (error || !data) return [];
+
+  return (data as { id: string; name: string | null; lat: number | string; lng: number | string }[]).flatMap(
+    (row) => {
+      const lat = Number(row.lat);
+      const lng = Number(row.lng);
+      const name = row.name?.trim();
+      if (!row.id || !name || !Number.isFinite(lat) || !Number.isFinite(lng)) return [];
+      return [{ id: row.id, name, lat, lng }];
+    },
+  );
+}
+
+export async function searchPricedGuideListings(input: {
+  maxPrice: number;
+  lat?: number | null;
+  lng?: number | null;
+}): Promise<{ listings: GuideListingPreview[]; total: number }> {
+  const supabase = await createClient();
+  if (!supabase || !Number.isFinite(input.maxPrice) || input.maxPrice <= 0) {
+    return { listings: [], total: 0 };
+  }
+
+  const { data, error } = await supabase
+    .from("directory_listings")
+    .select(LISTING_SELECT)
+    .eq("status", "approved")
+    .not("price_from", "is", null)
+    .gte("price_from", 0)
+    .lte("price_from", input.maxPrice)
+    .limit(500);
+  if (error || !data) return { listings: [], total: 0 };
+
+  const picked = pickPricedGuideListings(data as unknown as ListingRow[], {
+    maxPrice: input.maxPrice,
+    lat: input.lat,
+    lng: input.lng,
+    radiusKm: GUIDE_NEAR_KM,
+    limit: GUIDE_FILL_LIMIT,
+  });
+  return {
+    listings: picked.matches.map(mapListingPreview),
+    total: picked.total,
+  };
 }
