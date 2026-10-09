@@ -434,7 +434,7 @@ function activitiesFromListing(listing: ListingDetail): DraftActivity[] {
     (a, b) => (a.sort_order ?? 0) - (b.sort_order ?? 0),
   );
 
-  const activityIds = new Set(activities.map((row) => row.id));
+  const knownActivityIds = new Set((listing.listing_activities ?? []).map((row) => row.id));
   const nested = activities.map((activity, index) => {
     const linked = prices.filter((price) => price.listing_activity_id === activity.id);
     return {
@@ -459,9 +459,11 @@ function activitiesFromListing(listing: ListingDetail): DraftActivity[] {
     } satisfies DraftActivity;
   });
 
-  const orphans = prices.filter(
-    (price) => !price.listing_activity_id || !activityIds.has(price.listing_activity_id),
-  );
+  const orphans = prices.filter((price) => {
+    if (price.is_active === false) return false;
+    if (!price.listing_activity_id) return true;
+    return !knownActivityIds.has(price.listing_activity_id);
+  });
 
   if (orphans.length > 0) {
     nested.push({
