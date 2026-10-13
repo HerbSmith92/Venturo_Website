@@ -61,6 +61,7 @@ export function SiteHeaderNav({ user }: { user: CurrentUser | null }) {
             <a href="/directory">Directory</a>
             <a href="/events">Events</a>
             <a href="/communities">Communities</a>
+            <a href="/guides">Guides</a>
             <a href="/admin">Admin</a>
             {user ? (
               <>
