@@ -9052,6 +9052,7 @@ button.listing-cost-toggle {
 
 .poster-page {
   display: grid;
+  justify-items: center;
   gap: 16px;
 }
 
@@ -9064,17 +9065,20 @@ button.listing-cost-toggle {
 .poster-sheet {
   position: relative;
   overflow: hidden;
-  width: min(210mm, 100%);
-  min-height: 297mm;
+  box-sizing: border-box;
+  width: 210mm;
+  height: 297mm;
   margin: 0 auto;
   padding: 14mm 14mm 16mm;
-  background: var(--night);
-  color: var(--snow);
+  background: #fff;
+  color: var(--night);
   display: flex;
   flex-direction: column;
   align-items: center;
   text-align: center;
   box-shadow: var(--shadow-1);
+  break-inside: avoid;
+  page-break-inside: avoid;
   -webkit-print-color-adjust: exact;
   print-color-adjust: exact;
 }
@@ -9084,7 +9088,7 @@ button.listing-cost-toggle {
   inset: 0;
   width: 100%;
   height: 100%;
-  opacity: 0.55;
+  opacity: 0.7;
   pointer-events: none;
 }
 
@@ -9109,24 +9113,25 @@ button.listing-cost-toggle {
   letter-spacing: 0.12em;
   text-transform: uppercase;
   font-size: 18px;
-  color: var(--snow);
+  color: var(--night);
 }
 
 .poster-sheet h1 {
   max-width: 168mm;
-  font-size: clamp(36px, 6vw, 58px);
+  font-size: 14mm;
   line-height: 0.92;
   text-transform: uppercase;
-  background: linear-gradient(180deg, #f3bf4a 0%, #ff9e6b 58%, #d54732 100%);
+  color: #c4452c;
+  background: linear-gradient(180deg, #e08a1e 0%, #ef7a3a 52%, #c4452c 100%);
   -webkit-background-clip: text;
   background-clip: text;
-  color: transparent;
+  -webkit-text-fill-color: transparent;
 }
 
 .poster-place {
   margin: 14px 0 0;
   font-size: 16px;
-  color: color-mix(in srgb, var(--snow) 88%, transparent);
+  color: color-mix(in srgb, var(--night) 78%, transparent);
 }
 
 .poster-learn {
@@ -9148,7 +9153,7 @@ button.listing-cost-toggle {
   max-width: 120mm;
   margin-top: 8px;
   font-size: 14px;
-  color: color-mix(in srgb, var(--snow) 78%, transparent);
+  color: color-mix(in srgb, var(--night) 72%, transparent);
 }
 
 .poster-codes {
@@ -9170,8 +9175,13 @@ button.listing-cost-toggle {
   width: 32mm;
   height: auto;
   padding: 6px;
-  background: var(--snow);
+  background: #fff;
+  border: 1px solid color-mix(in srgb, var(--night) 16%, transparent);
   border-radius: 12px;
+}
+
+.poster-codes img.poster-visit {
+  width: 42mm;
 }
 
 .poster-codes figcaption {
@@ -9204,32 +9214,46 @@ button.listing-cost-toggle {
     display: none !important;
   }
 
+  html:has(.poster-page),
+  body:has(.poster-page) {
+    width: 210mm !important;
+    height: 296mm !important;
+    min-height: 0 !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    overflow: hidden !important;
+    background: #fff !important;
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+  }
+
   .cr-main,
   .cr-shell:has(.cr-nav.is-collapsed) .cr-main {
     margin-left: 0 !important;
   }
 
-  body:has(.poster-page),
   .cr-shell:has(.poster-page),
-  .cr-main:has(.poster-page) {
-    background: #2a2d35 !important;
+  .cr-main:has(.poster-page),
+  .poster-page {
+    display: block !important;
+    width: 210mm !important;
+    height: 296mm !important;
+    min-height: 0 !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    overflow: hidden !important;
+    background: #fff !important;
     -webkit-print-color-adjust: exact;
     print-color-adjust: exact;
   }
 
-  .cr-shell:has(.poster-page) {
-    display: block;
-  }
-
-  .cr-main:has(.poster-page) {
-    padding: 0;
-  }
-
   .poster-sheet {
     width: 210mm;
-    min-height: 297mm;
+    height: 296mm;
     margin: 0;
     box-shadow: none;
+    break-after: avoid;
+    page-break-after: avoid;
   }
 
   .poster-codes img {
@@ -9237,7 +9261,7 @@ button.listing-cost-toggle {
   }
 
   @page {
-    size: A4;
+    size: A4 portrait;
     margin: 0;
   }
 

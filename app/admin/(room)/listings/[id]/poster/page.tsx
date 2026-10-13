@@ -1,7 +1,6 @@
 import { PrintPosterButton } from "@/components/admin/PrintPosterButton";
 import { getAppStoreLinks } from "@/lib/brand";
 import { loadListing } from "@/lib/control-room";
-import { getPublicSiteUrl } from "@/lib/site-url";
 import { notFound } from "next/navigation";
 import QRCode from "qrcode";
 
@@ -10,7 +9,7 @@ async function qrSrc(value: string, width: number) {
     errorCorrectionLevel: "M",
     margin: 1,
     width,
-    color: { dark: "#2A2D35", light: "#EBEBF3" },
+    color: { dark: "#2A2D35", light: "#FFFFFF" },
   });
 }
 
@@ -23,11 +22,10 @@ export default async function ListingPosterPage({
   const listing = await loadListing(id);
   if (!listing?.slug) notFound();
 
-  const siteUrl = getPublicSiteUrl();
-  const claimUrl = `${siteUrl}/directory/${listing.slug}?offer=member`;
+  const visitUrl = `venturo://visit/${listing.id.toLowerCase()}`;
   const stores = getAppStoreLinks();
-  const [claimQr, appStoreQr, playStoreQr] = await Promise.all([
-    qrSrc(claimUrl, 360),
+  const [visitQr, appStoreQr, playStoreQr] = await Promise.all([
+    qrSrc(visitUrl, 360),
     qrSrc(stores.appStore, 180),
     qrSrc(stores.playStore, 180),
   ]);
@@ -55,7 +53,7 @@ export default async function ListingPosterPage({
         </svg>
         <img
           className="poster-logo"
-          src="/brand/logos/venturo-stacked-simple-light.svg"
+          src="/brand/logos/venturo-stacked-simple-dark.svg"
           alt="Venturo"
         />
         <p className="poster-kicker">Certified Partner</p>
@@ -63,15 +61,15 @@ export default async function ListingPosterPage({
         <p className="poster-place">{place || "Libertas Rd, Bryanston, Sandton, 2191"}</p>
 
         <div className="poster-learn">
-          <h2>Learn More</h2>
-          <p>Scan the QR codes</p>
-          <p>Scan this code in the Venturo app. Member prices are for Venturo members.</p>
+          <h2>Show You Were Here</h2>
+          <p>Scan the code in the Venturo app</p>
+          <p>Open this place in the app, then scan. It records that you were here. Member prices are for Venturo members.</p>
         </div>
 
         <div className="poster-codes">
           <figure>
-            <img src={claimQr} alt={`QR code for ${listing.name}`} />
-            <figcaption>Directory</figcaption>
+            <img className="poster-visit" src={visitQr} alt={`Visit code for ${listing.name}`} />
+            <figcaption>I Was Here</figcaption>
           </figure>
           <span className="poster-divider" aria-hidden="true" />
           <figure>
