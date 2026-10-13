@@ -31,7 +31,7 @@
         "backgroundColor": "#2A2D35",
         "foregroundImage": "./assets/images/icon.png"
       },
-      "permissions": ["CAMERA"],
+      "permissions": ["CAMERA", "POST_NOTIFICATIONS"],
       "predictiveBackGestureEnabled": false
     },
     "web": {
@@ -57,7 +57,16 @@
           "imageWidth": 200
         }
       ],
-      "./plugins/with-disable-user-script-sandboxing.js"
+      "./plugins/with-disable-user-script-sandboxing.js",
+      [
+        "expo-notifications",
+        {
+          "color": "#2A2D35",
+          "defaultChannel": "default",
+          "mode": "production",
+          "enableBackgroundRemoteNotifications": false
+        }
+      ]
     ],
     "experiments": {
       "typedRoutes": true

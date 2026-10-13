@@ -71,6 +71,15 @@ export function BrandHeader({
               style={styles.menuItem}
               onPress={() => {
                 setMenuOpen(false);
+                router.push("/notifications");
+              }}
+            >
+              <Text style={styles.menuText}>Notifications</Text>
+            </Pressable>
+            <Pressable
+              style={styles.menuItem}
+              onPress={() => {
+                setMenuOpen(false);
                 router.push("/settings");
               }}
             >
