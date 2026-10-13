@@ -146,6 +146,12 @@ function menu(admin: boolean, name: string): Group[] {
       ],
     },
     {
+      id: "push",
+      label: "Push Notifications",
+      labelHref: "/admin/notifications",
+      headings: [],
+    },
+    {
       id: "onboarding",
       label: "Onboarding",
       headings: [
@@ -180,6 +186,12 @@ function menu(admin: boolean, name: string): Group[] {
       headings: [],
     },
   ];
+}
+
+function labelActive(group: Group, path: string) {
+  if (!group.labelHref || group.labelHref === "/") return false;
+  if (group.id === "overview") return path === "/admin";
+  return path === group.labelHref || path.startsWith(`${group.labelHref}/`);
 }
 
 function headingMatches(heading: Heading, path: string, here: string) {
@@ -261,7 +273,7 @@ export function AdminNav({ user }: { user: StaffSession }) {
           <div key={group.id} className="cr-nav-group">
             {group.label ? (
               group.labelHref ? (
-                <a className={group.id === "overview" && path === "/admin" ? "cr-nav-label active" : "cr-nav-label"} href={group.labelHref}>
+                <a className={labelActive(group, path) ? "cr-nav-label active" : "cr-nav-label"} href={group.labelHref}>
                   {group.label}
                 </a>
               ) : (
