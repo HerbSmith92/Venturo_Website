@@ -1,6 +1,6 @@
 import { PushComposer } from "@/components/admin/PushComposer";
 import { formatClock } from "@/lib/control-room";
-import { loadPushDesk, loadPushOptions, pushAudienceLabel } from "@/lib/push-notifications";
+import { loadPushDesk, loadPushOptions, pushAudienceLabel, pushNoticeLabel } from "@/lib/push-notifications";
 
 export default async function PushNotificationsPage({
   searchParams,
@@ -16,8 +16,7 @@ export default async function PushNotificationsPage({
       <p className="eyebrow">Application</p>
       <h1>Push Notifications</h1>
       <p className="lede muted">
-        Write a message for the Venturo Application. Choose a guide or event for the phone to open,
-        and a place so it stays out of the wrong city.
+        Write a message for the Venturo Application. Remind people to open the app, tell a community about a new event, or point someone at an interest, the weekend, or their favourites.
       </p>
 
       {params.error ? <p className="error">{params.error}</p> : null}
@@ -55,7 +54,24 @@ export default async function PushNotificationsPage({
         guides={options.guides}
         events={options.events}
         places={options.places}
+        communities={options.communities}
+        interests={options.interests}
       />
+
+      <h2>Opened</h2>
+      <p className="muted">
+        Each person is counted once, when they tap the notification or open it in the Venturo Application.
+      </p>
+      <div className="cr-stats" style={{ marginTop: 16, marginBottom: 28 }}>
+        <article className="cr-stat">
+          <span className="muted">People opened</span>
+          <strong>{desk.stats.opened}</strong>
+        </article>
+        <article className="cr-stat">
+          <span className="muted">People reached</span>
+          <strong>{desk.stats.reached}</strong>
+        </article>
+      </div>
 
       <h2>Sent</h2>
       <div className="cr-table-wrap">
@@ -64,16 +80,17 @@ export default async function PushNotificationsPage({
             <tr>
               <th>When</th>
               <th>Message</th>
-              <th>Opens</th>
+              <th>Goes to</th>
               <th>Where</th>
               <th>Who</th>
               <th>Pushed</th>
+              <th>Opened</th>
             </tr>
           </thead>
           <tbody>
             {desk.campaigns.length === 0 && (
               <tr>
-                <td colSpan={6} className="muted">
+                <td colSpan={7} className="muted">
                   Nothing sent yet.
                 </td>
               </tr>
@@ -83,6 +100,7 @@ export default async function PushNotificationsPage({
                 <td>{formatClock(campaign.created_at)}</td>
                 <td>
                   <strong>{campaign.title}</strong>
+                  <div className="muted">{pushNoticeLabel(campaign.notice_kind)}</div>
                   <div className="muted">{campaign.body}</div>
                   {campaign.status === "failed" && campaign.error ? (
                     <div className="error">{campaign.error}</div>
@@ -98,6 +116,15 @@ export default async function PushNotificationsPage({
                   {campaign.pushed_count}
                   {campaign.failed_count > 0 ? (
                     <span className="muted"> · {campaign.failed_count} failed</span>
+                  ) : null}
+                </td>
+                <td>
+                  {campaign.opened_count}
+                  {campaign.inbox_count > 0 ? (
+                    <span className="muted">
+                      {" "}
+                      · {Math.round((campaign.opened_count / campaign.inbox_count) * 100)}%
+                    </span>
                   ) : null}
                 </td>
               </tr>
