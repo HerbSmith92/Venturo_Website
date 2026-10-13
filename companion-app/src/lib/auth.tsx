@@ -1,6 +1,5 @@
 import { createContext, useContext, useEffect, useMemo, useState, type ReactNode } from "react";
 import type { Session } from "@supabase/supabase-js";
-import { unregisterThisDevice } from "@/lib/push";
 import { supabase } from "@/lib/supabase";
 
 type AuthContextValue = {
@@ -35,7 +34,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       session,
       loading,
       signOut: async () => {
-        await unregisterThisDevice();
         await supabase.auth.signOut();
       },
     }),

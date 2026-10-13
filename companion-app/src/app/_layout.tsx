@@ -5,7 +5,6 @@ import { StatusBar } from "expo-status-bar";
 import { useEffect, useState } from "react";
 import { StyleSheet, View } from "react-native";
 import { BrandSplash } from "@/components/BrandSplash";
-import { PushBridge } from "@/components/PushBridge";
 import { AuthProvider } from "@/lib/auth";
 import { colours } from "@/lib/theme";
 
@@ -34,7 +33,6 @@ export default function RootLayout() {
 
   return (
     <AuthProvider>
-      <PushBridge />
       <View style={styles.shell}>
         <StatusBar style="light" />
         <Stack

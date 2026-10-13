@@ -1,6 +1,6 @@
 import { PushComposer } from "@/components/admin/PushComposer";
 import { formatClock } from "@/lib/control-room";
-import { loadPushDesk, pushAppLabel, pushAudienceLabel } from "@/lib/push-notifications";
+import { loadPushDesk, loadPushOptions, pushAudienceLabel } from "@/lib/push-notifications";
 
 export default async function PushNotificationsPage({
   searchParams,
@@ -8,7 +8,7 @@ export default async function PushNotificationsPage({
   searchParams: Promise<{ error?: string }>;
 }) {
   const params = await searchParams;
-  const desk = await loadPushDesk();
+  const [desk, options] = await Promise.all([loadPushDesk(), loadPushOptions()]);
   const missingTable = Boolean(desk.loadError && /push_(campaigns|devices|inbox)|schema cache/i.test(desk.loadError));
 
   return (
@@ -16,8 +16,8 @@ export default async function PushNotificationsPage({
       <p className="eyebrow">Application</p>
       <h1>Push Notifications</h1>
       <p className="lede muted">
-        Write a message for the Companion app or the member app. Phones that allowed notifications
-        get it on the lock screen. Everyone matched also keeps it in the app.
+        Write a message for the Venturo Application. Choose a guide or event for the phone to open,
+        and a place so it stays out of the wrong city.
       </p>
 
       {params.error ? <p className="error">{params.error}</p> : null}
@@ -37,20 +37,12 @@ export default async function PushNotificationsPage({
 
       <div className="cr-stats" style={{ marginBottom: 24 }}>
         <article className="cr-stat">
-          <span className="muted">Companion phones</span>
-          <strong>{desk.stats.companion}</strong>
+          <span className="muted">Phones</span>
+          <strong>{desk.stats.phones}</strong>
         </article>
         <article className="cr-stat">
-          <span className="muted">Companion push ready</span>
-          <strong>{desk.stats.companionPush}</strong>
-        </article>
-        <article className="cr-stat">
-          <span className="muted">Member phones</span>
-          <strong>{desk.stats.member}</strong>
-        </article>
-        <article className="cr-stat">
-          <span className="muted">Member push ready</span>
-          <strong>{desk.stats.memberPush}</strong>
+          <span className="muted">Push ready</span>
+          <strong>{desk.stats.pushReady}</strong>
         </article>
       </div>
 
@@ -58,7 +50,12 @@ export default async function PushNotificationsPage({
         Push ready means the phone allowed notifications. Every matched phone still keeps the message in the app.
       </p>
 
-      <PushComposer disabled={!desk.serviceRoleReady || missingTable} />
+      <PushComposer
+        disabled={!desk.serviceRoleReady || missingTable}
+        guides={options.guides}
+        events={options.events}
+        places={options.places}
+      />
 
       <h2>Sent</h2>
       <div className="cr-table-wrap">
@@ -67,9 +64,9 @@ export default async function PushNotificationsPage({
             <tr>
               <th>When</th>
               <th>Message</th>
-              <th>App</th>
+              <th>Opens</th>
+              <th>Where</th>
               <th>Who</th>
-              <th>In the app</th>
               <th>Pushed</th>
             </tr>
           </thead>
@@ -87,14 +84,16 @@ export default async function PushNotificationsPage({
                 <td>
                   <strong>{campaign.title}</strong>
                   <div className="muted">{campaign.body}</div>
-                  {campaign.link_path ? <div className="muted">{campaign.link_path}</div> : null}
                   {campaign.status === "failed" && campaign.error ? (
                     <div className="error">{campaign.error}</div>
                   ) : null}
                 </td>
-                <td>{pushAppLabel(campaign.app)}</td>
+                <td>
+                  {campaign.opens_label ?? "Notification list"}
+                  {campaign.link_path ? <div className="muted">{campaign.link_path}</div> : null}
+                </td>
+                <td>{campaign.place_label ?? "Everywhere"}</td>
                 <td>{pushAudienceLabel(campaign.audience)}</td>
-                <td>{campaign.inbox_count}</td>
                 <td>
                   {campaign.pushed_count}
                   {campaign.failed_count > 0 ? (
