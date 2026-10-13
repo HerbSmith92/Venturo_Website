@@ -14,6 +14,8 @@ export async function sendPushCampaign(_previous: PushSendState | null, formData
     audience: String(formData.get("audience") ?? ""),
     opens: String(formData.get("opens") ?? ""),
     place: String(formData.get("place") ?? ""),
+    notice: String(formData.get("notice") ?? ""),
+    target: String(formData.get("target") ?? ""),
   });
 
   if ("error" in parsed) return parsed;
