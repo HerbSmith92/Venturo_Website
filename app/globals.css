@@ -9539,3 +9539,68 @@ button.listing-cost-toggle {
   margin: 0 0 10px;
 }
 
+
+/* Buttons use a 12px radius, and the padding box is the hit target. */
+.btn,
+.btn-xl,
+.kind-btn,
+.chip,
+.cr-tab,
+.cr-jump-chip,
+.cr-tag,
+.auth-method,
+.energy-stop,
+.cr-nav-toggle,
+.cr-col-menu a,
+.cr-col-menu button,
+.cr-edit-steps button,
+.cr-photo-actions button,
+.cr-photo-add,
+.cr-outline-btn,
+.door-tabs button,
+.studio-cal-day,
+.studio-cal-nav button,
+.studio-cal-today,
+.studio-add-menu button,
+.cr-guide-audience-card,
+.nav-burger,
+.nav-drawer-links a,
+.nav-drawer-links button,
+.cr-heading,
+.cr-leaf,
+.cr-subnav a,
+.cr-subnav button,
+.portal-rail-link,
+.event-dash-menu-item,
+.cr-guide-results button {
+  border-radius: var(--radius-sm);
+}
+
+a.cr-tab,
+a.chip,
+.kind-btn,
+.cr-jump-chip,
+.cr-tag,
+.cr-outline-btn,
+.cr-photo-add,
+.door-tabs button,
+.studio-cal-nav button,
+.studio-cal-today,
+.cr-photo-actions button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.studio-add-menu button {
+  display: block;
+  width: 100%;
+  text-align: left;
+}
+
+.cr-step:not(.is-open) .cr-step-toggle {
+  margin: -16px -18px -10px;
+  padding: 16px 18px 10px;
+  width: calc(100% + 36px);
+}
+

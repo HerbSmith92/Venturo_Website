@@ -1,14 +1,32 @@
 "use client";
 
 import { sendPushCampaign, type PushSendState } from "@/app/admin/push-actions";
-import { useActionState, useState } from "react";
+import type { PushOpenOption, PushPlaceOption } from "@/lib/push-notifications";
+import { useActionState, useMemo, useState } from "react";
 
-export function PushComposer({ disabled }: { disabled: boolean }) {
+export function PushComposer({
+  disabled,
+  guides,
+  events,
+  places,
+}: {
+  disabled: boolean;
+  guides: PushOpenOption[];
+  events: PushOpenOption[];
+  places: PushPlaceOption[];
+}) {
   const [state, action, pending] = useActionState(sendPushCampaign, null as PushSendState | null);
   const [title, setTitle] = useState("");
   const [body, setBody] = useState("");
   const error = state && "error" in state ? state.error : null;
   const sent = state && "inbox" in state ? state : null;
+  const regions = useMemo(() => {
+    const names: string[] = [];
+    for (const place of places) {
+      if (!names.includes(place.region)) names.push(place.region);
+    }
+    return names;
+  }, [places]);
 
   return (
     <form className="cr-panel" action={action} style={{ marginBottom: 28 }}>
@@ -20,7 +38,7 @@ export function PushComposer({ disabled }: { disabled: boolean }) {
           maxLength={80}
           required
           disabled={disabled || pending}
-          placeholder="Doors open at 18:00"
+          placeholder="Look at this guide"
           onChange={(event) => setTitle(event.target.value)}
         />
       </label>
@@ -33,42 +51,68 @@ export function PushComposer({ disabled }: { disabled: boolean }) {
           required
           rows={4}
           disabled={disabled || pending}
-          placeholder="Your next adventure is live. Open Companion & scan the door."
+          placeholder="Top 10 things to do in Joburg."
           onChange={(event) => setBody(event.target.value)}
         />
       </label>
       <div className="field-row">
         <label className="field">
-          <span>App</span>
-          <select name="app" defaultValue="companion" disabled={disabled || pending}>
-            <option value="companion">Companion</option>
-            <option value="member">Member app</option>
-            <option value="both">Both apps</option>
+          <span>Opens in the app</span>
+          <select name="opens" defaultValue="" disabled={disabled || pending}>
+            <option value="">Notification list</option>
+            {guides.length > 0 ? (
+              <optgroup label="Guides">
+                {guides.map((guide) => (
+                  <option key={guide.id} value={`guide:${guide.id}`}>
+                    {guide.title}
+                  </option>
+                ))}
+              </optgroup>
+            ) : null}
+            {events.length > 0 ? (
+              <optgroup label="Events">
+                {events.map((event) => (
+                  <option key={event.id} value={`event:${event.id}`}>
+                    {event.detail ? `${event.title} · ${event.detail}` : event.title}
+                  </option>
+                ))}
+              </optgroup>
+            ) : null}
           </select>
         </label>
         <label className="field">
-          <span>Who</span>
-          <select name="audience" defaultValue="everyone" disabled={disabled || pending}>
-            <option value="everyone">Everyone with the app</option>
-            <option value="paid">Paid members</option>
-            <option value="free">Free members</option>
-            <option value="hosts">Event hosts</option>
+          <span>Where</span>
+          <select name="place" defaultValue="" required disabled={disabled || pending}>
+            <option value="" disabled>
+              Choose a place
+            </option>
+            <option value="everywhere">Everywhere</option>
+            {regions.map((region) => (
+              <optgroup key={region} label={region}>
+                <option value={`region:${region}`}>All of {region}</option>
+                {places
+                  .filter((place) => place.region === region)
+                  .map((place) => (
+                    <option key={place.id} value={`place:${place.id}`}>
+                      {place.name}
+                    </option>
+                  ))}
+              </optgroup>
+            ))}
           </select>
         </label>
       </div>
       <label className="field">
-        <span>Opens in the app</span>
-        <input
-          name="link_path"
-          disabled={disabled || pending}
-          placeholder="/event/…"
-          autoCapitalize="off"
-          autoCorrect="off"
-          spellCheck={false}
-        />
+        <span>Who</span>
+        <select name="audience" defaultValue="everyone" disabled={disabled || pending}>
+          <option value="everyone">Everyone with the app</option>
+          <option value="paid">Paid members</option>
+          <option value="free">Free members</option>
+        </select>
       </label>
       <p className="muted">
-        Leave the path blank to open the notification list. Companion understands <code>/event/…</code>.
+        Johannesburg reaches home areas within 32 km, including Sandton, Randburg, Soweto, Midrand & Krugersdorp.
+        It does not reach Centurion, Pretoria, or Cape Town. All of Gauteng does include Pretoria.
       </p>
       {error ? <p className="error">{error}</p> : null}
       {sent ? (
