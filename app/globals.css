@@ -9069,7 +9069,7 @@ button.listing-cost-toggle {
   width: 210mm;
   height: 297mm;
   margin: 0 auto;
-  padding: 14mm 14mm 16mm;
+  padding: 8mm 14mm 10mm;
   background: #fff;
   color: var(--night);
   display: flex;
@@ -9083,119 +9083,171 @@ button.listing-cost-toggle {
   print-color-adjust: exact;
 }
 
-.poster-pattern {
+.poster-top {
+  position: relative;
+  width: 100%;
+  height: 48mm;
+  margin-bottom: 0;
+}
+
+.poster-trail {
   position: absolute;
   inset: 0;
   width: 100%;
   height: 100%;
-  opacity: 0.7;
-  pointer-events: none;
-}
-
-.poster-logo,
-.poster-kicker,
-.poster-sheet h1,
-.poster-place,
-.poster-learn,
-.poster-codes {
-  position: relative;
-  z-index: 1;
+  object-fit: contain;
+  object-position: center 40%;
 }
 
 .poster-logo {
-  width: 108px;
+  position: absolute;
+  z-index: 1;
+  left: 50%;
+  top: 46%;
+  width: 30mm;
   height: auto;
+  transform: translate(-50%, -50%);
+  background: #fff;
+  border-radius: 50%;
+  padding: 1.2mm;
 }
 
-.poster-kicker {
-  margin: 18px 0 10px;
-  font-family: "Social Gothic Rough", "Arial Black", sans-serif;
-  letter-spacing: 0.12em;
-  text-transform: uppercase;
-  font-size: 18px;
-  color: var(--night);
+.poster-pill {
+  margin: 0 0 3.5mm;
+  padding: 1.2mm 6mm 1.4mm;
+  border: 1.25px solid var(--night);
+  border-radius: 999px;
+  font-family: Nunito, "Trebuchet MS", sans-serif;
+  font-weight: 400;
+  font-size: 3.4mm;
+  line-height: 1.15;
+  letter-spacing: 0.01em;
 }
 
 .poster-sheet h1 {
-  max-width: 168mm;
-  font-size: 14mm;
+  max-width: 176mm;
+  margin-top: 1mm;
+  font-size: 15.2mm;
+  line-height: 0.9;
+  text-transform: uppercase;
+  color: var(--night);
+}
+
+.poster-sheet h1 span {
+  display: block;
+}
+
+.poster-sheet h1 span + span {
+  margin-top: -0.4mm;
+}
+
+.poster-headline {
+  margin: 7mm 0 0;
+  font-family: "Social Gothic Rough", "Arial Black", sans-serif;
+  font-size: 23mm;
   line-height: 0.92;
   text-transform: uppercase;
-  color: #c4452c;
-  background: linear-gradient(180deg, #e08a1e 0%, #ef7a3a 52%, #c4452c 100%);
-  -webkit-background-clip: text;
-  background-clip: text;
-  -webkit-text-fill-color: transparent;
+  letter-spacing: 0.01em;
 }
 
-.poster-place {
-  margin: 14px 0 0;
-  font-size: 16px;
-  color: color-mix(in srgb, var(--night) 78%, transparent);
+.poster-headline span {
+  display: block;
 }
 
-.poster-learn {
-  margin-top: auto;
-  padding-top: 18mm;
-}
-
-.poster-learn h2 {
-  font-size: 28px;
+.poster-subhead {
+  margin: 7mm 0 0;
+  font-family: "Social Gothic Rough", "Arial Black", sans-serif;
+  font-size: 7mm;
+  line-height: 1;
   letter-spacing: 0.08em;
   text-transform: uppercase;
 }
 
-.poster-learn p {
-  margin: 6px 0 0;
+.poster-hero-qr {
+  width: 38mm;
+  height: auto;
+  margin-top: 8mm;
+  background: #fff;
 }
 
-.poster-learn p + p {
-  max-width: 120mm;
-  margin-top: 8px;
-  font-size: 14px;
-  color: color-mix(in srgb, var(--night) 72%, transparent);
+.poster-scan {
+  margin: 4.5mm 0 0;
+  font-family: "Social Gothic Rough", "Arial Black", sans-serif;
+  font-size: 6.8mm;
+  line-height: 1;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
 }
 
-.poster-codes {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 16px;
-  margin-top: 22px;
+.poster-note {
+  margin: 2mm 0 0;
+  max-width: 150mm;
+  font-family: Nunito, "Trebuchet MS", sans-serif;
+  font-weight: 400;
+  font-size: 3.3mm;
+  line-height: 1.25;
 }
 
-.poster-codes figure {
+.poster-rule {
+  width: 100%;
+  margin: 5.5mm 0 0;
+  border: 0;
+  border-top: 1.25px solid var(--night);
+}
+
+.poster-split {
+  width: 100%;
+  display: grid;
+  grid-template-columns: 1fr 1px 1fr;
+  align-items: stretch;
+  margin-top: 4.5mm;
+}
+
+.poster-split figure {
   margin: 0;
   display: grid;
   justify-items: center;
-  gap: 8px;
+  gap: 2mm;
+  padding: 0 4mm;
 }
 
-.poster-codes img {
-  width: 32mm;
-  height: auto;
-  padding: 6px;
-  background: #fff;
-  border: 1px solid color-mix(in srgb, var(--night) 16%, transparent);
-  border-radius: 12px;
-}
-
-.poster-codes img.poster-visit {
-  width: 42mm;
-}
-
-.poster-codes figcaption {
+.poster-split figcaption {
   font-family: "Social Gothic Rough", "Arial Black", sans-serif;
-  font-size: 13px;
-  letter-spacing: 0.08em;
+  font-size: 5.4mm;
+  line-height: 1;
+  letter-spacing: 0.07em;
   text-transform: uppercase;
 }
 
-.poster-divider {
-  width: 2px;
-  height: 78px;
-  border-radius: 999px;
-  background: linear-gradient(180deg, #7cc3e9, #dc729e);
+.poster-split img {
+  width: 22mm;
+  height: auto;
+  margin-top: 1.5mm;
+  background: #fff;
+}
+
+.poster-split p {
+  margin: 1mm 0 0;
+  max-width: 58mm;
+  font-family: Nunito, "Trebuchet MS", sans-serif;
+  font-weight: 400;
+  font-size: 3.4mm;
+  line-height: 1.2;
+}
+
+.poster-split-rule {
+  width: 1px;
+  margin: 1mm 0 6mm;
+  background: var(--night);
+}
+
+.poster-foot {
+  margin: 4mm 0 0;
+  font-family: "Social Gothic Rough", "Arial Black", sans-serif;
+  font-size: 5.6mm;
+  line-height: 1;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
 }
 
 .listing-offer {
@@ -9256,8 +9308,12 @@ button.listing-cost-toggle {
     page-break-after: avoid;
   }
 
-  .poster-codes img {
-    width: 32mm;
+  .poster-hero-qr {
+    width: 38mm;
+  }
+
+  .poster-split img {
+    width: 22mm;
   }
 
   @page {
