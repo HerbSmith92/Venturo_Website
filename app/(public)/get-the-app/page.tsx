@@ -1,5 +1,7 @@
-import { APP_STORE_URL, getAppStoreLinks } from "@/lib/brand";
+import { getAppStoreLinks } from "@/lib/brand";
 import { headers } from "next/headers";
+
+const APP_STORE = "https://apps.apple.com/za/app/venturo-app/id6755754211";
 
 export const metadata = {
   title: "Get the App · Venturo",
@@ -9,7 +11,7 @@ export default async function GetTheAppPage() {
   const ua = (await headers()).get("user-agent") ?? "";
   const stores = getAppStoreLinks();
   const android = /android/i.test(ua);
-  const appStore = stores.appStoreReady ? stores.appStore : APP_STORE_URL;
+  const appStore = stores.appStoreReady ? stores.appStore : APP_STORE;
   const playStore = stores.playStoreReady ? stores.playStore : null;
   const links = [
     { href: appStore, label: "App Store", primary: !android || !playStore },
