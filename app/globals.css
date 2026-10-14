@@ -6831,7 +6831,108 @@ button.listing-cost-toggle {
 
 .guide-rec-copy .btn {
   justify-self: start;
-  margin-top: 6px;
+  margin-top: 10px;
+}
+
+.guide-see-more {
+  gap: 8px;
+  min-height: 48px;
+  padding: 10px 22px;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  font-size: 14px;
+  box-shadow:
+    0 0 0 3px color-mix(in srgb, var(--canary) 40%, transparent),
+    0 8px 18px color-mix(in srgb, var(--canary) 22%, transparent);
+}
+
+.guide-see-more:hover {
+  background: color-mix(in srgb, var(--canary) 86%, #fff);
+}
+
+.guide-layout {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 260px;
+  gap: 24px;
+  align-items: start;
+}
+
+.guide-browse {
+  position: sticky;
+  top: 92px;
+  display: grid;
+  gap: 14px;
+  padding: 16px;
+  background: color-mix(in srgb, var(--currant) 32%, var(--night));
+  border-radius: var(--radius-lg);
+  border: 1px solid color-mix(in srgb, var(--snow) 8%, transparent);
+  box-shadow: var(--shadow-1);
+}
+
+.guide-browse h2 {
+  margin: 0;
+  font-size: 22px;
+}
+
+.guide-browse-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: 8px;
+}
+
+.guide-browse-list a {
+  display: grid;
+  grid-template-columns: 72px minmax(0, 1fr);
+  gap: 10px;
+  align-items: center;
+  padding: 6px;
+  margin: 0;
+  border-radius: var(--radius-sm);
+  color: inherit;
+}
+
+.guide-browse-list a:hover {
+  background: color-mix(in srgb, var(--snow) 8%, transparent);
+}
+
+.guide-browse-list img {
+  width: 72px;
+  height: 56px;
+  object-fit: cover;
+  border-radius: 8px;
+}
+
+.guide-browse-list h3 {
+  margin: 0 0 4px;
+  font-size: 16px;
+  line-height: 1.15;
+}
+
+.guide-browse-list p {
+  margin: 0;
+  font-size: 13px;
+}
+
+.guide-browse-all {
+  justify-self: start;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  font-size: 12px;
+  color: var(--canary);
+}
+
+@media (max-width: 1100px) {
+  .guide-layout {
+    grid-template-columns: 1fr;
+  }
+
+  .guide-browse {
+    position: static;
+  }
 }
 
 .cr-guide-editor {
