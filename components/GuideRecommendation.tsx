@@ -61,8 +61,8 @@ export function GuideRecommendationBlock({
       <p className="muted">{item.area}</p>
       {item.vibe ? <p className="guide-rec-vibe">{item.vibe}</p> : null}
       {item.editorialNote ? <p className="guide-rec-note">{item.editorialNote}</p> : null}
-      <a className="btn btn-secondary" href={href}>
-        See More
+      <a className="btn btn-primary guide-see-more" href={href}>
+        See More <span aria-hidden="true">→</span>
       </a>
     </div>
   );
