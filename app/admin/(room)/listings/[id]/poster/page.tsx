@@ -1,16 +1,15 @@
 import { PrintPosterButton } from "@/components/admin/PrintPosterButton";
-import { getAppStoreLinks } from "@/lib/brand";
 import { loadListing } from "@/lib/control-room";
+import { posterQrSrc } from "@/lib/poster-qr";
+import { getPublicSiteUrl } from "@/lib/site-url";
 import { notFound } from "next/navigation";
-import QRCode from "qrcode";
 
-async function qrSrc(value: string, width: number) {
-  return QRCode.toDataURL(value, {
-    errorCorrectionLevel: "M",
-    margin: 1,
-    width,
-    color: { dark: "#2A2D35", light: "#FFFFFF" },
-  });
+function nameLines(name: string) {
+  const parts = name
+    .split(/\s+[-–—|]\s+/)
+    .map((part) => part.trim())
+    .filter(Boolean);
+  return parts.length > 0 ? parts : [name];
 }
 
 export default async function ListingPosterPage({
@@ -22,14 +21,13 @@ export default async function ListingPosterPage({
   const listing = await loadListing(id);
   if (!listing?.slug) notFound();
 
-  const visitUrl = `venturo://visit/${listing.id.toLowerCase()}`;
-  const stores = getAppStoreLinks();
-  const [visitQr, appStoreQr, playStoreQr] = await Promise.all([
-    qrSrc(visitUrl, 360),
-    qrSrc(stores.appStore, 180),
-    qrSrc(stores.playStore, 180),
-  ]);
-  const place = [listing.branch_name, listing.suburb, listing.city].filter(Boolean).join(" · ");
+  const siteUrl = getPublicSiteUrl();
+  const discountUrl = `${siteUrl}/directory/${listing.slug}?offer=member`;
+  const activityUrl = `${siteUrl}/directory/${listing.slug}`;
+  const downloadUrl = `${siteUrl}/get-the-app`;
+  const discountQr = posterQrSrc(discountUrl);
+  const downloadQr = posterQrSrc(downloadUrl);
+  const activityQr = posterQrSrc(activityUrl);
 
   return (
     <div className="poster-page">
@@ -41,47 +39,56 @@ export default async function ListingPosterPage({
       </div>
 
       <article className="poster-sheet">
-        <svg className="poster-pattern" viewBox="0 0 210 297" aria-hidden="true">
-          <g fill="none" strokeWidth="0.35" strokeDasharray="1.1 1.5">
-            <circle cx="105" cy="72" r="42" stroke="#DC729E" />
-            <circle cx="105" cy="72" r="68" stroke="#7CC3E9" />
-            <circle cx="46" cy="148" r="56" stroke="#FF9E6B" />
-            <circle cx="168" cy="156" r="64" stroke="#F3BF4A" />
-            <circle cx="105" cy="214" r="62" stroke="#5E589E" />
-            <circle cx="118" cy="248" r="48" stroke="#45A67F" />
-          </g>
-        </svg>
-        <img
-          className="poster-logo"
-          src="/brand/logos/venturo-stacked-simple-dark.svg"
-          alt="Venturo"
-        />
-        <p className="poster-kicker">Certified Partner</p>
-        <h1>{listing.name}</h1>
-        <p className="poster-place">{place || "Libertas Rd, Bryanston, Sandton, 2191"}</p>
-
-        <div className="poster-learn">
-          <h2>Show You Were Here</h2>
-          <p>Scan the code in the Venturo app</p>
-          <p>Open this place in the app, then scan. It records that you were here. Member prices are for Venturo members.</p>
+        <div className="poster-top">
+          <img className="poster-trail" src="/brand/poster/partner-trail.png" alt="" />
+          <img
+            className="poster-logo"
+            src="/brand/logos/venturo-stacked-simple-dark.svg"
+            alt="Venturo"
+          />
         </div>
 
-        <div className="poster-codes">
+        <p className="poster-pill">Proud Venturo Partner</p>
+        <h1>
+          {nameLines(listing.name).map((line) => (
+            <span key={line}>{line}</span>
+          ))}
+        </h1>
+        <p className="poster-headline">
+          <span>Good Times</span>
+          <span>Great Perks</span>
+        </p>
+        <p className="poster-subhead">Venturo Member Discounts</p>
+
+        <img className="poster-hero-qr" src={discountQr} alt={`QR code to claim the member discount at ${listing.name}`} />
+        <p className="poster-scan">Scan to unlock your discount</p>
+        <p className="poster-note">Activate subscription required. Offer terms apply.</p>
+
+        <hr className="poster-rule" />
+
+        <div className="poster-split">
           <figure>
-            <img className="poster-visit" src={visitQr} alt={`Visit code for ${listing.name}`} />
-            <figcaption>I Was Here</figcaption>
+            <figcaption>Get the App</figcaption>
+            <img src={downloadQr} alt="QR code to download the Venturo app" />
+            <p>
+              Scan to download
+              <br />
+              for your phone
+            </p>
           </figure>
-          <span className="poster-divider" aria-hidden="true" />
+          <span className="poster-split-rule" aria-hidden="true" />
           <figure>
-            <img src={appStoreQr} alt="QR code for the App Store" />
-            <figcaption>App Store</figcaption>
-          </figure>
-          <span className="poster-divider" aria-hidden="true" />
-          <figure>
-            <img src={playStoreQr} alt="QR code for Google Play" />
-            <figcaption>Google Play</figcaption>
+            <figcaption>Explore Nearby</figcaption>
+            <img src={activityQr} alt={`QR code for ${listing.name} on the Venturo website`} />
+            <p>
+              Explore this activity
+              <br />
+              &amp; things to do nearby
+            </p>
           </figure>
         </div>
+
+        <p className="poster-foot">venturo.co.za</p>
       </article>
     </div>
   );
