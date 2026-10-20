@@ -7,6 +7,7 @@ import {
   verifyPaystackTransaction,
   type PaystackTransaction,
 } from "@/lib/paystack";
+import { sendTicketEmail } from "@/lib/ticket-email";
 import { createServiceClient } from "@/lib/supabase/admin";
 
 function metadataKind(metadata: Record<string, unknown> | null) {
@@ -39,12 +40,14 @@ async function fulfillTicket(txn: PaystackTransaction) {
   if (txn.status === "success") {
     if (txn.currency !== "ZAR") throw new Error("Currency mismatch");
     if (txn.amount !== order.total_cents) throw new Error("Amount mismatch");
-    if (order.status === "paid") return;
-    const { error } = await service.rpc("fulfill_event_order", {
-      p_order_id: order.id,
-      p_payment_id: String(txn.id),
-    });
-    if (error) throw new Error(error.message);
+    if (order.status !== "paid") {
+      const { error } = await service.rpc("fulfill_event_order", {
+        p_order_id: order.id,
+        p_payment_id: String(txn.id),
+      });
+      if (error) throw new Error(error.message);
+    }
+    await sendTicketEmail(order.id);
     return;
   }
 
