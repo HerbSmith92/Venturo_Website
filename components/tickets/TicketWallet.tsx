@@ -14,6 +14,7 @@ export type WalletTicket = {
   dateLabel: string;
   timeLabel: string;
   place: string;
+  imageUrl: string;
   slug: string | null;
   directions: string | null;
   cancelled: boolean;
@@ -74,7 +75,7 @@ export function TicketWallet({
       <div className="ticket-wallet-head">
         <div>
           <h1>My tickets</h1>
-          <p className="lede">Good plans. Great stories.</p>
+          <p className="lede muted">Good plans. Great stories.</p>
         </div>
       </div>
 
@@ -144,7 +145,7 @@ export function TicketWallet({
         <>
           <article className={`passport${ticket.past ? " is-past" : ""}`}>
             <div className="passport-top">
-              <PassportScene complete={ticket.past} />
+              <PassportScene complete={ticket.past} imageUrl={ticket.imageUrl} />
               <div className="passport-copy">
                 <h2 className="passport-title">{ticket.title}</h2>
                 <p className="passport-kicker">Your next good story</p>
@@ -177,7 +178,7 @@ export function TicketWallet({
                     <span className="passport-status">
                       <svg viewBox="0 0 16 16" aria-hidden="true">
                         <circle cx="8" cy="8" r="7" fill="currentColor" />
-                        <path d="M4.5 8.2 7 10.5 11.5 5.5" fill="none" stroke="#F6F0DE" strokeWidth="1.6" strokeLinecap="round" />
+                        <path d="M4.5 8.2 7 10.5 11.5 5.5" fill="none" stroke="#EBEBF3" strokeWidth="1.6" strokeLinecap="round" />
                       </svg>
                       Confirmed
                     </span>

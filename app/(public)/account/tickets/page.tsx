@@ -18,6 +18,9 @@ type EventJoin = {
   latitude: number | null;
   longitude: number | null;
   status: string | null;
+  banner_url: string | null;
+  listing_image_url: string | null;
+  story_image_url: string | null;
 };
 
 type TypeJoin = { name: string | null };
@@ -83,7 +86,7 @@ export default async function MyTicketsPage({
         errorCorrectionLevel: "M",
         margin: 1,
         width: 280,
-        color: { dark: "#2A2D35", light: "#F6F0DE" },
+        color: { dark: "#2A2D35", light: "#EBEBF3" },
       });
       const place = [event?.venue_name, event?.city].filter(Boolean).join(", ") || "Venue to follow";
       return {
@@ -101,6 +104,11 @@ export default async function MyTicketsPage({
             : clock(starts, timezone)
           : "Time to follow",
         place,
+        imageUrl:
+          event?.banner_url ||
+          event?.listing_image_url ||
+          event?.story_image_url ||
+          "/brand/images/climbing.jpg",
         slug: event?.slug ?? null,
         directions: event ? directionsFor(event) : null,
         cancelled: event?.status === "cancelled",
@@ -109,8 +117,8 @@ export default async function MyTicketsPage({
   );
 
   return (
-    <main className="ticket-wallet-page">
-      <section className="shell section">
+    <main className="shell">
+      <section className="section">
         <AccountNav current="tickets" />
         <TicketWallet tickets={tickets} highlightOrder={params.order} />
       </section>

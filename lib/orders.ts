@@ -223,7 +223,8 @@ export async function listBuyerTickets(userId: string) {
       id, code, created_at, order_id, event_id,
       events (
         id, slug, title, starts_at, ends_at, timezone,
-        venue_name, address_line1, city, latitude, longitude, status
+        venue_name, address_line1, city, latitude, longitude, status,
+        banner_url, listing_image_url, story_image_url
       ),
       event_ticket_types ( id, name )
     `,
