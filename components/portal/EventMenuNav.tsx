@@ -1,9 +1,9 @@
 import {
   EVENT_MENU_ITEMS,
+  portalDoorHref,
   portalEventSectionHref,
   type EventMenuSection,
 } from "@/lib/portal";
-import { companionEventHref } from "@/lib/companion";
 
 export function EventMenuNav({
   eventId,
@@ -28,7 +28,7 @@ export function EventMenuNav({
       ))}
       <a
         className={current === "door" ? "portal-rail-link nested active" : "portal-rail-link nested"}
-        href={companionEventHref(eventId)}
+        href={portalDoorHref(eventId)}
         aria-current={current === "door" ? "page" : undefined}
       >
         Door

@@ -49,6 +49,7 @@ function findGuest(guests: DoorGuest[], code: string) {
 
 export function CompanionDoor({ eventId, eventTitle, initialStats, initialGuests }: Props) {
   const [tab, setTab] = useState<Tab>("scan");
+  const [cameraOn, setCameraOn] = useState(false);
   const [stats, setStats] = useState(initialStats);
   const [guests, setGuests] = useState(initialGuests);
   const [code, setCode] = useState("");
@@ -343,7 +344,19 @@ export function CompanionDoor({ eventId, eventTitle, initialStats, initialGuests
 
       {tab === "scan" ? (
         <section className="companion-panel" aria-label="Scan tickets">
-          <CompanionScanner active={tab === "scan"} onCode={(value) => void submitCode(value)} />
+          <CompanionScanner
+            active={tab === "scan" && cameraOn}
+            onCode={(value) => void submitCode(value)}
+          />
+          <div className="door-camera-actions">
+            <button
+              type="button"
+              className="btn btn-secondary"
+              onClick={() => setCameraOn((on) => !on)}
+            >
+              {cameraOn ? "Stop Camera" : "Open Camera"}
+            </button>
+          </div>
 
           <form
             className="door-scan-form"

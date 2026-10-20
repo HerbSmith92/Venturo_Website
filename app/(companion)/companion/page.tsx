@@ -2,6 +2,7 @@ import { CompanionEvents } from "@/components/companion/CompanionEvents";
 import { CompanionShell } from "@/components/companion/CompanionShell";
 import { getCurrentUser } from "@/lib/auth";
 import { COMPANION_LOGIN } from "@/lib/companion";
+import { PORTAL_EVENTS } from "@/lib/portal";
 import { listCompanionDoorEvents, type CompanionEventCard } from "@/lib/companion-data";
 import { redirect } from "next/navigation";
 
@@ -17,7 +18,7 @@ export default async function CompanionHomePage() {
   }
 
   return (
-    <CompanionShell signedIn title="Pick An Event">
+    <CompanionShell signedIn title="Pick An Event" menuHref={PORTAL_EVENTS} menuLabel="Event Host">
       <CompanionEvents initialEvents={events} />
     </CompanionShell>
   );

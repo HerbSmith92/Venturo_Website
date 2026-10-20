@@ -2,6 +2,7 @@ import { CompanionDoor } from "@/components/companion/CompanionDoor";
 import { CompanionShell } from "@/components/companion/CompanionShell";
 import { getCurrentUser } from "@/lib/auth";
 import { COMPANION_HOME, COMPANION_LOGIN } from "@/lib/companion";
+import { portalEventHref } from "@/lib/portal";
 import { loadPortalEvent } from "@/lib/event-access";
 import {
   getEventDoorStats,
@@ -42,7 +43,14 @@ export default async function CompanionEventPage({
   }
 
   return (
-    <CompanionShell signedIn backHref={COMPANION_HOME} backLabel="Back" title={title}>
+    <CompanionShell
+      signedIn
+      backHref={COMPANION_HOME}
+      backLabel="Events"
+      menuHref={portalEventHref(id)}
+      menuLabel="Event Menu"
+      title={title}
+    >
       <CompanionDoor
         eventId={id}
         eventTitle={title}

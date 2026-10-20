@@ -6,12 +6,16 @@ export function CompanionShell({
   children,
   backHref,
   backLabel,
+  menuHref,
+  menuLabel,
 }: {
   signedIn: boolean;
   title?: string;
   children: React.ReactNode;
   backHref?: string;
   backLabel?: string;
+  menuHref?: string;
+  menuLabel?: string;
 }) {
   return (
     <div className="companion-app">
@@ -29,6 +33,11 @@ export function CompanionShell({
           </a>
         )}
         <div className="companion-top-actions">
+          {menuHref ? (
+            <a className="btn btn-secondary" href={menuHref}>
+              {menuLabel ?? "Event Menu"}
+            </a>
+          ) : null}
           {signedIn && (
             <form action="/auth/sign-out" method="post">
               <input type="hidden" name="next" value={COMPANION_LOGIN} />
