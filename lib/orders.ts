@@ -220,8 +220,11 @@ export async function listBuyerTickets(userId: string) {
     .from("event_tickets")
     .select(
       `
-      id, code, created_at, event_id,
-      events ( id, slug, title, starts_at, timezone, venue_name, city, status ),
+      id, code, created_at, order_id, event_id,
+      events (
+        id, slug, title, starts_at, ends_at, timezone,
+        venue_name, address_line1, city, latitude, longitude, status
+      ),
       event_ticket_types ( id, name )
     `,
     )
