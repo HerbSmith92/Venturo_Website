@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { provisionMember } from "@/lib/member-auth";
+import { tidyCellphone } from "@/lib/phone";
 import { createClient } from "@/lib/supabase/server";
 
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
@@ -17,6 +18,7 @@ export async function POST(request: Request) {
   const token = String(form.get("token") ?? "").trim();
   const password = String(form.get("password") ?? "");
   const firstName = String(form.get("firstName") ?? "").trim();
+  const phone = tidyCellphone(String(form.get("phone") ?? ""));
   const communityId = String(form.get("communityId") ?? "");
 
   if (!email || !token) {
@@ -27,6 +29,9 @@ export async function POST(request: Request) {
   }
   if (!UUID.test(communityId)) {
     return NextResponse.json({ error: "That community could not be claimed." }, { status: 400 });
+  }
+  if (!phone) {
+    return NextResponse.json({ error: "Add a cellphone number." }, { status: 400 });
   }
 
   const { data, error } = await supabase.auth.verifyOtp({
@@ -39,7 +44,7 @@ export async function POST(request: Request) {
   }
 
   const userId = data.user?.id;
-  if (userId) await provisionMember(userId, firstName);
+  if (userId) await provisionMember(userId, firstName, phone ?? undefined);
 
   const { error: passwordError } = await supabase.auth.updateUser({ password });
   if (passwordError) {

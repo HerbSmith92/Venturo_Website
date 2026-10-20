@@ -9,6 +9,8 @@ import {
   isOnboardingAdvanceStep,
   onboardingStepFor,
 } from "@/lib/profile";
+import { tidyCellphone } from "@/lib/phone";
+import { createServiceClient } from "@/lib/supabase/admin";
 import { createClient } from "@/lib/supabase/server";
 
 function asIdList(value: unknown, allowed: Set<string>, max: number) {
@@ -77,6 +79,7 @@ export async function POST(request: Request) {
   const body = (await request.json()) as {
     firstName?: string;
     lastName?: string;
+    phone?: string;
     homePlaceId?: string | null;
     personaIds?: string[];
     interestIds?: string[];
@@ -97,6 +100,14 @@ export async function POST(request: Request) {
   const lastName = String(body.lastName ?? current.lastName)
     .trim()
     .slice(0, 80);
+  let phone = current.phone;
+  if (body.phone !== undefined) {
+    const tidy = tidyCellphone(String(body.phone));
+    if (!tidy) {
+      return NextResponse.json({ error: "Add a cellphone number." }, { status: 400 });
+    }
+    phone = tidy;
+  }
   if (!firstName) {
     return NextResponse.json({ error: "First name is required." }, { status: 400 });
   }
@@ -163,6 +174,7 @@ export async function POST(request: Request) {
       id: user.id,
       display_name: firstName,
       last_name: lastName || null,
+      phone: phone || null,
       home_place_id: homePlaceId,
       activity_scale_low: energyLow,
       activity_scale_high: energyHigh,
@@ -197,6 +209,17 @@ export async function POST(request: Request) {
   );
   if (interestError) {
     return NextResponse.json({ error: interestError }, { status: 400 });
+  }
+
+  if (phone) {
+    const service = createServiceClient();
+    if (service) {
+      await service
+        .from("event_tickets")
+        .update({ guest_phone: phone })
+        .eq("buyer_id", user.id)
+        .is("guest_phone", null);
+    }
   }
 
   await supabase.auth.updateUser({

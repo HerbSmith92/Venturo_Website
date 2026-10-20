@@ -33,7 +33,7 @@ function displayNameFrom(user: User, firstName?: string) {
  * After OTP / magic-link success: set `member` in app_metadata (never overwrite
  * staff or business) and copy the first name onto the shared profiles row.
  */
-export async function provisionMember(userId: string, firstName?: string) {
+export async function provisionMember(userId: string, firstName?: string, phone?: string) {
   const admin = createServiceClient();
   if (admin) {
     const { data } = await admin.auth.admin.getUserById(userId);
@@ -45,6 +45,7 @@ export async function provisionMember(userId: string, firstName?: string) {
     if (!existingRole) appMetadata.role = "member";
 
     const displayName = displayNameFrom(user, firstName);
+    const cellphone = phone?.trim() || "";
     await admin.auth.admin.updateUserById(userId, {
       app_metadata: appMetadata,
       user_metadata: {
@@ -63,11 +64,17 @@ export async function provisionMember(userId: string, firstName?: string) {
       await admin.from("profiles").insert({
         id: userId,
         display_name: displayName || null,
+        phone: cellphone || null,
         onboarding_step: "identity",
         onboarding_version: 1,
       });
-    } else if (displayName && (!profile.display_name || firstName?.trim())) {
-      await admin.from("profiles").update({ display_name: displayName }).eq("id", userId);
+    } else {
+      const patch: { display_name?: string; phone?: string } = {};
+      if (displayName && (!profile.display_name || firstName?.trim())) patch.display_name = displayName;
+      if (cellphone) patch.phone = cellphone;
+      if (Object.keys(patch).length) {
+        await admin.from("profiles").update(patch).eq("id", userId);
+      }
     }
 
     await admin.from("member_access").upsert(
@@ -82,8 +89,14 @@ export async function provisionMember(userId: string, firstName?: string) {
 
   await supabase.rpc("ensure_member_role", { target: userId });
   const name = firstName?.trim();
+  const cellphone = phone?.trim();
   if (name) {
     await supabase.auth.updateUser({ data: { first_name: name } });
-    await supabase.from("profiles").update({ display_name: name }).eq("id", userId);
+  }
+  const patch: { display_name?: string; phone?: string } = {};
+  if (name) patch.display_name = name;
+  if (cellphone) patch.phone = cellphone;
+  if (Object.keys(patch).length) {
+    await supabase.from("profiles").update(patch).eq("id", userId);
   }
 }

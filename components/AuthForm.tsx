@@ -38,6 +38,7 @@ export function AuthForm({
   const [step, setStep] = useState<Step>(entry === "email" ? "email" : "methods");
   const [email, setEmail] = useState("");
   const [firstName, setFirstName] = useState("");
+  const [phone, setPhone] = useState("");
   const [error, setError] = useState<string | null>(initialError);
   const [pending, setPending] = useState(false);
   const [oauthPending, setOauthPending] = useState<OAuthProvider | null>(null);
@@ -90,6 +91,7 @@ export function AuthForm({
     form.set("mode", formMode);
     form.set("next", next);
     if (firstName.trim()) form.set("firstName", firstName.trim());
+    if (formMode === "signup" && phone.trim()) form.set("phone", phone.trim());
     const response = await fetch("/auth/otp/send", {
       method: "POST",
       body: form,
@@ -121,6 +123,7 @@ export function AuthForm({
     const form = new FormData(event.currentTarget);
     form.set("email", email);
     form.set("firstName", firstName);
+    if (mode === "signup") form.set("phone", phone.trim());
     form.set("next", next);
     const response = await fetch("/auth/otp/verify", {
       method: "POST",
@@ -232,7 +235,7 @@ export function AuthForm({
         <p className="lede muted">
           {mode === "login"
             ? "Enter your email & we will send a one-time code."
-            : "Enter your name & email. We will send a one-time code."}
+            : "Enter your name, cellphone & email. We will send a one-time code."}
         </p>
         {mode === "signup" && (
           <label className="field">
@@ -244,6 +247,21 @@ export function AuthForm({
               required
               value={firstName}
               onChange={(e) => setFirstName(e.target.value)}
+            />
+          </label>
+        )}
+        {mode === "signup" && (
+          <label className="field">
+            <span>Cellphone Number</span>
+            <input
+              name="phone"
+              type="tel"
+              autoComplete="tel"
+              inputMode="tel"
+              required
+              placeholder="082 123 4567"
+              value={phone}
+              onChange={(e) => setPhone(e.target.value)}
             />
           </label>
         )}

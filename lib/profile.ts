@@ -18,6 +18,7 @@ export {
 const EMPTY_PROFILE: MemberProfile = {
   firstName: "",
   lastName: "",
+  phone: "",
   avatarPath: null,
   avatarUrl: null,
   homePlaceId: null,
@@ -44,7 +45,7 @@ export async function loadMemberProfile(userId: string): Promise<MemberProfile> 
     supabase
       .from("profiles")
       .select(
-        "display_name, last_name, avatar_path, home_place_id, activity_scale_low, activity_scale_high, onboarding_step, onboarding_completed_at",
+        "display_name, last_name, phone, avatar_path, home_place_id, activity_scale_low, activity_scale_high, onboarding_step, onboarding_completed_at",
       )
       .eq("id", userId)
       .maybeSingle(),
@@ -67,6 +68,7 @@ export async function loadMemberProfile(userId: string): Promise<MemberProfile> 
   return {
     firstName: row.display_name ?? "",
     lastName: row.last_name ?? "",
+    phone: row.phone ?? "",
     avatarPath,
     avatarUrl,
     homePlaceId: row.home_place_id,

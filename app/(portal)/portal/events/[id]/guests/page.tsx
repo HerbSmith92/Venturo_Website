@@ -14,7 +14,8 @@ export default async function PortalGuestsPage({
   let guests: DoorGuest[] = [];
   try {
     guests = await listEventDoorGuests(id);
-  } catch {
+  } catch (error) {
+    console.error("guest list", error instanceof Error ? error.message : error);
     guests = [];
   }
   const invites = await listEventInvites(id, "rsvp");

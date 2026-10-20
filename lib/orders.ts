@@ -1,5 +1,6 @@
 import { newPaystackReference, PAYSTACK_WEBHOOK_PATH } from "@/lib/paystack";
 import { sendTicketEmail } from "@/lib/ticket-email";
+import { stampTicketContact } from "@/lib/ticket-contact";
 import { createClient } from "@/lib/supabase/server";
 import { createServiceClient } from "@/lib/supabase/admin";
 import { getEventBySlug, getPlatformFees } from "@/lib/events";
@@ -196,6 +197,7 @@ export async function createTicketOrder(input: {
       p_payment_id: null,
     });
     if (fulfillError) throw new Error(fulfillError.message);
+    await stampTicketContact(order.id);
     await sendTicketEmail(order.id);
     return {
       ...urls,

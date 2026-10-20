@@ -13,6 +13,7 @@ import {
 } from "@/lib/events";
 import { listOccurrences, repeatPhrase } from "@/lib/event-repeat";
 import { formatEventWhen } from "@/lib/event-types";
+import { loadMemberProfile } from "@/lib/profile";
 import { isSaved } from "@/lib/saves";
 import { notFound } from "next/navigation";
 
@@ -31,6 +32,7 @@ export default async function EventDetailPage({
   const user = await getCurrentUser();
   const fees = await getPlatformFees();
   const saved = user ? await isSaved(user.id, "event", event.id) : false;
+  const profile = user ? await loadMemberProfile(user.id) : null;
   const canView =
     event.status === "approved" ||
     event.status === "cancelled" ||
@@ -210,6 +212,7 @@ export default async function EventDetailPage({
                 tickets={event.ticketTypes}
                 paidMember={user?.plan === "paid"}
                 loggedIn={Boolean(user)}
+                hasPhone={Boolean(profile?.phone.trim())}
                 fees={fees}
                 inviteToken={query.invite ?? ""}
                 initialBasket={query.basket}

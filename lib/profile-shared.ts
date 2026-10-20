@@ -45,6 +45,7 @@ export type ProfileProgressStep = {
 export type MemberProfile = {
   firstName: string;
   lastName: string;
+  phone: string;
   avatarPath: string | null;
   avatarUrl: string | null;
   homePlaceId: string | null;

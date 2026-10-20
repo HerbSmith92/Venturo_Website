@@ -48,6 +48,7 @@ export function ProfileForm({
   const fileRef = useRef<HTMLInputElement>(null);
   const [firstName, setFirstName] = useState(profile.firstName);
   const [lastName, setLastName] = useState(profile.lastName);
+  const [phone, setPhone] = useState(profile.phone);
   const [avatarUrl, setAvatarUrl] = useState(profile.avatarUrl);
   const [homePlaceId, setHomePlaceId] = useState(profile.homePlaceId ?? "");
   const [personaIds, setPersonaIds] = useState(profile.personaIds);
@@ -201,6 +202,7 @@ export function ProfileForm({
       body: JSON.stringify({
         firstName,
         lastName,
+        ...(options?.detailsOnly ? { phone } : {}),
         homePlaceId: homePlaceId || null,
         personaIds,
         interestIds,
@@ -240,6 +242,7 @@ export function ProfileForm({
   function cancelDetailsEdit() {
     setFirstName(profile.firstName);
     setLastName(profile.lastName);
+    setPhone(profile.phone);
     setHomePlaceId(profile.homePlaceId ?? "");
     setEditingDetails(false);
     setDetailsSaved(false);
@@ -385,7 +388,8 @@ export function ProfileForm({
             <p className="eyebrow">Account</p>
             <h3>Your Details</h3>
             <p className="muted" style={{ marginTop: 0 }}>
-              Name & home area are shared with the app. Email is used to sign in.
+              Name, cellphone & home area are shared with the app. Email is used to sign in. The
+              cellphone goes on your ticket so the host can reach you.
             </p>
 
             {!editingDetails ? (
@@ -398,6 +402,10 @@ export function ProfileForm({
                   <div>
                     <dt>Surname</dt>
                     <dd>{lastName || "Not set yet"}</dd>
+                  </div>
+                  <div>
+                    <dt>Cellphone Number</dt>
+                    <dd>{phone || "Not set yet"}</dd>
                   </div>
                   <div>
                     <dt>Email Address</dt>
@@ -436,6 +444,20 @@ export function ProfileForm({
                     />
                   </label>
                 </div>
+
+                <label className="field">
+                  <span>Cellphone Number</span>
+                  <input
+                    name="phone"
+                    type="tel"
+                    autoComplete="tel"
+                    inputMode="tel"
+                    required
+                    placeholder="082 123 4567"
+                    value={phone}
+                    onChange={(e) => setPhone(e.target.value)}
+                  />
+                </label>
 
                 <label className="field">
                   <span>Email Address</span>
@@ -478,7 +500,7 @@ export function ProfileForm({
                   <button
                     type="button"
                     className="btn btn-primary"
-                    disabled={detailsPending || !firstName.trim()}
+                    disabled={detailsPending || !firstName.trim() || !phone.trim()}
                     onClick={() => void saveProfile({ detailsOnly: true })}
                   >
                     {detailsPending ? "Please Wait" : "Save Details"}

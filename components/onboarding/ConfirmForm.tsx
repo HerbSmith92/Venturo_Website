@@ -50,6 +50,7 @@ export function ConfirmForm({
       await saveOnboardingProfile({
         firstName: profile.firstName,
         lastName: profile.lastName,
+        phone: profile.phone,
         homePlaceId: profile.homePlaceId,
         personaIds: profile.personaIds,
         interestIds: profile.interestIds,
@@ -78,6 +79,10 @@ export function ConfirmForm({
           <dd>
             {[profile.firstName, profile.lastName].filter(Boolean).join(" ") || "Not set yet"}
           </dd>
+        </div>
+        <div>
+          <dt>Cellphone Number</dt>
+          <dd>{profile.phone || "Not set yet"}</dd>
         </div>
         <div>
           <dt>Email</dt>

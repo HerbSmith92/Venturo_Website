@@ -15,6 +15,7 @@ export function ClaimCommunityForm({
 }) {
   const [step, setStep] = useState<"account" | "code">("account");
   const [firstName, setFirstName] = useState("");
+  const [phone, setPhone] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState<string | null>(null);
@@ -37,6 +38,7 @@ export function ClaimCommunityForm({
     form.set("email", email.trim().toLowerCase());
     form.set("mode", "signup");
     form.set("firstName", firstName.trim());
+    form.set("phone", phone.trim());
     const response = await fetch("/auth/otp/send", { method: "POST", body: form });
     const payload = (await response.json()) as { error?: string; email?: string };
     setPending(false);
@@ -56,6 +58,7 @@ export function ClaimCommunityForm({
     form.set("email", email);
     form.set("password", password);
     form.set("firstName", firstName.trim());
+    form.set("phone", phone.trim());
     form.set("communityId", communityId);
     const response = await fetch("/auth/community-claim/verify", { method: "POST", body: form });
     const payload = (await response.json()) as { error?: string; redirect?: string };
@@ -114,6 +117,19 @@ export function ClaimCommunityForm({
           required
           value={firstName}
           onChange={(event) => setFirstName(event.target.value)}
+        />
+      </label>
+      <label className="field">
+        <span>Cellphone Number</span>
+        <input
+          name="phone"
+          type="tel"
+          autoComplete="tel"
+          inputMode="tel"
+          required
+          placeholder="082 123 4567"
+          value={phone}
+          onChange={(event) => setPhone(event.target.value)}
         />
       </label>
       <label className="field">

@@ -8,6 +8,7 @@ import {
   type PaystackTransaction,
 } from "@/lib/paystack";
 import { sendTicketEmail } from "@/lib/ticket-email";
+import { stampTicketContact } from "@/lib/ticket-contact";
 import { createServiceClient } from "@/lib/supabase/admin";
 
 function metadataKind(metadata: Record<string, unknown> | null) {
@@ -47,6 +48,7 @@ async function fulfillTicket(txn: PaystackTransaction) {
       });
       if (error) throw new Error(error.message);
     }
+    await stampTicketContact(order.id);
     await sendTicketEmail(order.id);
     return;
   }

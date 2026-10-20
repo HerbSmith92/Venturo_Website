@@ -1,3 +1,7 @@
+import { readFile } from "fs/promises";
+import path from "path";
+import { createElement } from "react";
+import { ImageResponse } from "next/og";
 import QRCode from "qrcode";
 import { eventAddressText, formatEventWindow } from "@/lib/event-types";
 import { ticketQrPayload } from "@/lib/ticket-code";
@@ -23,6 +27,54 @@ function escapeHtml(value: string) {
 function ticketEmailFrom() {
   const from = process.env.TICKET_EMAIL_FROM?.trim();
   return from || "Venturo <noreply@venturo.co.za>";
+}
+
+const displayFont = '"Social Gothic Rough", "Arial Black", sans-serif';
+const bodyFont = 'Nunito, "Trebuchet MS", sans-serif';
+
+let socialGothicFont: Buffer | null = null;
+
+async function loadSocialGothic() {
+  if (!socialGothicFont) {
+    socialGothicFont = await readFile(path.join(process.cwd(), "public/brand/fonts/SocialGothic-Rough.otf"));
+  }
+  return socialGothicFont;
+}
+
+/** Draw a heading in Social Gothic so it survives clients that drop web fonts. */
+async function roughHeading(text: string, fontSize: number) {
+  const font = await loadSocialGothic();
+  const width = 520;
+  const perLine = fontSize >= 32 ? 34 : 40;
+  const lines = Math.max(1, Math.ceil([...text].length / perLine));
+  const height = lines * Math.round(fontSize * 1.35) + 8;
+  const image = new ImageResponse(
+    createElement(
+      "div",
+      {
+        style: {
+          display: "flex",
+          alignItems: "flex-start",
+          width: "100%",
+          height: "100%",
+          background: "#2A2D35",
+          color: "#EBEBF3",
+          fontFamily: "Social Gothic Rough",
+          fontSize,
+          lineHeight: 1.15,
+          letterSpacing: "0.02em",
+        },
+      },
+      text,
+    ),
+    {
+      width,
+      height,
+      fonts: [{ name: "Social Gothic Rough", data: font, weight: 400, style: "normal" }],
+    },
+  );
+  const png = Buffer.from(await image.arrayBuffer());
+  return { content: png.toString("base64"), width, height };
 }
 
 /** Send the buyer's ticket email once. A missing mailer does not undo the sale. */
@@ -113,8 +165,21 @@ async function deliverTicketEmail(
     postalCode: event.postal_code,
     country: event.country,
   });
-  const ticketsUrl = `${getPublicSiteUrl()}/account/tickets`;
+  const siteUrl = getPublicSiteUrl();
+  const ticketsUrl = `${siteUrl}/account/tickets`;
   const title = event.title?.trim() || "Your event";
+  const logoPng = await readFile(path.join(process.cwd(), "public/brand/logos/venturo-horizontal-light.png"));
+  const titleImage = await roughHeading(title, 34).catch((error: unknown) => {
+    console.error("ticket title image", error instanceof Error ? error.message : "render failed");
+    return null;
+  });
+  const ticketNames = await Promise.all(
+    tickets.map(async (ticket) => {
+      const image = await roughHeading(ticket.name, 22).catch(() => null);
+      return { code: ticket.code, image };
+    }),
+  );
+  const ticketNameByCode = new Map(ticketNames.map((row) => [row.code, row.image]));
 
   const attachments = await Promise.all(
     tickets.map(async (ticket) => {
@@ -136,44 +201,72 @@ async function deliverTicketEmail(
   const ticketBlocks = tickets
     .map((ticket) => {
       const cid = `ticket-${ticket.code.toLowerCase()}`;
+      const nameImage = ticketNameByCode.get(ticket.code);
+      const nameBlock = nameImage
+        ? `<img src="cid:ticket-name-${cid}" alt="${escapeHtml(ticket.name)}" width="${nameImage.width}" height="${nameImage.height}" style="display:block;width:100%;max-width:${nameImage.width}px;height:auto;border:0;margin:0 0 8px;" />`
+        : `<p style="margin:0 0 8px;font-family:${displayFont};font-weight:400;font-size:22px;line-height:1.1;letter-spacing:0.02em;color:#EBEBF3;">${escapeHtml(ticket.name)}</p>`;
       return `
         <tr>
-          <td style="padding:16px 0;border-top:1px solid #d8d8e4;">
-            <p style="margin:0 0 4px;font-size:12px;letter-spacing:0.08em;text-transform:uppercase;color:#8a7340;">Ticket</p>
-            <p style="margin:0 0 8px;font-size:20px;font-weight:700;color:#2A2D35;">${escapeHtml(ticket.name)}</p>
-            <p style="margin:0 0 12px;font-size:16px;color:#2A2D35;">Code <strong>${escapeHtml(ticket.code)}</strong></p>
-            <img src="cid:${cid}" alt="QR code for ${escapeHtml(ticket.code)}" width="180" height="180" style="display:block;border-radius:12px;" />
-            <p style="margin:8px 0 0;font-size:14px;color:#5c5f69;">Show this at the door.</p>
+          <td align="left" style="padding:20px 0 4px;">
+            <p style="margin:0 0 4px;font-family:${bodyFont};font-weight:200;font-size:12px;letter-spacing:0.14em;text-transform:uppercase;color:#F3BF4A;">Ticket</p>
+            ${nameBlock}
+            <p style="margin:0 0 12px;font-family:${bodyFont};font-weight:200;font-size:16px;line-height:1.55;color:#EBEBF3;">Code <strong style="font-weight:400;">${escapeHtml(ticket.code)}</strong></p>
+            <img src="cid:${cid}" alt="QR code for ${escapeHtml(ticket.code)}" width="180" height="180" style="display:block;border-radius:12px;background:#EBEBF3;" />
+            <p style="margin:8px 0 0;font-family:${bodyFont};font-weight:200;font-size:14px;line-height:1.55;color:#EBEBF3;">Show this at the door.</p>
           </td>
         </tr>`;
     })
     .join("");
 
+  const fontCss = `@font-face{font-family:"Social Gothic Rough";font-style:normal;font-weight:400;src:url("${siteUrl}/brand/fonts/SocialGothic-Rough.otf") format("opentype");}
+@font-face{font-family:"Nunito";font-style:normal;font-weight:200;src:url("${siteUrl}/brand/fonts/Nunito-ExtraLight.ttf") format("truetype");}
+@font-face{font-family:"Nunito";font-style:normal;font-weight:400;src:url("${siteUrl}/brand/fonts/Nunito-Regular.ttf") format("truetype");}`;
+
+  const titleBlock = titleImage
+    ? `<img src="cid:event-title" alt="${escapeHtml(title)}" width="${titleImage.width}" height="${titleImage.height}" style="display:block;width:100%;max-width:${titleImage.width}px;height:auto;border:0;margin:0 0 16px;" />`
+    : `<h1 style="margin:0 0 16px;font-family:${displayFont};font-weight:400;font-size:32px;line-height:1.1;letter-spacing:0.02em;color:#EBEBF3;">${escapeHtml(title)}</h1>`;
+
   const html = `<!doctype html>
-<html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="color-scheme" content="dark" />
+    <meta name="supported-color-schemes" content="dark" />
+    <style>${fontCss}</style>
+  </head>
   <body style="margin:0;padding:0;background:#2A2D35;">
-    <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:#2A2D35;padding:32px 16px;">
+    <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background-color:#2A2D35;background-image:linear-gradient(#2A2D35,#2A2D35);padding:32px 16px;">
       <tr>
         <td align="center">
-          <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="max-width:520px;background:#EBEBF3;border-radius:16px;padding:28px 24px;">
+          <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="max-width:520px;">
             <tr>
-              <td>
-                <p style="margin:0 0 8px;font-size:12px;letter-spacing:0.08em;text-transform:uppercase;color:#8a7340;">You're in</p>
-                <h1 style="margin:0 0 16px;font-size:28px;line-height:1.1;color:#2A2D35;">${escapeHtml(title)}</h1>
-                <p style="margin:0 0 4px;font-size:16px;color:#2A2D35;">${escapeHtml(when)}</p>
-                ${place ? `<p style="margin:0 0 4px;font-size:16px;color:#2A2D35;">${escapeHtml(place)}</p>` : ""}
-                ${address ? `<p style="margin:0 0 16px;font-size:14px;color:#5c5f69;">${escapeHtml(address)}</p>` : ""}
-                <p style="margin:0 0 8px;font-size:16px;color:#2A2D35;">Your ticket is below. Keep this email for the door.</p>
+              <td align="left" style="padding:0 0 22px;">
+                <img src="cid:venturo-logo" width="180" alt="Venturo" style="display:block;width:180px;max-width:70%;height:auto;border:0;" />
+              </td>
+            </tr>
+            <tr>
+              <td align="left" style="font-family:${bodyFont};font-weight:200;color:#EBEBF3;">
+                <p style="margin:0 0 10px;font-family:${bodyFont};font-weight:200;font-size:12px;letter-spacing:0.14em;text-transform:uppercase;color:#F3BF4A;">You're in</p>
+                ${titleBlock}
+                <p style="margin:0 0 4px;font-family:${bodyFont};font-weight:200;font-size:16px;line-height:1.55;color:#EBEBF3;">${escapeHtml(when)}</p>
+                ${place ? `<p style="margin:0 0 4px;font-family:${bodyFont};font-weight:200;font-size:16px;line-height:1.55;color:#EBEBF3;">${escapeHtml(place)}</p>` : ""}
+                ${address ? `<p style="margin:0 0 16px;font-family:${bodyFont};font-weight:200;font-size:14px;line-height:1.55;color:#EBEBF3;">${escapeHtml(address)}</p>` : ""}
+                <p style="margin:0;font-family:${bodyFont};font-weight:200;font-size:16px;line-height:1.55;color:#EBEBF3;">Your ticket is below. Keep this email for the door.</p>
               </td>
             </tr>
             ${ticketBlocks}
             <tr>
-              <td style="padding-top:8px;">
-                <a href="${escapeHtml(ticketsUrl)}" style="display:inline-block;background:#F3BF4A;color:#2A2D35;text-decoration:none;font-weight:700;padding:12px 18px;border-radius:12px;">Open My Tickets</a>
+              <td align="left" style="padding-top:8px;">
+                <a href="${escapeHtml(ticketsUrl)}" style="display:inline-block;background:#F3BF4A;color:#2A2D35;text-decoration:none;font-family:${bodyFont};font-weight:400;font-size:16px;line-height:1;padding:14px 20px;border-radius:12px;">Open My Tickets</a>
+              </td>
+            </tr>
+            <tr>
+              <td align="left" style="padding-top:22px;">
+                <p style="margin:0;font-family:${bodyFont};font-weight:200;font-size:13px;line-height:1.55;color:#EBEBF3;">Quality time is our love language.</p>
               </td>
             </tr>
           </table>
-          <p style="margin:16px 0 0;font-size:13px;color:#EBEBF3;">Quality time is our love language.</p>
         </td>
       </tr>
     </table>
@@ -205,7 +298,23 @@ async function deliverTicketEmail(
       subject: `Your ticket · ${title}`,
       html,
       text,
-      attachments,
+      attachments: [
+        {
+          filename: "venturo-logo.png",
+          content: logoPng.toString("base64"),
+          content_id: "venturo-logo",
+        },
+        ...(titleImage
+          ? [{ filename: "event-title.png", content: titleImage.content, content_id: "event-title" }]
+          : []),
+        ...tickets.flatMap((ticket) => {
+          const image = ticketNameByCode.get(ticket.code);
+          if (!image) return [];
+          const cid = `ticket-${ticket.code.toLowerCase()}`;
+          return [{ filename: `ticket-name-${cid}.png`, content: image.content, content_id: `ticket-name-${cid}` }];
+        }),
+        ...attachments,
+      ],
     }),
   });
 

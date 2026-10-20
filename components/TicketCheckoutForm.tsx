@@ -39,6 +39,7 @@ export function TicketCheckoutForm({
   tickets,
   paidMember,
   loggedIn,
+  hasPhone = false,
   fees,
   inviteToken = "",
   initialBasket,
@@ -47,6 +48,7 @@ export function TicketCheckoutForm({
   tickets: EventTicketType[];
   paidMember: boolean;
   loggedIn: boolean;
+  hasPhone?: boolean;
   fees: PlatformFees;
   inviteToken?: string;
   initialBasket?: string;
@@ -61,6 +63,7 @@ export function TicketCheckoutForm({
   });
   const [authMode, setAuthMode] = useState<"signup" | "login">("signup");
   const [firstName, setFirstName] = useState("");
+  const [phone, setPhone] = useState("");
   const [email, setEmail] = useState("");
   const [promoCode, setPromoCode] = useState("");
   const [error, setError] = useState<string | null>(null);
@@ -122,7 +125,10 @@ export function TicketCheckoutForm({
     form.set("email", email.trim().toLowerCase());
     form.set("mode", authMode);
     form.set("next", returnPath());
-    if (authMode === "signup") form.set("firstName", firstName.trim());
+    if (authMode === "signup") {
+      form.set("firstName", firstName.trim());
+      form.set("phone", phone.trim());
+    }
     const response = await fetch("/auth/otp/send", { method: "POST", body: form });
     const payload = (await response.json()) as { error?: string; email?: string };
     setPending(false);
@@ -141,6 +147,7 @@ export function TicketCheckoutForm({
     const form = new FormData(event.currentTarget);
     form.set("email", email.trim().toLowerCase());
     form.set("firstName", authMode === "signup" ? firstName.trim() : "");
+    if (authMode === "signup") form.set("phone", phone.trim());
     form.set("next", returnPath());
     const response = await fetch("/auth/otp/verify", { method: "POST", body: form });
     const payload = (await response.json()) as { error?: string; redirect?: string };
@@ -160,6 +167,19 @@ export function TicketCheckoutForm({
     }
     setError(null);
     setPending(true);
+    if (!hasPhone) {
+      const save = await fetch("/api/account/profile", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ phone: phone.trim() }),
+      });
+      const saved = (await save.json()) as { error?: string };
+      if (!save.ok) {
+        setPending(false);
+        setError(saved.error ?? "Add a cellphone number.");
+        return;
+      }
+    }
     const response = await fetch("/api/events/checkout", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
@@ -199,7 +219,7 @@ export function TicketCheckoutForm({
         <h3>{authMode === "signup" ? "Sign Up" : "Log In"}</h3>
         <p className="muted">
           {authMode === "signup"
-            ? "Your name & email. We will send a one-time code."
+            ? "Your name, cellphone & email. We will send a one-time code."
             : "Enter your email & we will send a one-time code."}
         </p>
         {authMode === "signup" ? (
@@ -209,6 +229,20 @@ export function TicketCheckoutForm({
               value={firstName}
               onChange={(event) => setFirstName(event.target.value)}
               autoComplete="given-name"
+              required
+            />
+          </label>
+        ) : null}
+        {authMode === "signup" ? (
+          <label className="field">
+            <span>Cellphone Number</span>
+            <input
+              value={phone}
+              onChange={(event) => setPhone(event.target.value)}
+              type="tel"
+              autoComplete="tel"
+              inputMode="tel"
+              placeholder="082 123 4567"
               required
             />
           </label>
@@ -335,6 +369,20 @@ export function TicketCheckoutForm({
         <p>
           <strong>{formatCents(basketShare.total)}</strong>
         </p>
+        {!hasPhone ? (
+          <label className="field">
+            <span>Cellphone Number</span>
+            <input
+              value={phone}
+              onChange={(event) => setPhone(event.target.value)}
+              type="tel"
+              autoComplete="tel"
+              inputMode="tel"
+              placeholder="082 123 4567"
+              required
+            />
+          </label>
+        ) : null}
         <label className="field">
           <span>Promo Code</span>
           <input

@@ -23,6 +23,7 @@ export function BasicsForm({
   const router = useRouter();
   const [firstName, setFirstName] = useState(profile.firstName);
   const [lastName, setLastName] = useState(profile.lastName);
+  const [phone, setPhone] = useState(profile.phone);
   const [homePlaceId, setHomePlaceId] = useState(profile.homePlaceId ?? "");
   const [error, setError] = useState<string | null>(null);
   const [pending, setPending] = useState(false);
@@ -43,6 +44,10 @@ export function BasicsForm({
       setError("First name is required.");
       return false;
     }
+    if (!phone.trim()) {
+      setError("Add a cellphone number.");
+      return false;
+    }
     if (!homePlaceId) {
       setError("Pick your home area so we can show what’s nearby.");
       return false;
@@ -59,6 +64,7 @@ export function BasicsForm({
       await saveOnboardingProfile({
         firstName: firstName.trim(),
         lastName: lastName.trim(),
+        phone: phone.trim(),
         homePlaceId,
       });
       const onward = "personas";
@@ -75,8 +81,8 @@ export function BasicsForm({
       <p className="eyebrow">A Few Basics</p>
       <h1>Who’s Exploring?</h1>
       <p className="lede muted">
-        Name & home area first. Next you can tell us how you go out, or skip those screens & jump in
-        free.
+        Name, cellphone & home area first. Next you can tell us how you go out, or skip those screens
+        & jump in free.
       </p>
       <label className="field">
         <span>First Name</span>
@@ -97,6 +103,19 @@ export function BasicsForm({
           autoComplete="family-name"
           value={lastName}
           onChange={(event) => setLastName(event.target.value)}
+        />
+      </label>
+      <label className="field">
+        <span>Cellphone Number</span>
+        <input
+          name="phone"
+          type="tel"
+          autoComplete="tel"
+          inputMode="tel"
+          required
+          placeholder="082 123 4567"
+          value={phone}
+          onChange={(event) => setPhone(event.target.value)}
         />
       </label>
       <label className="field">
@@ -138,6 +157,7 @@ export function BasicsForm({
                 await saveOnboardingProfile({
                   firstName: firstName.trim(),
                   lastName: lastName.trim(),
+                  phone: phone.trim(),
                   homePlaceId,
                   plan: "free",
                   finishOnboarding: true,

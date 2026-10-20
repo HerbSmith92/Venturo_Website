@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { isPortalPath } from "@/lib/portal";
 import { safeNextPath } from "@/lib/member-auth";
+import { tidyCellphone } from "@/lib/phone";
 
 function loginUnknownMessage(message: string, next: string) {
   const lower = message.toLowerCase();
@@ -43,6 +44,9 @@ export async function POST(request: Request) {
 
   if (mode === "signup" && !firstName) {
     return NextResponse.json({ error: "First name is required." }, { status: 400 });
+  }
+  if (mode === "signup" && !tidyCellphone(String(form.get("phone") ?? ""))) {
+    return NextResponse.json({ error: "Add a cellphone number." }, { status: 400 });
   }
 
   const { error } = await supabase.auth.signInWithOtp({
