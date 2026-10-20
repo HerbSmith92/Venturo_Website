@@ -15,6 +15,26 @@ function Readout({ value }: { value: string }) {
   return <input readOnly tabIndex={-1} value={value} aria-live="polite" />;
 }
 
+function TicketDescription({
+  ticket,
+  onChange,
+}: {
+  ticket: TicketCardModel;
+  onChange: (patch: Partial<TicketCardModel>) => void;
+}) {
+  return (
+    <label className="field">
+      <span>Description</span>
+      <textarea
+        rows={3}
+        value={ticket.description ?? ""}
+        placeholder="Additional info for this ticket."
+        onChange={(event) => onChange({ description: event.target.value })}
+      />
+    </label>
+  );
+}
+
 export function TicketTypeCard({
   ticket,
   fees,
@@ -56,7 +76,7 @@ export function TicketTypeCard({
           type="button"
           className={`chip${ticket.kind === "paid" ? " on" : ""}`}
           aria-pressed={ticket.kind === "paid"}
-          onClick={() => onChange({ kind: "paid", description: "" })}
+          onClick={() => onChange({ kind: "paid" })}
         >
           Paid
         </button>
@@ -82,15 +102,6 @@ export function TicketTypeCard({
               />
             </label>
           </div>
-          <label className="field">
-            <span>Description</span>
-            <textarea
-              rows={3}
-              value={ticket.description ?? ""}
-              placeholder="What this ticket includes."
-              onChange={(event) => onChange({ description: event.target.value })}
-            />
-          </label>
         </div>
       ) : null}
 
@@ -266,6 +277,8 @@ export function TicketTypeCard({
           </div>
         </>
       ) : null}
+
+      {ticket.kind ? <TicketDescription ticket={ticket} onChange={onChange} /> : null}
 
       <button className="btn btn-ghost" type="button" onClick={onRemove}>
         Remove

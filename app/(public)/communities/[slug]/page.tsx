@@ -96,6 +96,15 @@ export default async function CommunityDetailPage({
                   Log In To Follow
                 </a>
               )}
+              {community.claimedBy === user?.id ? (
+                <a className="btn btn-secondary" href={`/account/communities/${community.id}`}>
+                  Edit Community
+                </a>
+              ) : community.claimedBy ? null : (
+                <a className="btn btn-secondary" href={`/communities/${community.slug}/claim`}>
+                  Claim This Community
+                </a>
+              )}
             </div>
           </div>
         </div>

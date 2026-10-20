@@ -1,6 +1,6 @@
 # Venturo App Website
 
-Taste landing + directory for **Venturo App**. Free profiles can book event tickets. Paid membership is **R 19.99 / month** via PayFast on the website or the App Store / Play Store in the app. Both write **`member_access.subscribed`**; the website and app only read that row for privileges.
+Taste landing + directory for **Venturo App**. Free profiles can book event tickets. Paid membership is **R 19.99 / month** via Paystack on the website, or the App Store / Play Store in the app. Both write **`member_access.subscribed`**; the website and app only read that row for privileges.
 
 Live brand site: [www.venturo.co.za](https://www.venturo.co.za)
 
@@ -33,11 +33,15 @@ Open [http://localhost:3000](http://localhost:3000).
 | `GOOGLE_PLAY_PACKAGE_NAME` | Control Room Android install totals |
 | `GOOGLE_PLAY_REPORTS_BUCKET` | Play Console Download reports bucket (`pubsite_prod_rev_…`) |
 | `GOOGLE_PLAY_SERVICE_ACCOUNT_JSON` | Service account JSON with storage read on that bucket |
-| `SUPABASE_SERVICE_ROLE_KEY` | Server-only. Invite staff from Control Room |
+| `SUPABASE_SERVICE_ROLE_KEY` | Server-only. Invite staff from Control Room & fulfil Paystack payments |
+| `PAYSTACK_SECRET_KEY` | Test secret while building. Live secret after Paystack approves the business |
+| `PAYSTACK_PLAN_CODE` | Optional monthly membership plan. Created on first website subscribe when empty |
 
 The mobile app should log the same Supabase user id into RevenueCat as `app_user_id`. After a store purchase, RevenueCat’s webhook updates `member_access`; the app must read **`member_access.subscribed`** for privileges, not `Purchases.customerInfo`.
 
 Production webhook URL: `https://www.venturo.co.za/api/revenuecat/webhook`.
+
+Paystack webhook URL: `https://www.venturo.co.za/api/paystack/webhook`. Paste it in the Paystack dashboard for the same mode as `PAYSTACK_SECRET_KEY` (test and live are separate). It confirms ticket payments & website membership. Apply `supabase/migrations/20261020062838_paystack_checkout.sql` before the first membership checkout.
 
 ## Control Room
 

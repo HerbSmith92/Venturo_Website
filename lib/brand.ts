@@ -15,11 +15,13 @@ export const COLORS = {
 
 export const PAID_PRICE = "R 19.99";
 export const PAID_CADENCE = "per month";
-/** PayFast amount string (ZAR, 2 decimals). Keep in sync with PAID_PRICE. */
+/** Membership amount string (ZAR, 2 decimals). Keep in sync with PAID_PRICE. */
 export const PAID_AMOUNT_RANDS = "19.99";
 export const PAID_AMOUNT_CENTS = 1999;
 export const ENTITLEMENT_ID =
   process.env.REVENUECAT_ENTITLEMENT_ID ?? "subscription_monthly_1";
+
+export const APP_STORE_URL = "https://apps.apple.com/za/app/venturo-app/id6755754211";
 
 const GENERIC_APP_STORE = "https://apps.apple.com";
 const GENERIC_PLAY_STORE = "https://play.google.com/store";
@@ -41,7 +43,7 @@ export function storeUrlIsConfigured(url: string | undefined, kind: "ios" | "and
 }
 
 export function getAppStoreLinks() {
-  const appStore = process.env.NEXT_PUBLIC_APP_STORE_URL ?? GENERIC_APP_STORE;
+  const appStore = process.env.NEXT_PUBLIC_APP_STORE_URL ?? APP_STORE_URL;
   const playStore = process.env.NEXT_PUBLIC_PLAY_STORE_URL ?? GENERIC_PLAY_STORE;
   return {
     appStore,

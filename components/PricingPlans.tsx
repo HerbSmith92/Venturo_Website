@@ -19,8 +19,7 @@ export function PricingPlans({
           <li>Keep a simple profile</li>
         </ul>
         <p className="muted">
-          No subscriber benefits — curated discovery & exclusive discounts stay
-          with Paid.
+          Curated discovery & exclusive discounts stay with Paid.
         </p>
         <a className="btn btn-secondary" href="/signup">
           {currentPlan === "free" ? "Your Current Plan" : "Sign Up Free"}
@@ -37,22 +36,11 @@ export function PricingPlans({
         <ul>
           <li>Curated discovery & personal recommendations</li>
           <li>Exclusive member discounts</li>
-          <li>Pay on the website with PayFast, or in the app stores when live</li>
+          <li>Same membership on the website & the app</li>
         </ul>
-        <p className="muted">
-          Website memberships use PayFast. App purchases use RevenueCat. Either unlocks Paid here.
-        </p>
-        <a
-          className="btn btn-primary"
-          href={
-            currentPlan === "paid"
-              ? "/account"
-              : currentPlan === "guest"
-                ? "/signup?next=/join/subscribe"
-                : "/join/subscribe"
-          }
-        >
-          {currentPlan === "paid" ? "You Are a Paid Member" : "Subscribe With PayFast"}
+        <p className="muted">Pay here, or keep a store subscription in the app.</p>
+        <a className="btn btn-primary" href={currentPlan === "paid" ? "/account" : "/join/subscribe"}>
+          {currentPlan === "paid" ? "You Are a Paid Member" : `Subscribe · ${PAID_PRICE} / month`}
         </a>
       </article>
     </div>

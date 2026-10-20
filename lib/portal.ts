@@ -9,7 +9,7 @@ export const PORTAL_SETTINGS = "/portal/settings";
 export const PORTAL_SETTINGS_BANK = `${PORTAL_SETTINGS}?tab=bank`;
 export const EVENT_HOST = "/event-host";
 
-export type CreateEventStep = "details" | "tickets" | "assets";
+export type CreateEventStep = "details" | "tickets" | "bank" | "assets" | "review";
 
 export const PORTAL_NAV = [
   { href: PORTAL_HOME, label: "Home", exact: true },
@@ -40,7 +40,7 @@ export const EVENT_MENU_ITEMS = [
     id: "payment",
     slug: "payment",
     label: "Payment",
-    lede: "PayFast for tickets. Payouts 3 working days after the event.",
+    lede: "Paystack for tickets. Payouts 3 working days after the event.",
   },
   {
     id: "marketing",
@@ -65,7 +65,7 @@ export const EVENT_MENU_ITEMS = [
 export type EventMenuId = (typeof EVENT_MENU_ITEMS)[number]["id"];
 
 export function portalEventHref(id: string) {
-  return `${PORTAL_EVENTS}/${id}`;
+  return portalEventSectionHref(id, "dashboard");
 }
 
 export function portalEventSectionHref(id: string, slug: string) {
@@ -128,10 +128,8 @@ export function portalReturnPath(raw: unknown) {
   return next;
 }
 
-/** Joining from the event wizard still collects host details & bank first. */
+/** New hosts start on event details. Bank comes later, and only for a paid ticket. */
 export function portalSignupNext(next: string) {
-  const pathOnly = next.split("?")[0] || next;
-  if (pathOnly === PORTAL_EVENTS_NEW) return PORTAL_SETUP;
   return next;
 }
 

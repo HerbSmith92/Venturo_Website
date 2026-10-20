@@ -1,4 +1,4 @@
-/** Canonical public origin for PayFast ITN & absolute links. */
+/** Canonical public origin for Paystack webhooks & absolute links. */
 export function getPublicSiteUrl(fallbackOrigin?: string) {
   const fromEnv = process.env.NEXT_PUBLIC_SITE_URL?.replace(/\/$/, "");
   if (fromEnv) return fromEnv;

@@ -24,11 +24,15 @@ export function HostDetailsForm({
   lastName: initialLast,
   email,
   hostProfile,
+  afterSaveHref,
+  submitLabel = "Save Details",
 }: {
   firstName: string;
   lastName: string;
   email: string;
   hostProfile: OrganiserProfile;
+  afterSaveHref?: string;
+  submitLabel?: string;
 }) {
   const [firstName, setFirstName] = useState(initialFirst);
   const [lastName, setLastName] = useState(initialLast);
@@ -81,6 +85,7 @@ export function HostDetailsForm({
     setError(null);
     setNotice(null);
     setPending(true);
+    let leaving = false;
     try {
       const [accountResponse, hostResponse] = await Promise.all([
         fetch("/api/account/profile", {
@@ -101,11 +106,16 @@ export function HostDetailsForm({
       if (!accountResponse.ok) throw new Error(accountPayload.error ?? "Could not save your name.");
       const hostPayload = (await hostResponse.json()) as { error?: string };
       if (!hostResponse.ok) throw new Error(hostPayload.error ?? "Could not save host details.");
+      if (afterSaveHref) {
+        leaving = true;
+        window.location.href = afterSaveHref;
+        return;
+      }
       setNotice("Host details saved.");
     } catch (caught) {
       setError(caught instanceof Error ? caught.message : "Could not save.");
     } finally {
-      setPending(false);
+      if (!leaving) setPending(false);
     }
   }
 
@@ -345,7 +355,7 @@ export function HostDetailsForm({
       {error && <p className="error">{error}</p>}
       {notice && <p className="notice">{notice}</p>}
       <button className="btn btn-primary" type="submit" disabled={pending || uploading}>
-        {pending ? "Saving" : "Save Details"}
+        {pending ? "Saving" : submitLabel}
       </button>
     </form>
   );

@@ -14,7 +14,9 @@ import {
 } from "@/lib/event-repeat";
 import type { RepeatOrdinal, RepeatWeekday } from "@/lib/event-types";
 import { StudioSection } from "@/components/events/StudioSection";
+import { EventReviewPreview } from "@/components/events/EventReviewPreview";
 import { TicketTypeCard } from "@/components/events/TicketTypeCard";
+import { HostPayoutForm } from "@/components/portal/HostPayoutForm";
 import { ticketMemberCents, type TicketFeeDraft } from "@/lib/event-fees";
 import {
   EVENT_AGE_OPTIONS,
@@ -25,6 +27,7 @@ import {
   EVENT_INTERESTS,
   EVENT_PERSONAS,
   datetimeLocalToIso,
+  formatEventWindow,
   isoToDatetimeLocal,
   parseEventEnergy,
   parseEventPersonas,
@@ -40,12 +43,7 @@ import {
   type TicketKind,
   type VenturoEvent,
 } from "@/lib/event-types";
-import {
-  PORTAL_SETTINGS_BANK,
-  portalEventHref,
-  portalNewEventHref,
-  type CreateEventStep,
-} from "@/lib/portal";
+import { portalEventHref, portalNewEventHref, type CreateEventStep } from "@/lib/portal";
 
 type TicketDraft = Omit<TicketFeeDraft, "kind"> & {
   id?: string;
@@ -54,13 +52,15 @@ type TicketDraft = Omit<TicketFeeDraft, "kind"> & {
   kind: TicketKind | "";
 };
 
-const STEPS: { id: CreateEventStep; label: string }[] = [
-  { id: "details", label: "1 · Event Details" },
-  { id: "tickets", label: "2 · Tickets" },
-  { id: "assets", label: "3 · Images" },
+const STEP_DEFS: { id: CreateEventStep; label: string }[] = [
+  { id: "details", label: "Event Details" },
+  { id: "tickets", label: "Tickets" },
+  { id: "bank", label: "Bank Details" },
+  { id: "assets", label: "Images & Branding" },
+  { id: "review", label: "Review Event" },
 ];
 
-const IMAGE_ORDER: EventImageKind[] = ["story", "banner", "listing"];
+const IMAGE_ORDER: EventImageKind[] = ["banner", "listing", "story"];
 const INTEREST_SET = new Set<string>(EVENT_INTERESTS);
 
 const emptyTicket = (): TicketDraft => ({
@@ -118,12 +118,12 @@ async function uploadEventImage(file: File, kind: EventImageKind) {
 export function CreateEventWizard({
   event,
   step,
-  hasPayout,
+  payout,
   fees,
 }: {
   event: VenturoEvent | null;
   step: CreateEventStep;
-  hasPayout: boolean;
+  payout: { bankName: string; accountNumberLast4: string } | null;
   fees: PlatformFees;
 }) {
   const router = useRouter();
@@ -174,6 +174,9 @@ export function CreateEventWizard({
   const parking = event?.parking ?? "";
   const [tickets, setTickets] = useState<TicketDraft[]>(() => fromEventTickets(event));
   const [error, setError] = useState<string | null>(null);
+  const [bankReady, setBankReady] = useState(Boolean(payout));
+  const [replacingBank, setReplacingBank] = useState(false);
+  const [bankPending, setBankPending] = useState(false);
   const [pending, setPending] = useState(false);
   const [uploading, setUploading] = useState<EventImageKind | null>(null);
 
@@ -227,6 +230,25 @@ export function CreateEventWizard({
     return null;
   }
 
+  function validateImages() {
+    if (!publicImageUrl(bannerUrl)) return "Add the event page picture for the website & the app.";
+    if (!publicImageUrl(listingImageUrl)) {
+      return "Add the feed post. What's On, the app, & guide posts use it.";
+    }
+    return null;
+  }
+
+  async function confirmBank() {
+    if (bankReady) return true;
+    const response = await fetch("/api/host/payout");
+    const payload = (await response.json()) as { ready?: boolean };
+    if (payload.ready) {
+      setBankReady(true);
+      return true;
+    }
+    return false;
+  }
+
   function validateTickets(rows = ticketRows()) {
     if (!rows.length) return "Add at least one ticket.";
     for (const ticket of rows) {
@@ -270,7 +292,7 @@ export function CreateEventWizard({
       ticketTypes: rows.map((ticket) => ({
         id: ticket.id,
         name: ticket.name,
-        description: ticket.kind === "free" ? ticket.description.trim() : "",
+        description: ticket.description.trim(),
         kind: ticket.kind || "paid",
         priceCents: ticket.kind === "free" ? 0 : parseRandsToCents(ticket.priceRands),
         memberPriceCents: ticketMemberCents({ ...ticket, kind: ticket.kind || "paid" }),
@@ -324,7 +346,7 @@ export function CreateEventWizard({
     }
   }
 
-  function continueForward() {
+  async function continueForward() {
     if (pending || uploading) return;
     if (step === "details") {
       const issue = validateDetails();
@@ -342,16 +364,73 @@ export function CreateEventWizard({
         setError(issue);
         return;
       }
+      const selling = rows.some(
+        (ticket) => ticket.kind === "paid" && parseRandsToCents(ticket.priceRands) > 0,
+      );
       if (tickets.length === 0) setTickets(rows);
-      void persist("assets", rows);
+      void persist(selling ? "bank" : "assets", rows);
       return;
     }
-    void persist("menu");
+    if (step === "bank") {
+      if (!(await confirmBank())) {
+        setError("Add the payout bank. Paid tickets use this account.");
+        return;
+      }
+      void persist("assets");
+      return;
+    }
+    if (step === "assets") {
+      const imageIssue = validateImages();
+      if (imageIssue) {
+        setError(imageIssue);
+        return;
+      }
+      void persist("review");
+      return;
+    }
+    const imageIssue = validateImages();
+    if (imageIssue) {
+      setError(imageIssue);
+      return;
+    }
+    if (hasPaidTickets && !(await confirmBank())) {
+      setError("Add the payout bank before paid tickets can go on sale.");
+      return;
+    }
+    void submitForReview();
+  }
+
+  async function submitForReview() {
+    setError(null);
+    setPending(true);
+    try {
+      let id = eventId;
+      if (!id) throw new Error("Save the event details first.");
+      const response = await fetch(`/api/events/${id}/live`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ ...buildBody(ticketRows()), stay: "portal" }),
+      });
+      const payload = (await response.json()) as { error?: string };
+      if (!response.ok) throw new Error(payload.error ?? "Could not submit for review.");
+      window.location.href = portalEventHref(id);
+    } catch (caught) {
+      setPending(false);
+      setError(caught instanceof Error ? caught.message : "Could not submit for review.");
+    }
   }
 
   function goBack() {
     if (pending || uploading || !eventId) return;
+    if (step === "review") {
+      void persist("assets");
+      return;
+    }
     if (step === "assets") {
+      void persist(hasPaidTickets ? "bank" : "tickets");
+      return;
+    }
+    if (step === "bank") {
       void persist("tickets");
       return;
     }
@@ -419,22 +498,41 @@ export function CreateEventWizard({
   const hasPaidTickets = ticketRows().some(
     (ticket) => ticket.kind === "paid" && parseRandsToCents(ticket.priceRands) > 0,
   );
+  const steps = STEP_DEFS.filter((item) => item.id !== "bank" || hasPaidTickets);
+  const bankFormOpen = step === "bank" && (!payout || replacingBank);
   const continueLabel =
-    step === "details" ? "Continue To Tickets" : step === "tickets" ? "Continue To Images" : "Save Draft";
+    step === "details"
+      ? "Continue To Tickets"
+      : step === "tickets"
+        ? hasPaidTickets
+          ? "Continue To Bank"
+          : "Continue To Images"
+        : step === "bank"
+          ? "Continue To Images"
+          : step === "assets"
+            ? "Continue To Review"
+            : "Submit For Review";
+  const reviewWhen =
+    startsAt && endsAt
+      ? formatEventWindow(datetimeLocalToIso(startsAt), datetimeLocalToIso(endsAt))
+      : "";
 
   return (
     <div className="studio-shell create-wizard">
       <p className="eyebrow">Event Host</p>
       <h1>Create Event</h1>
-      <p className="lede muted">One date. This stays a draft until you submit it from the event menu.</p>
+      <p className="lede muted">
+        Details, tickets, bank if someone pays, pictures, then a check. What&apos;s On stays quiet
+        until we approve it. The dashboard opens once it&apos;s live.
+      </p>
       <div className="chips host-settings-tabs" role="tablist" aria-label="Create event">
-        {STEPS.map((item) => (
+        {steps.map((item, index) => (
           <span
             key={item.id}
             className={`chip${step === item.id ? " on" : ""}`}
             aria-current={step === item.id ? "step" : undefined}
           >
-            {item.label}
+            {String.fromCharCode(65 + index)} · {item.label}
           </span>
         ))}
       </div>
@@ -648,12 +746,6 @@ export function CreateEventWizard({
               />
             ))}
           </ul>
-          {hasPaidTickets && !hasPayout ? (
-            <p className="notice">
-              Paid tickets need a payout bank before this event can go live. Set that once in{" "}
-              <a href={PORTAL_SETTINGS_BANK}>Host Settings</a>.
-            </p>
-          ) : null}
           <div className="studio-add-ticket">
             <button
               className="btn btn-secondary"
@@ -667,10 +759,11 @@ export function CreateEventWizard({
       ) : null}
 
       {step === "assets" ? (
-        <StudioSection title="Event Images">
+        <StudioSection title="Images & Branding">
           <p className="muted">
-            Story 9:16, event page 16:9, and feed post 4:5. Max {EVENT_IMAGE_MAX_MB} MB per photo ·
-            JPEG, PNG or WebP.
+            The website event page needs the 16:9. What&apos;s On, the app feed, and a guide post
+            share the 4:5. The 9:16 story is optional. Max {EVENT_IMAGE_MAX_MB} MB per photo · JPEG,
+            PNG or WebP.
           </p>
           <div className="studio-uploads">
             {IMAGE_ORDER.map((kind) => {
@@ -699,19 +792,94 @@ export function CreateEventWizard({
         </StudioSection>
       ) : null}
 
+      {step === "bank" ? (
+        <StudioSection title="Bank Details">
+          <p className="muted">
+            One account for every paid event. We pay this bank 3 working days after the event.
+          </p>
+          {payout && !replacingBank ? (
+            <>
+              <p className="notice">
+                On file: {payout.bankName} · ****{payout.accountNumberLast4}.
+              </p>
+              <button className="btn btn-secondary" type="button" onClick={() => setReplacingBank(true)}>
+                Use A Different Account
+              </button>
+            </>
+          ) : (
+            <HostPayoutForm
+              formId="host-payout-form"
+              hideSubmit
+              onPendingChange={setBankPending}
+              existingPayout={
+                payout
+                  ? {
+                      accountHolder: "",
+                      bankName: payout.bankName,
+                      accountNumberLast4: payout.accountNumberLast4,
+                      branchCode: null,
+                    }
+                  : null
+              }
+              fallbackHolder=""
+              afterSaveHref={eventId ? portalNewEventHref(eventId, "assets") : undefined}
+            />
+          )}
+        </StudioSection>
+      ) : null}
+
+      {step === "review" ? (
+        <StudioSection title="Review Event">
+          <p className="muted">
+            This is the website event page, and the card in the app. Once it&apos;s approved, the
+            event dashboard opens.
+          </p>
+          {hasPaidTickets ? (
+            <p className="notice">
+              {payout
+                ? `Payout bank: ${payout.bankName} · ****${payout.accountNumberLast4}.`
+                : "Paid tickets still need a payout bank."}
+            </p>
+          ) : null}
+          <EventReviewPreview
+            title={title}
+            description={description}
+            category={interests[0] ?? ""}
+            tags={[...interests, ...otherTags]}
+            ageRestriction={ageRestriction}
+            whenLabel={reviewWhen}
+            repeatLabel={repeatEvery ? repeatPhrase(repeatEvery) : ""}
+            venueName={venueName}
+            address={[addressLine1, addressLine2, city, postalCode, country]
+              .filter((part) => part.trim())
+              .join(", ")}
+            city={city}
+            bannerUrl={publicImageUrl(bannerUrl)}
+            listingImageUrl={publicImageUrl(listingImageUrl)}
+            tickets={ticketRows()}
+          />
+        </StudioSection>
+      ) : null}
+
       <div className="create-wizard-actions">
         {step !== "details" ? (
-          <button className="btn btn-secondary" type="button" disabled={pending || Boolean(uploading)} onClick={goBack}>
+          <button
+            className="btn btn-secondary"
+            type="button"
+            disabled={pending || bankPending || Boolean(uploading)}
+            onClick={goBack}
+          >
             Back
           </button>
         ) : null}
         <button
           className="btn btn-primary"
-          type="button"
-          disabled={pending || Boolean(uploading)}
-          onClick={continueForward}
+          type={bankFormOpen ? "submit" : "button"}
+          form={bankFormOpen ? "host-payout-form" : undefined}
+          disabled={pending || bankPending || Boolean(uploading)}
+          onClick={bankFormOpen ? undefined : () => void continueForward()}
         >
-          {pending ? "Please Wait" : continueLabel}
+          {pending || bankPending ? "Please Wait" : continueLabel}
         </button>
       </div>
     </div>

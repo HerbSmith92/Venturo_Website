@@ -37,6 +37,7 @@ export type CommunityRecord = {
   scaleId: string | null;
   status: CommunityStatus;
   isFeatured: boolean;
+  claimedBy: string | null;
 };
 
 export type CommunityPhoto = {

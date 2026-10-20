@@ -23,7 +23,7 @@ export default async function MembersPage({
       <h1>Members</h1>
       <p className="lede muted">
         Every auth user on the Venturo project. Paid is <code>member_access.subscribed</code>
-        — PayFast or RevenueCat write that row; this list only reads it. Reset Password emails
+        — Paystack on the website or RevenueCat in the app write that row; this list only reads it. Reset Password emails
         a recovery link. Delete removes the auth user (profile cascades).
       </p>
 

@@ -1,4 +1,4 @@
-import { randomUUID } from "crypto";
+import { newPaystackReference, PAYSTACK_WEBHOOK_PATH } from "@/lib/paystack";
 import { createClient } from "@/lib/supabase/server";
 import { createServiceClient } from "@/lib/supabase/admin";
 import { getEventBySlug, getPlatformFees } from "@/lib/events";
@@ -117,7 +117,7 @@ export async function createTicketOrder(input: {
       // Table may not be applied yet.
     }
   }
-  const mPaymentId = `evt_${randomUUID().replace(/-/g, "").slice(0, 24)}`;
+  const mPaymentId = newPaystackReference("evt");
   let inviteId: string | null = null;
   const inviteToken = (input.inviteToken ?? "").trim();
   if (inviteToken) {
@@ -183,7 +183,7 @@ export async function createTicketOrder(input: {
     joinAndBuy,
     returnUrl: `${input.origin}/events/${event.slug}/checkout/return?order=${order.id}`,
     cancelUrl: `${input.origin}/events/${event.slug}?cancelled=1`,
-    notifyUrl: `${publicOrigin}/api/payfast/itn`,
+    notifyUrl: `${publicOrigin}${PAYSTACK_WEBHOOK_PATH}`,
   };
 
   // Join & buy waits on the membership ITN, even when tickets themselves are free.

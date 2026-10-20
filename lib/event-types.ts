@@ -238,7 +238,7 @@ export const EVENT_IMAGE_SPECS = {
     label: "Feed Post",
     ratio: "4:5",
     size: "1080 × 1350",
-    hint: "Instagram Post — the card people tap in What's On & the app feed.",
+    hint: "Needed. What's On, the app feed, and the card when this event is posted with a guide.",
   },
   story: {
     kind: "story" as const,
@@ -252,7 +252,7 @@ export const EVENT_IMAGE_SPECS = {
     label: "Event Page",
     ratio: "16:9",
     size: "1920 × 1080",
-    hint: "Wide header on the event page & this studio.",
+    hint: "Needed. Wide header on the website event page & in the app.",
   },
 } as const;
 

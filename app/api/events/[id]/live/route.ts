@@ -22,6 +22,8 @@ export async function POST(
     startsAt: body.startsAt,
     endsAt: body.endsAt,
     ticketTypes: body.ticketTypes,
+    bannerUrl: body.bannerUrl,
+    listingImageUrl: body.listingImageUrl,
   });
   if (ready) {
     return NextResponse.json({ error: ready }, { status: 400 });

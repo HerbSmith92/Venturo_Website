@@ -1,9 +1,9 @@
 import { PAID_AMOUNT_CENTS, PAID_AMOUNT_RANDS } from "@/lib/brand";
 import { setPayFastAccess } from "@/lib/member-access";
+import { newPaystackReference, PAYSTACK_WEBHOOK_PATH } from "@/lib/paystack";
 import { createServiceClient } from "@/lib/supabase/admin";
 import { createClient } from "@/lib/supabase/server";
 import { getPublicSiteUrl } from "@/lib/site-url";
-import { randomBytes } from "crypto";
 
 export type MembershipRow = {
   id: string;
@@ -25,8 +25,9 @@ type MembershipRecord = {
   bundled_order_id: string | null;
 };
 
-function newMembershipPaymentId() {
-  return `mem_${randomBytes(12).toString("hex")}`;
+function payerEmail(email?: string) {
+  const trimmed = email?.trim().toLowerCase();
+  return trimmed || null;
 }
 
 function periodEndFrom(now = new Date()) {
@@ -91,33 +92,50 @@ export async function createMembershipCheckout(input: {
 
   let membershipId: string | undefined;
   let mPaymentId: string | undefined;
+  const email = payerEmail(input.email);
 
-  // Standalone subscribe may reuse a bounced pending row. Join & buy must not
-  // steal that row or inherit a previous bundled order.
+  // Standalone subscribe may reuse a bounced pending Paystack row, with a fresh
+  // reference so a failed attempt can start again. Join & buy must not steal
+  // that row or inherit a previous bundled order.
   if (!input.bundledOrderId) {
     const { data: existing } = await service
       .from("memberships")
-      .select("id, m_payment_id, amount_cents, status")
+      .select("id")
       .eq("user_id", input.userId)
       .eq("status", "pending")
+      .eq("provider", "paystack")
       .is("bundled_order_id", null)
       .order("created_at", { ascending: false })
       .limit(1)
       .maybeSingle();
-    membershipId = existing?.id as string | undefined;
-    mPaymentId = existing?.m_payment_id as string | undefined;
+    if (existing?.id) {
+      mPaymentId = newPaystackReference("mem");
+      const { error } = await service
+        .from("memberships")
+        .update({
+          m_payment_id: mPaymentId,
+          amount_cents: PAID_AMOUNT_CENTS,
+          payer_email: email,
+          provider: "paystack",
+          updated_at: new Date().toISOString(),
+        })
+        .eq("id", existing.id);
+      if (error) throw new Error(error.message);
+      membershipId = existing.id as string;
+    }
   }
 
   if (!membershipId || !mPaymentId) {
-    mPaymentId = newMembershipPaymentId();
+    mPaymentId = newPaystackReference("mem");
     const { data, error } = await service
       .from("memberships")
       .insert({
         user_id: input.userId,
         status: "pending",
-        provider: "payfast",
+        provider: "paystack",
         amount_cents: PAID_AMOUNT_CENTS,
         m_payment_id: mPaymentId,
+        payer_email: email,
         bundled_order_id: input.bundledOrderId ?? null,
       })
       .select("id, m_payment_id")
@@ -133,6 +151,7 @@ export async function createMembershipCheckout(input: {
     throw new Error("Could not create membership checkout.");
   }
 
+  const origin = input.origin.replace(/\/$/, "");
   const publicOrigin = getPublicSiteUrl(input.origin);
   return {
     membershipId,
@@ -140,9 +159,9 @@ export async function createMembershipCheckout(input: {
     amountCents: PAID_AMOUNT_CENTS,
     amountRands: PAID_AMOUNT_RANDS,
     returnUrl:
-      input.returnUrl ?? `${publicOrigin}/join/subscribe/return?membership=${membershipId}`,
-    cancelUrl: input.cancelUrl ?? `${publicOrigin}/join/subscribe?cancelled=1`,
-    notifyUrl: `${publicOrigin}/api/payfast/itn`,
+      input.returnUrl ?? `${origin}/join/subscribe/return?membership=${membershipId}`,
+    cancelUrl: input.cancelUrl ?? `${origin}/join/subscribe?cancelled=1`,
+    notifyUrl: `${publicOrigin}${PAYSTACK_WEBHOOK_PATH}`,
     itemName: input.itemName ?? "Venturo Membership",
   };
 }
@@ -240,15 +259,157 @@ async function fulfillBundledOrder(
   return error;
 }
 
+type MembershipSettleInput = {
+  paymentStatus: string;
+  paymentId?: string | null;
+  token?: string | null;
+  amountGross?: string | null;
+  paystack?: {
+    transactionId?: string | null;
+    customerCode?: string | null;
+    subscriptionCode?: string | null;
+    emailToken?: string | null;
+    periodEnd?: string | null;
+  };
+};
+
+async function findPaystackMembership(
+  service: NonNullable<ReturnType<typeof createServiceClient>>,
+  lookup: {
+    reference?: string | null;
+    customerCode?: string | null;
+    payerEmail?: string | null;
+    subscriptionCode?: string | null;
+  },
+) {
+  const membershipSelect = "id, user_id, status, amount_cents, bundled_order_id";
+
+  if (lookup.reference) {
+    const { data } = await service
+      .from("memberships")
+      .select(membershipSelect)
+      .eq("m_payment_id", lookup.reference)
+      .maybeSingle();
+    if (data) return data as MembershipRecord;
+  }
+
+  if (lookup.subscriptionCode) {
+    const { data } = await service
+      .from("memberships")
+      .select(membershipSelect)
+      .eq("paystack_subscription_code", lookup.subscriptionCode)
+      .maybeSingle();
+    if (data) return data as MembershipRecord;
+  }
+
+  if (lookup.customerCode) {
+    const { data } = await service
+      .from("memberships")
+      .select(membershipSelect)
+      .eq("paystack_customer_code", lookup.customerCode)
+      .in("status", ["pending", "active"])
+      .order("created_at", { ascending: false })
+      .limit(1)
+      .maybeSingle();
+    if (data) return data as MembershipRecord;
+  }
+
+  const email = lookup.payerEmail?.trim().toLowerCase();
+  if (email) {
+    const { data } = await service
+      .from("memberships")
+      .select(membershipSelect)
+      .eq("payer_email", email)
+      .eq("provider", "paystack")
+      .in("status", ["pending", "active"])
+      .order("created_at", { ascending: false })
+      .limit(1)
+      .maybeSingle();
+    if (data) return data as MembershipRecord;
+  }
+
+  return null;
+}
+
+export async function fulfillPaystackMembership(input: {
+  reference?: string | null;
+  customerCode?: string | null;
+  payerEmail?: string | null;
+  subscriptionCode?: string | null;
+  paymentStatus: "COMPLETE" | "FAILED" | "CANCELLED";
+  transactionId?: string | null;
+  amountCents?: number | null;
+  paystackCustomerCode?: string | null;
+  paystackSubscriptionCode?: string | null;
+  emailToken?: string | null;
+  periodEnd?: string | null;
+}) {
+  const service = createServiceClient();
+  if (!service) return { ok: false as const, error: "Service unavailable" };
+
+  if (input.paymentStatus === "COMPLETE" && typeof input.amountCents !== "number") {
+    return { ok: false as const, error: "Amount mismatch" };
+  }
+
+  const membership = await findPaystackMembership(service, {
+    reference: input.reference,
+    customerCode: input.customerCode,
+    payerEmail: input.payerEmail,
+    subscriptionCode: input.subscriptionCode,
+  });
+  if (!membership) return { ok: false as const, error: "Membership not found" };
+
+  return fulfillMembershipRow(service, membership, {
+    paymentStatus: input.paymentStatus,
+    paymentId: input.transactionId,
+    amountGross:
+      typeof input.amountCents === "number" ? (input.amountCents / 100).toFixed(2) : null,
+    paystack: {
+      transactionId: input.transactionId,
+      customerCode: input.paystackCustomerCode ?? input.customerCode,
+      subscriptionCode: input.paystackSubscriptionCode ?? input.subscriptionCode,
+      emailToken: input.emailToken,
+      periodEnd: input.periodEnd,
+    },
+  });
+}
+
+export async function rememberPaystackSubscription(input: {
+  subscriptionCode: string;
+  emailToken?: string | null;
+  customerCode?: string | null;
+  payerEmail?: string | null;
+  nextPaymentDate?: string | null;
+}) {
+  const service = createServiceClient();
+  if (!service) return { ok: false as const, error: "Service unavailable" };
+
+  const membership = await findPaystackMembership(service, {
+    customerCode: input.customerCode,
+    payerEmail: input.payerEmail,
+    subscriptionCode: input.subscriptionCode,
+  });
+  if (!membership) return { ok: true as const, matched: false };
+
+  const patch: Record<string, unknown> = {
+    paystack_subscription_code: input.subscriptionCode,
+    updated_at: new Date().toISOString(),
+  };
+  if (input.emailToken) patch.paystack_email_token = input.emailToken;
+  if (input.customerCode) patch.paystack_customer_code = input.customerCode;
+  if (input.nextPaymentDate && membership.status === "active") {
+    patch.current_period_end = input.nextPaymentDate;
+  }
+
+  const { error } = await service.from("memberships").update(patch).eq("id", membership.id);
+  if (error) return { ok: false as const, error: error.message };
+  return { ok: true as const, matched: true };
+}
+
 async function fulfillMembershipRow(
   service: NonNullable<ReturnType<typeof createServiceClient>>,
   membership: MembershipRecord,
-  input: {
-    paymentStatus: string;
-    paymentId?: string | null;
-    token?: string | null;
-    amountGross?: string | null;
-  },
+  input: MembershipSettleInput,
 ) {
   const now = new Date();
   const bundled = await loadBundledOrder(service, membership.bundled_order_id);
@@ -277,6 +438,17 @@ async function fulfillMembershipRow(
       updated_at: now.toISOString(),
     };
     if (input.token) patch.payfast_token = input.token;
+    if (input.paystack?.transactionId) {
+      patch.paystack_transaction_id = input.paystack.transactionId;
+    }
+    if (input.paystack?.customerCode) {
+      patch.paystack_customer_code = input.paystack.customerCode;
+    }
+    if (input.paystack?.subscriptionCode) {
+      patch.paystack_subscription_code = input.paystack.subscriptionCode;
+    }
+    if (input.paystack?.emailToken) patch.paystack_email_token = input.paystack.emailToken;
+    if (input.paystack?.periodEnd) patch.current_period_end = input.paystack.periodEnd;
 
     const { error } = await service.from("memberships").update(patch).eq("id", membership.id);
     if (error) return { ok: false as const, error: error.message };

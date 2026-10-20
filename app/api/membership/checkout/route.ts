@@ -1,7 +1,12 @@
 import { NextResponse } from "next/server";
 import { getCurrentUser } from "@/lib/auth";
+import { PAID_AMOUNT_CENTS } from "@/lib/brand";
 import { createMembershipCheckout } from "@/lib/memberships";
-import { buildPayFastCheckout, getPayFastConfig } from "@/lib/payfast";
+import {
+  getPaystackConfig,
+  initializePaystackTransaction,
+  resolveMembershipPlanCode,
+} from "@/lib/paystack";
 
 export async function POST(request: Request) {
   const user = await getCurrentUser();
@@ -13,23 +18,17 @@ export async function POST(request: Request) {
     return NextResponse.json({ redirect: "/account" });
   }
 
-  const config = getPayFastConfig();
+  const config = getPaystackConfig();
   if (!config) {
     return NextResponse.json(
-      {
-        error:
-          "PayFast is not configured yet. Add PAYFAST_MERCHANT_ID & PAYFAST_MERCHANT_KEY.",
-      },
+      { error: "Paystack is not configured yet. Add PAYSTACK_SECRET_KEY." },
       { status: 503 },
     );
   }
-  if (!config.passphrase) {
+  if (!user.email) {
     return NextResponse.json(
-      {
-        error:
-          "PayFast recurring billing needs PAYFAST_PASSPHRASE set on the merchant & in env.",
-      },
-      { status: 503 },
+      { error: "Add an email to your account before subscribing." },
+      { status: 400 },
     );
   }
 
@@ -42,25 +41,19 @@ export async function POST(request: Request) {
       origin,
     });
 
-    const payfast = buildPayFastCheckout({
-      config,
-      amountRands: checkout.amountRands,
-      itemName: checkout.itemName,
-      mPaymentId: checkout.mPaymentId,
-      returnUrl: checkout.returnUrl,
-      cancelUrl: checkout.cancelUrl,
-      notifyUrl: checkout.notifyUrl,
+    const planCode = await resolveMembershipPlanCode(config.secretKey, PAID_AMOUNT_CENTS);
+    const session = await initializePaystackTransaction({
+      secretKey: config.secretKey,
       email: user.email,
-      firstName: user.firstName,
-      subscription: {
-        frequency: 3,
-        cycles: 0,
-        recurringAmountRands: checkout.amountRands,
-      },
+      amountCents: checkout.amountCents,
+      reference: checkout.mPaymentId,
+      callbackUrl: checkout.returnUrl,
+      metadata: { kind: "membership", membership_id: checkout.membershipId },
+      planCode,
     });
 
     return NextResponse.json({
-      payfast,
+      authorizationUrl: session.authorizationUrl,
       membershipId: checkout.membershipId,
     });
   } catch (error) {

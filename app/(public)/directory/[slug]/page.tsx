@@ -248,7 +248,7 @@ export default async function ListingDetailPage({
             {!revealMember && (
               <div className="hero-actions" style={{ marginTop: 24 }}>
                 <a className="btn btn-secondary" href="/join/subscribe">
-                  Get Member Prices
+                  Subscribe
                 </a>
               </div>
             )}

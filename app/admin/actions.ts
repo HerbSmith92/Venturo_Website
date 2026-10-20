@@ -281,7 +281,7 @@ export async function applyListingAction(formData: FormData) {
   });
 
   if (error) {
-    redirect(`/admin/listings/${id}?error=${encodeURIComponent(error.message)}`);
+    redirect(listingReturn(id, formData, { error: error.message }));
   }
 
   revalidatePath("/admin");
@@ -289,7 +289,16 @@ export async function applyListingAction(formData: FormData) {
   revalidatePath(`/admin/listings/${id}`);
   revalidatePath("/");
   revalidatePath("/directory");
-  redirect(`/admin/listings/${id}?done=${action}`);
+  redirect(listingReturn(id, formData, { done: action }));
+}
+
+function listingReturn(id: string, formData: FormData, extra: Record<string, string>) {
+  const params = new URLSearchParams(extra);
+  const queue = new URLSearchParams(String(formData.get("queue") ?? ""));
+  queue.forEach((value, key) => {
+    if (key !== "done" && key !== "error") params.set(key, value);
+  });
+  return `/admin/listings/${id}?${params.toString()}`;
 }
 
 function asStaffRole(value: string): AppRole | null {

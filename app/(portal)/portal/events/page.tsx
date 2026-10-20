@@ -6,6 +6,7 @@ import { getEventDoorStats } from "@/lib/host-scanning";
 import {
   PORTAL_LOGIN,
   portalEventHref,
+  portalNewEventHref,
 } from "@/lib/portal";
 import { companionEventHref } from "@/lib/companion";
 import { redirect } from "next/navigation";
@@ -15,6 +16,7 @@ function statusLabel(status: string) {
   if (status === "review") return "In Review";
   if (status === "draft") return "Draft";
   if (status === "cancelled") return "Cancelled";
+  if (status === "rejected") return "Rejected";
   return status;
 }
 
@@ -44,7 +46,7 @@ export default async function PortalEventsPage() {
           <p className="eyebrow">Event Host</p>
           <h1>My Events</h1>
           <p className="lede muted">
-            Open the door on the night, or open the Menu to run the rest.
+            Open an event for its dashboard. The door unlocks once it&apos;s live.
           </p>
         </div>
       </div>
@@ -91,7 +93,11 @@ export default async function PortalEventsPage() {
                       <article key={event.id} className="host-event-card">
                         <EventCard
                           event={event}
-                          href={portalEventHref(event.id)}
+                          href={
+                            event.status === "draft"
+                              ? portalNewEventHref(event.id, "details")
+                              : portalEventHref(event.id)
+                          }
                           showMemberPrice
                           imageBadge={
                             event.status !== "approved" ? (
@@ -121,8 +127,15 @@ export default async function PortalEventsPage() {
                           ) : (
                             <span className="muted door-locked">Door unlocks when live</span>
                           )}
-                          <a className="btn btn-secondary" href={portalEventHref(event.id)}>
-                            Menu
+                          <a
+                            className="btn btn-secondary"
+                            href={
+                              event.status === "draft"
+                                ? portalNewEventHref(event.id, "details")
+                                : portalEventHref(event.id)
+                            }
+                          >
+                            {event.status === "draft" ? "Continue" : "Dashboard"}
                           </a>
                         </div>
                       </article>

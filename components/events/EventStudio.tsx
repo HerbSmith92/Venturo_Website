@@ -290,7 +290,7 @@ export function EventStudio({
       ticketTypes: tickets.map((ticket) => ({
         id: ticket.id,
         name: ticket.name,
-        description: ticket.kind === "free" ? ticket.description.trim() : "",
+        description: ticket.description.trim(),
         kind: ticket.kind,
         priceCents: ticket.kind === "free" ? 0 : parseRandsToCents(ticket.priceRands),
         memberPriceCents: ticketMemberCents(ticket),
@@ -686,8 +686,8 @@ export function EventStudio({
             </ul>
             {hasPaidTickets && !hasPayout ? (
               <p className="notice">
-                Paid tickets need a payout bank. Set that once in{" "}
-                <a href={PORTAL_SETTINGS_BANK}>Host Settings</a>—not per event.
+                Paid tickets stay off sale until a payout bank is saved. Add it once in{" "}
+                <a href={PORTAL_SETTINGS_BANK}>Host Settings</a>.
               </p>
             ) : null}
             <div className="studio-add-ticket">
@@ -717,8 +717,9 @@ export function EventStudio({
           {showDetails ? (
           <StudioSection title="Appearance">
             <p className="muted">
-              Event Page fills the hero above. Feed &amp; story are for What&apos;s On &amp; the app.
-              Max {EVENT_IMAGE_MAX_MB} MB per photo · JPEG, PNG or WebP.
+              The 16:9 fills the event page on the website &amp; in the app. The 4:5 is the card on
+              What&apos;s On, in the app feed, and when this event is posted with a guide. The 9:16
+              story is optional. Max {EVENT_IMAGE_MAX_MB} MB per photo · JPEG, PNG or WebP.
             </p>
             <div className="studio-uploads">
               {STUDIO_IMAGE_ORDER.map((kind) => {

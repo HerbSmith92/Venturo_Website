@@ -1,6 +1,6 @@
 import { MembershipCheckoutForm } from "@/components/MembershipCheckoutForm";
 import { getCurrentUser } from "@/lib/auth";
-import { getPayFastStatus } from "@/lib/payfast";
+import { getPaystackStatus } from "@/lib/paystack";
 import { redirect } from "next/navigation";
 
 export default async function SubscribePage({
@@ -13,28 +13,22 @@ export default async function SubscribePage({
   if (user.plan === "paid") redirect("/account");
 
   const params = await searchParams;
-  const payfast = getPayFastStatus();
+  const paystack = getPaystackStatus();
 
   return (
     <main className="shell">
-      {!payfast.configured && (
+      {!paystack.configured && (
         <section className="section">
           <p className="notice">
-            PayFast is not configured in this environment yet. Add{" "}
-            <code>PAYFAST_MERCHANT_ID</code> & <code>PAYFAST_MERCHANT_KEY</code> to enable
-            sandbox checkout.
+            Paystack is not configured in this environment yet. Add{" "}
+            <code>PAYSTACK_SECRET_KEY</code> to enable test checkout.
           </p>
         </section>
       )}
       <MembershipCheckoutForm
-        autoStart={params.auto === "1" && payfast.configured}
+        autoStart={params.auto === "1" && paystack.configured}
         cancelled={params.cancelled === "1"}
       />
-      {payfast.configured && (
-        <p className="muted shell" style={{ marginTop: -40, marginBottom: 48 }}>
-          Mode: {payfast.mode}. ITN: <code>{payfast.itnPath}</code>
-        </p>
-      )}
     </main>
   );
 }

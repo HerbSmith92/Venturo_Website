@@ -132,6 +132,7 @@ export async function loadDirectoryQueue(filters: {
   author?: string;
   sort?: string;
   dir?: string;
+  limit?: number;
 }): Promise<{
   rows: QueueListing[];
   interests: { key: string; title: string }[];
@@ -151,7 +152,7 @@ export async function loadDirectoryQueue(filters: {
     `,
     )
     .order("updated_at", { ascending: false })
-    .limit(200);
+    .limit(filters.limit ?? 200);
 
   if (status === "suspended") query = query.eq("is_suspended", true);
   else if (status === "scheduled") {

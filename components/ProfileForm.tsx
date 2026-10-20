@@ -284,8 +284,8 @@ export function ProfileForm({
             <h2>{paid ? "Paid Member" : "Free Profile"}</h2>
             <p>
               {paid
-                ? "Your membership is active (PayFast or app store). Curated discovery & member ticket prices are on."
-                : `Book tickets & host events for approval. Subscribe with PayFast for ${paidPrice} a month for member prices.`}
+                ? "Your membership is active. Curated discovery & member ticket prices are on."
+                : `Book tickets & host events for approval. Subscribe on the website for ${paidPrice} a month for member prices.`}
             </p>
           </div>
           <div className="hero-actions">
@@ -294,7 +294,7 @@ export function ProfileForm({
             </a>
             {!paid && (
               <a className="btn btn-secondary" href="/join/subscribe">
-                Subscribe With PayFast
+                Subscribe · {paidPrice} / month
               </a>
             )}
           </div>

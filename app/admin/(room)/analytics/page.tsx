@@ -85,7 +85,7 @@ export default async function ControlRoomAnalyticsPage() {
         {formatAnalyticsCount(stats.accounts7d)} new accounts ·{" "}
         {formatAnalyticsCount(stats.ios7d)} iOS downloads ·{" "}
         {formatAnalyticsCount(stats.android7d)} Android downloads. Paid members:{" "}
-        {formatAnalyticsCount(stats.membersPayfast)} PayFast ·{" "}
+        {formatAnalyticsCount(stats.membersPayfast)} Website ·{" "}
         {formatAnalyticsCount(stats.membersApp)} App Store / Play Store.
       </p>
       <p className="muted">

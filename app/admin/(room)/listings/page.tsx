@@ -6,6 +6,7 @@ import { deleteArchivedListing } from "@/app/admin/actions";
 import { getStaffSession } from "@/lib/auth";
 import { formatClock, listingStatusLabel, loadDirectoryQueue } from "@/lib/control-room";
 import type { QueueListing } from "@/lib/control-room-types";
+import { directoryGroups, listingEditorHref, listingQueueFromSearch, type ListingQueue } from "@/lib/listing-queue";
 import { isAdmin } from "@/lib/roles";
 
 export default async function ListingsQueuePage({
@@ -27,7 +28,8 @@ export default async function ListingsQueuePage({
   const session = await getStaffSession();
   const canBulk = isAdmin(session?.role);
   const board = await loadDirectoryQueue({ status, q, interest, author, sort, dir });
-  const grouped = group === "interest" ? groupRows(board.rows) : null;
+  const queue = listingQueueFromSearch({ status, q, interest, author, sort, dir, group });
+  const grouped = group === "interest" ? directoryGroups(board.rows) : null;
   const canDelete = status === "archived";
   const columns = canBulk ? 7 : 6;
   const query = new URLSearchParams({ status });
@@ -63,11 +65,11 @@ export default async function ListingsQueuePage({
             </tr>
           ) : grouped ? (
             grouped.map((bucket) => (
-              <ListingGroup key={bucket.title} title={bucket.title} rows={bucket.rows} canDelete={canDelete} columns={columns} selectable={canBulk} />
+              <ListingGroup key={bucket.title} title={bucket.title} rows={bucket.rows} canDelete={canDelete} columns={columns} selectable={canBulk} queue={queue} />
             ))
           ) : (
             board.rows.map((listing) => (
-              <ListingRow key={listing.id} listing={listing} canDelete={canDelete} selectable={canBulk} />
+              <ListingRow key={listing.id} listing={listing} canDelete={canDelete} selectable={canBulk} queue={queue} />
             ))
           )}
         </tbody>
@@ -92,35 +94,20 @@ export default async function ListingsQueuePage({
   );
 }
 
-function groupRows(rows: QueueListing[]) {
-  const buckets = new Map<string, QueueListing[]>();
-  for (const row of rows) {
-    const title = row.interest?.trim() || "Other";
-    const list = buckets.get(title) ?? [];
-    list.push(row);
-    buckets.set(title, list);
-  }
-  return [...buckets.entries()]
-    .sort(([left], [right]) => {
-      if (left === "Other") return 1;
-      if (right === "Other") return -1;
-      return left.localeCompare(right, "en", { sensitivity: "base" });
-    })
-    .map(([title, items]) => ({ title, rows: items }));
-}
-
 function ListingGroup({
   title,
   rows,
   canDelete,
   columns,
   selectable,
+  queue,
 }: {
   title: string;
   rows: QueueListing[];
   canDelete: boolean;
   columns: number;
   selectable: boolean;
+  queue: ListingQueue;
 }) {
   return (
     <>
@@ -128,7 +115,7 @@ function ListingGroup({
         <td colSpan={columns}>{title}</td>
       </tr>
       {rows.map((listing) => (
-        <ListingRow key={listing.id} listing={listing} canDelete={canDelete} selectable={selectable} />
+        <ListingRow key={listing.id} listing={listing} canDelete={canDelete} selectable={selectable} queue={queue} />
       ))}
     </>
   );
@@ -138,10 +125,12 @@ function ListingRow({
   listing,
   canDelete,
   selectable,
+  queue,
 }: {
   listing: QueueListing;
   canDelete: boolean;
   selectable: boolean;
+  queue: ListingQueue;
 }) {
   const place = [listing.branch_name, listing.suburb, listing.city].filter(Boolean).join(" · ");
   const scheduled = Boolean(listing.publish_at) && new Date(listing.publish_at ?? "").getTime() > Date.now();
@@ -184,7 +173,7 @@ function ListingRow({
       <td>{formatClock(listing.updated_at)}</td>
       <td>
         <div className="cr-directory-actions">
-          <a className="btn btn-primary" href={`/admin/listings/${listing.id}`}>
+          <a className="btn btn-primary" href={listingEditorHref(listing.id, queue)}>
             Edit
           </a>
           {canDelete ? <DeleteArchivedListing id={listing.id} action={deleteArchivedListing} /> : null}

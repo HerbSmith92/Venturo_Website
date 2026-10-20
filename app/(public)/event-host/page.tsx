@@ -6,7 +6,7 @@ import { PORTAL_HOME, portalLoginHref } from "@/lib/portal";
 export const metadata: Metadata = {
   title: "Event Host · Venturo",
   description:
-    "Put your event in front of curious locals already looking for a plan. Tickets on PayFast. Same Venturo account, quiet Event Host space.",
+    "Put your event in front of curious locals already looking for a plan. Tickets on Paystack. Same Venturo account, quiet Event Host space.",
 };
 
 const REASONS = [
@@ -20,7 +20,7 @@ const REASONS = [
     n: "02",
     colour: "#FF9E6B",
     title: "Tickets Without The Circus",
-    body: "PayFast in rand. Member prices if you want to look after subscribers. A quiet Event Host space—the public site stays outside until you leave.",
+    body: "Paystack in rand. Member prices if you want to look after members. A quiet Event Host space—the public site stays outside until you leave.",
   },
   {
     n: "03",

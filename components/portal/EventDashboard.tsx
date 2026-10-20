@@ -6,9 +6,18 @@ import { EventQr } from "@/components/portal/EventQr";
 import type { EventDashboardData } from "@/lib/event-dashboard";
 import { formatCents, isoToDatetimeLocal } from "@/lib/event-types";
 import { companionEventHref } from "@/lib/companion";
-import { portalMarketingInvitesHref, portalEventHref } from "@/lib/portal";
+import { portalMarketingInvitesHref } from "@/lib/portal";
 import { PortalBarChart } from "@/components/portal/PortalBarChart";
 import type { VenturoEvent } from "@/lib/event-types";
+
+function dashboardStatusLabel(status: VenturoEvent["status"]) {
+  if (status === "approved") return "Approved & Live";
+  if (status === "review") return "In Review";
+  if (status === "rejected") return "Rejected";
+  if (status === "cancelled") return "Cancelled";
+  if (status === "draft") return "Draft";
+  return status;
+}
 
 function formatCount(n: number) {
   return new Intl.NumberFormat("en-ZA").format(n);
@@ -117,6 +126,16 @@ export function EventDashboard({
         <div>
           <p className="eyebrow">Event Dashboard</p>
           <h2>How This One Is Tracking</h2>
+          <span className={`status-pill ${event.status}`}>{dashboardStatusLabel(event.status)}</span>
+          {event.status === "review" ? (
+            <p className="notice">
+              With Venturo for a check. We&apos;ll write here if something needs a change.
+            </p>
+          ) : null}
+          {event.status === "rejected" && !event.reviewNote ? (
+            <p className="notice">Venturo sent this back. Open Manage Event to fix it.</p>
+          ) : null}
+          {event.reviewNote ? <p className="notice">From Venturo: {event.reviewNote}</p> : null}
         </div>
         <div className="event-dash-menu" ref={menuRef}>
           <button
@@ -261,7 +280,7 @@ export function EventDashboard({
           }}
         >
           <h3>Postpone Event</h3>
-          <p className="muted">New times stay live. Refunds are flagged—not taken from PayFast yet.</p>
+          <p className="muted">New times stay live. Refunds are flagged—not taken from Paystack yet.</p>
           <div className="field-row">
             <label className="field">
               <span>Starts</span>
@@ -350,9 +369,6 @@ export function EventDashboard({
                 <h2>Your Event Page</h2>
               </div>
               <div className="hero-actions">
-                <a className="btn btn-secondary" href={portalEventHref(event.id)}>
-                  Menu
-                </a>
                 <button className="btn btn-ghost" type="button" onClick={() => setPreviewOpen(false)}>
                   Close
                 </button>

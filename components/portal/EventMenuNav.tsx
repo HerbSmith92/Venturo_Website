@@ -1,6 +1,5 @@
 import {
   EVENT_MENU_ITEMS,
-  portalEventHref,
   portalEventSectionHref,
   type EventMenuSection,
 } from "@/lib/portal";
@@ -15,13 +14,6 @@ export function EventMenuNav({
 }) {
   return (
     <div className="portal-rail-sub" aria-label="Event Menu">
-      <a
-        className={current === "menu" ? "portal-rail-link nested active" : "portal-rail-link nested"}
-        href={portalEventHref(eventId)}
-        aria-current={current === "menu" ? "page" : undefined}
-      >
-        Menu
-      </a>
       {EVENT_MENU_ITEMS.map((item) => (
         <a
           key={item.id}

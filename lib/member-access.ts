@@ -142,7 +142,7 @@ async function listAuthUsersForBackfill(
   return users;
 }
 
-/** Service-role pass: PayFast from memberships, RevenueCat from the current API. */
+/** Service-role pass: website billing from memberships, RevenueCat from the current API. */
 export async function backfillMemberAccessFromSources() {
   const service = createServiceClient();
   if (!service) {

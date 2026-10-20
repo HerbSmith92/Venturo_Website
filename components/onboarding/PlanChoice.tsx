@@ -37,7 +37,7 @@ export function PlanChoice({
       <p className="eyebrow">Join Venturo</p>
       <h1>How Do You Want To Explore?</h1>
       <p className="lede muted">
-        Start free, or subscribe for Made For You & member prices. You can upgrade later.
+        Start free, or subscribe on the website for Made For You & member prices. You can upgrade later.
       </p>
       {paid && (
         <p className="notice">
@@ -57,8 +57,8 @@ export function PlanChoice({
             <li>Keep a simple profile</li>
           </ul>
           <p className="muted">
-            Name & home area first. Extra questions are optional — stay free at the end, or
-            subscribe then.
+            Name & home area first. Extra questions are optional. Stay free at the end, or
+            subscribe on the website.
           </p>
           <button
             className="btn btn-secondary"
@@ -71,7 +71,7 @@ export function PlanChoice({
         </article>
         <article className={`plan featured`}>
           <p className="eyebrow" style={{ color: "var(--canary)" }}>
-            Subscribe
+            Paid
           </p>
           <h2>Explore More</h2>
           <p>
@@ -83,7 +83,7 @@ export function PlanChoice({
             <li>Same profile on the website & the app</li>
           </ul>
           <p className="muted">
-            Same optional questions. Nothing is charged until you tap Subscribe.
+            Same optional questions. Subscribe on the website when you are ready. Nothing is charged until you confirm.
           </p>
           <button
             className="btn btn-primary"
@@ -99,8 +99,7 @@ export function PlanChoice({
       </div>
       {error && <p className="error">{error}</p>}
       <p className="muted" style={{ marginTop: 16 }}>
-        The extra questions are optional. At the end you can stay free or subscribe — nothing is
-        charged until you choose Subscribe.
+        The extra questions are optional. At the end you can stay free, or subscribe on the website.
       </p>
     </>
   );

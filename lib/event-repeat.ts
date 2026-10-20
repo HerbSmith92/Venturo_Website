@@ -135,6 +135,42 @@ function firstAfter(start: Date, every: RepeatEvery, hour: number, minute: numbe
   return new Date(start.getTime() + 32 * 24 * 60 * 60 * 1000);
 }
 
+/** Every date still to come, through the repeat window. */
+export function listOccurrences(
+  startsAt: string,
+  endsAt: string,
+  every: RepeatEvery | null | undefined,
+  until: string | null | undefined,
+  now = new Date(),
+): { startsAt: string; endsAt: string }[] {
+  const start = new Date(startsAt);
+  const end = new Date(endsAt);
+  if (Number.isNaN(start.getTime()) || Number.isNaN(end.getTime())) return [];
+  const duration = Math.max(0, end.getTime() - start.getTime());
+  if (!every || !parseRepeat(every)) {
+    return end.getTime() >= now.getTime() ? [{ startsAt, endsAt }] : [];
+  }
+  const untilTime = until ? new Date(until).getTime() : start.getTime();
+  if (Number.isNaN(untilTime)) return [];
+  const wall = toWall(start);
+  const found: { startsAt: string; endsAt: string }[] = [];
+  let cursor = start;
+  let onPattern = false;
+  for (let i = 0; i < 400; i += 1) {
+    if (cursor.getTime() > untilTime) break;
+    const occEnd = cursor.getTime() + duration;
+    if (occEnd >= now.getTime()) {
+      found.push({ startsAt: cursor.toISOString(), endsAt: new Date(occEnd).toISOString() });
+    }
+    if (found.length >= 60) break;
+    cursor = onPattern
+      ? step(cursor, every, wall.hour, wall.minute)
+      : firstAfter(start, every, wall.hour, wall.minute);
+    onPattern = true;
+  }
+  return found;
+}
+
 /** The next date that has not ended, within the repeat window. */
 export function nextOccurrence(
   startsAt: string,
@@ -142,29 +178,6 @@ export function nextOccurrence(
   every: RepeatEvery | null | undefined,
   until: string | null | undefined,
   now = new Date(),
-): { startsAt: string; endsAt: string } | null {
-  const start = new Date(startsAt);
-  const end = new Date(endsAt);
-  if (Number.isNaN(start.getTime()) || Number.isNaN(end.getTime())) return null;
-  const duration = Math.max(0, end.getTime() - start.getTime());
-  if (!every || !parseRepeat(every)) {
-    return end.getTime() >= now.getTime() ? { startsAt, endsAt } : null;
-  }
-  const untilTime = until ? new Date(until).getTime() : start.getTime();
-  if (Number.isNaN(untilTime)) return null;
-  const wall = toWall(start);
-  let cursor = start;
-  let onPattern = false;
-  for (let i = 0; i < 400; i += 1) {
-    if (cursor.getTime() > untilTime) return null;
-    const occEnd = cursor.getTime() + duration;
-    if (occEnd >= now.getTime()) {
-      return { startsAt: cursor.toISOString(), endsAt: new Date(occEnd).toISOString() };
-    }
-    cursor = onPattern
-      ? step(cursor, every, wall.hour, wall.minute)
-      : firstAfter(start, every, wall.hour, wall.minute);
-    onPattern = true;
-  }
-  return null;
+) {
+  return listOccurrences(startsAt, endsAt, every, until, now)[0] ?? null;
 }

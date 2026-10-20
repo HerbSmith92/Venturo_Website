@@ -12,7 +12,7 @@ import { createClient } from "@/lib/supabase/server";
 import { redirect } from "next/navigation";
 
 function parseStep(raw: string | undefined): CreateEventStep {
-  if (raw === "tickets" || raw === "assets") return raw;
+  if (raw === "tickets" || raw === "bank" || raw === "assets" || raw === "review") return raw;
   return "details";
 }
 
@@ -37,23 +37,27 @@ export default async function NewEventPage({
     if (params.step !== step) redirect(portalNewEventHref(id, step));
   }
 
+  const paidTickets = Boolean(
+    event?.ticketTypes.some((ticket) => ticket.kind === "paid" && ticket.priceCents > 0),
+  );
+  if (id && step === "bank" && !paidTickets) redirect(portalNewEventHref(id, "assets"));
+
   const fees = await getPlatformFees();
   const supabase = await createClient();
-  let hasPayout = false;
-  if (supabase && event) {
+  let payout: { bankName: string; accountNumberLast4: string } | null = null;
+  const payoutUserId = event?.organiserId ?? user.id;
+  if (supabase) {
     const { data } = await supabase
       .from("organiser_payout_profiles")
-      .select("user_id")
-      .eq("user_id", event.organiserId)
+      .select("bank_name, account_number_last4")
+      .eq("user_id", payoutUserId)
       .maybeSingle();
-    hasPayout = Boolean(data);
-  } else if (supabase) {
-    const { data } = await supabase
-      .from("organiser_payout_profiles")
-      .select("user_id")
-      .eq("user_id", user.id)
-      .maybeSingle();
-    hasPayout = Boolean(data);
+    if (data) {
+      payout = {
+        bankName: data.bank_name,
+        accountNumberLast4: data.account_number_last4,
+      };
+    }
   }
 
   return (
@@ -62,7 +66,7 @@ export default async function NewEventPage({
         key={event?.id ?? "new"}
         event={event}
         step={step}
-        hasPayout={hasPayout}
+        payout={payout}
         fees={fees}
       />
     </main>

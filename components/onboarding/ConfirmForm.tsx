@@ -1,7 +1,6 @@
 "use client";
 
 import { useState } from "react";
-import { PAID_PRICE } from "@/lib/brand";
 import { saveOnboardingPlan, saveOnboardingProfile } from "@/lib/onboarding-client";
 import {
   destinationAfterOnboarding,
@@ -71,7 +70,7 @@ export function ConfirmForm({
       <p className="eyebrow">Almost There</p>
       <h1>Looks Good?</h1>
       <p className="lede muted">
-        Start free whenever you like. Subscribe when you want Made For You & member prices.
+        Start free whenever you like. Subscribe on the website when you want Made For You & member prices.
       </p>
       <dl className="onboarding-summary">
         <div>
@@ -120,13 +119,13 @@ export function ConfirmForm({
           disabled={Boolean(pending)}
           onClick={() => void finish("subscribe")}
         >
-          {pending === "subscribe" ? "Please Wait" : `Subscribe · ${PAID_PRICE} / mo`}
+          {pending === "subscribe" ? "Please Wait" : "Subscribe"}
         </button>
       </div>
       <p className="muted" style={{ marginTop: 16 }}>
         Free books event tickets. Paid is curated discovery & member prices. You can upgrade from
         your profile anytime.
-        {plan === "subscribe" ? " You can still stay free — nothing is charged until you subscribe." : ""}
+        {plan === "subscribe" ? " You can still stay free. Subscribe on the website when you are ready." : ""}
       </p>
     </div>
   );

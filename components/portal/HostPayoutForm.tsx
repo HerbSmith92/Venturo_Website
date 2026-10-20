@@ -20,9 +20,19 @@ type ExistingPayout = {
 export function HostPayoutForm({
   existingPayout,
   fallbackHolder,
+  afterSaveHref,
+  submitLabel = "Save Bank",
+  formId,
+  hideSubmit = false,
+  onPendingChange,
 }: {
   existingPayout: ExistingPayout;
   fallbackHolder: string;
+  afterSaveHref?: string;
+  submitLabel?: string;
+  formId?: string;
+  hideSubmit?: boolean;
+  onPendingChange?: (pending: boolean) => void;
 }) {
   const initialSelect = bankSelectValue(existingPayout?.bankName ?? "");
   const [accountHolder, setAccountHolder] = useState(
@@ -75,6 +85,8 @@ export function HostPayoutForm({
     setError(null);
     setNotice(null);
     setPending(true);
+    onPendingChange?.(true);
+    let leaving = false;
     try {
       const response = await fetch("/api/host/payout", {
         method: "POST",
@@ -90,6 +102,11 @@ export function HostPayoutForm({
       });
       const payload = (await response.json()) as { error?: string };
       if (!response.ok) throw new Error(payload.error ?? "Could not save.");
+      if (afterSaveHref) {
+        leaving = true;
+        window.location.href = afterSaveHref;
+        return;
+      }
       setAccountNumber("");
       setAccountNumberConfirm("");
       setConfirmed(false);
@@ -97,19 +114,29 @@ export function HostPayoutForm({
     } catch (caught) {
       setError(caught instanceof Error ? caught.message : "Could not save.");
     } finally {
-      setPending(false);
+      if (!leaving) {
+        setPending(false);
+        onPendingChange?.(false);
+      }
     }
   }
 
+  const accountDigits = digitsOnly(accountNumber);
+  const confirmDigits = digitsOnly(accountNumberConfirm);
+  const confirmMismatch =
+    confirmDigits.length > 0 && accountDigits.slice(0, confirmDigits.length) !== confirmDigits;
+
   return (
-    <form onSubmit={(event) => void onSubmit(event)}>
+    <form id={formId} onSubmit={(event) => void onSubmit(event)}>
       {existingPayout ? (
         <p className="notice">
           On file: {existingPayout.bankName} · ****{existingPayout.accountNumberLast4}. Enter the
           full account number again to replace it.
         </p>
       ) : (
-        <p className="notice">Add a bank before you go live with paid tickets.</p>
+        <p className="notice">
+          Paid tickets use this account. We pay it 3 working days after the event.
+        </p>
       )}
       <div className="field-row">
         <label className="field">
@@ -160,7 +187,11 @@ export function HostPayoutForm({
             onChange={(event) => setAccountNumberConfirm(event.target.value)}
             inputMode="numeric"
             autoComplete="off"
+            aria-invalid={confirmMismatch || undefined}
           />
+          {confirmMismatch ? (
+            <small className="field-mismatch">Account numbers do not match.</small>
+          ) : null}
         </label>
       </div>
       <label className="field">
@@ -182,9 +213,11 @@ export function HostPayoutForm({
       </label>
       {error && <p className="error">{error}</p>}
       {notice && <p className="notice">{notice}</p>}
-      <button className="btn btn-primary" type="submit" disabled={pending}>
-        {pending ? "Saving" : "Save Bank"}
-      </button>
+      {hideSubmit ? null : (
+        <button className="btn btn-primary" type="submit" disabled={pending}>
+          {pending ? "Saving" : submitLabel}
+        </button>
+      )}
     </form>
   );
 }

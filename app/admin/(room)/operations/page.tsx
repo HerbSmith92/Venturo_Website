@@ -28,7 +28,7 @@ export default async function OperationsPage() {
       <h1>Orders</h1>
       <p className="lede muted">
         Payment exceptions and refunds. These are the same ticket orders the website and the app use.
-        Website checkout is PayFast. App memberships land in Members.
+        Website checkout is Paystack. App memberships land in Members.
       </p>
       <div className="cr-table-wrap">
         <table className="cr-table">

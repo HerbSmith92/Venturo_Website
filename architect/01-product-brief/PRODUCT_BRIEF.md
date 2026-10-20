@@ -57,5 +57,5 @@ Full write-up: [`../09-ux-flows/PRODUCT_ARCHITECTURE.md`](../09-ux-flows/PRODUCT
 
 1. Member price, billing cycle, and trial
 2. In-venue discount redemption (QR, code, staff check)
-3. Payment provider (PayFast / Paystack / Peach)
+3. Payment provider — **Paystack** (PayFast was rejected). Test mode until the business is approved.
 4. Existing Supabase project to connect

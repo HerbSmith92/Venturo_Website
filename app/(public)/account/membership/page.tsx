@@ -23,7 +23,7 @@ export default async function MembershipPage() {
   } | null;
   const paid = Boolean(row?.subscribed);
   const provider = row?.payfast_active
-    ? "Website · PayFast"
+    ? "Website"
     : row?.revenuecat_active
       ? "App · Apple or Google"
       : "None yet";
@@ -41,8 +41,7 @@ export default async function MembershipPage() {
         <p className="eyebrow">My Venturo</p>
         <h1>Membership</h1>
         <p className="lede">
-          {status}. {PAID_PRICE} a month unlocks Made For You and member prices. The app reads this
-          same access.
+          {status}. {PAID_PRICE} a month unlocks Made For You & member prices. Subscribe here, or in the app.
         </p>
         <ul>
           <li>Status: {status}</li>
@@ -50,16 +49,21 @@ export default async function MembershipPage() {
           {until ? <li>Renewal or end: {until}</li> : null}
         </ul>
         <div className="hero-actions">
-          <a className="btn btn-primary" href="/join/subscribe">
-            {paid ? "Manage On The Website" : "Subscribe With PayFast"}
-          </a>
+          {paid ? (
+            <a className="btn btn-primary" href="/account">
+              Your Account
+            </a>
+          ) : (
+            <a className="btn btn-primary" href="/join/subscribe">
+              Subscribe · {PAID_PRICE} / month
+            </a>
+          )}
           <a className="btn btn-secondary" href="/help">
             Payment Help
           </a>
         </div>
         <p className="muted" style={{ marginTop: 16 }}>
-          App Store and Play Store purchases are restored in the app. They write the same membership
-          row.
+          The website & the app read the same membership.
         </p>
       </section>
     </main>

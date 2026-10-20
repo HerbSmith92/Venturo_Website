@@ -8,6 +8,7 @@ import {
   listOrganiserEvents,
 } from "@/lib/events";
 import { companionEventHref } from "@/lib/companion";
+import { PORTAL_EVENTS_NEW } from "@/lib/portal";
 import { createClient } from "@/lib/supabase/server";
 import { redirect } from "next/navigation";
 
@@ -27,10 +28,10 @@ export default async function MyEventsPage({
   const params = await searchParams;
   const user = await getCurrentUser();
   if (!user) {
-    const next =
-      params.new === "1" ? "/account/events%3Fnew%3D1" : "/account/events";
-    redirect(`/login?next=${next}`);
+    const next = params.new === "1" ? PORTAL_EVENTS_NEW : "/account/events";
+    redirect(`/login?next=${encodeURIComponent(next)}`);
   }
+  if (params.new === "1") redirect(PORTAL_EVENTS_NEW);
   const when = params.when === "past" ? "past" : "current";
   const events = await listOrganiserEvents(user.id);
   const now = Date.now();
@@ -78,7 +79,7 @@ export default async function MyEventsPage({
                 Past ({pastCount})
               </a>
             </div>
-            <HostEventsHeader startOpen={params.new === "1"} />
+            <HostEventsHeader />
           </div>
         </div>
 

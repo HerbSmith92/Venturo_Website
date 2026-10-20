@@ -197,7 +197,7 @@ export function LandingDiscover({
             <p className="price-cadence">{PAID_CADENCE}</p>
             <p>
               A free profile books event tickets. Paid opens the personal feed &
-              the member price, on the website with PayFast & in the app.
+              the member price. Subscribe on the website, or in the app.
             </p>
             <ul>
               <li>A feed shaped by your interests, people & energy</li>
@@ -217,7 +217,7 @@ export function LandingDiscover({
                 className="btn btn-secondary"
                 href={showMemberPrice ? "/account/membership" : "/join/subscribe"}
               >
-                {showMemberPrice ? "Your Membership" : "Subscribe With PayFast"}
+                {showMemberPrice ? "Your Membership" : `Subscribe · ${PAID_PRICE} / month`}
               </a>
             </div>
           </article>

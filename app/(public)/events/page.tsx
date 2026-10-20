@@ -37,6 +37,7 @@ export default async function EventsPage({
     category: category === "all" ? undefined : category,
     when: when === "calendar" ? "upcoming" : when,
     price: price || undefined,
+    expandRepeats: true,
   });
 
   return (
@@ -149,7 +150,15 @@ export default async function EventsPage({
           <div className="stack-list">
             {Array.from(
               events.reduce((map, event) => {
-                const day = event.startsAt.slice(0, 10) || "Date to be confirmed";
+                const day = event.startsAt
+                  ? new Intl.DateTimeFormat("en-ZA", {
+                      timeZone: event.timezone || "Africa/Johannesburg",
+                      weekday: "short",
+                      day: "numeric",
+                      month: "short",
+                      year: "numeric",
+                    }).format(new Date(event.startsAt))
+                  : "Date to be confirmed";
                 const list = map.get(day) ?? [];
                 list.push(event);
                 map.set(day, list);
@@ -160,7 +169,11 @@ export default async function EventsPage({
                 <h3>{day}</h3>
                 <div className="grid">
                   {dayEvents.map((event) => (
-                    <EventCard key={event.id} event={event} showMemberPrice={user?.plan === "paid"} />
+                    <EventCard
+                      key={`${event.id}-${event.startsAt}`}
+                      event={event}
+                      showMemberPrice={user?.plan === "paid"}
+                    />
                   ))}
                 </div>
               </section>
@@ -170,7 +183,7 @@ export default async function EventsPage({
           <div className="grid">
             {events.map((event) => (
               <EventCard
-                key={event.id}
+                key={`${event.id}-${event.startsAt}`}
                 event={event}
                 showMemberPrice={user?.plan === "paid"}
               />

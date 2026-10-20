@@ -4,7 +4,7 @@ import { FeeSettingsForm } from "@/components/admin/FeeSettingsForm";
 import { getStaffSession } from "@/lib/auth";
 import { loadCatalogAdmin } from "@/lib/catalog-admin";
 import { getPlatformFees } from "@/lib/events";
-import { getPayFastStatus } from "@/lib/payfast";
+import { getPaystackStatus } from "@/lib/paystack";
 import {
   getAppStoreLinks,
   revenueCatIsConfigured,
@@ -21,9 +21,9 @@ import { getPublicSiteUrl } from "@/lib/site-url";
 export default async function AdminSettingsPage() {
   const session = await getStaffSession();
   const canManage = isAdmin(session?.role);
-  const [fees, payfast, catalog] = await Promise.all([
+  const [fees, paystack, catalog] = await Promise.all([
     getPlatformFees(),
-    Promise.resolve(getPayFastStatus()),
+    Promise.resolve(getPaystackStatus()),
     loadCatalogAdmin(),
   ]);
   const siteUrl = getPublicSiteUrl();
@@ -41,34 +41,38 @@ export default async function AdminSettingsPage() {
       </p>
 
       <article className="plan" style={{ marginTop: 28 }}>
-        <p className="eyebrow">PayFast</p>
+        <p className="eyebrow">Paystack</p>
         <h2>Ticket Checkout</h2>
         <ul>
           <li>
             Status:{" "}
             <strong>
-              {payfast.configured
-                ? payfast.mode === "live"
+              {paystack.configured
+                ? paystack.mode === "live"
                   ? "Live"
-                  : "Sandbox"
+                  : paystack.mode === "test"
+                    ? "Test"
+                    : "Key set"
                 : "Not configured"}
             </strong>
           </li>
-          {payfast.merchantIdMasked && (
-            <li>Merchant ID: {payfast.merchantIdMasked}</li>
-          )}
+          {paystack.secretMasked && <li>Secret: {paystack.secretMasked}</li>}
           <li>
-            ITN URL (paste in PayFast dashboard):{" "}
+            Membership plan:{" "}
+            <strong>{paystack.planCode ?? "Created on the first subscribe"}</strong>
+          </li>
+          <li>
+            Webhook URL (paste in the Paystack dashboard):{" "}
             <code>
               {siteUrl}
-              {payfast.itnPath}
+              {paystack.webhookPath}
             </code>
           </li>
         </ul>
         <p className="muted" style={{ marginTop: 12 }}>
-          Go-live: merchant approved → set <code>PAYFAST_ENV=live</code> on Vercel
-          Production → ITN URL above → smoke-test a paid ticket. Sandbox is fine
-          until then.
+          Test mode is the right place to build. When Paystack approves the business, swap{" "}
+          <code>PAYSTACK_SECRET_KEY</code> for the live secret on Vercel Production & set the live
+          webhook to the URL above.
         </p>
       </article>
 
@@ -122,9 +126,9 @@ export default async function AdminSettingsPage() {
           </li>
         </ul>
         <p className="muted" style={{ marginTop: 12 }}>
-          PayFast ITNs & RevenueCat webhooks write <code>member_access</code>. The website & app
-          only read <code>subscribed</code>. Store buttons stay soft until real listing URLs are
-          in Vercel env.
+          Paystack takes ticket payments & website membership. RevenueCat still writes app-store
+          membership into <code>member_access</code>. The website & app only read <code>subscribed</code>.
+          Store buttons stay soft until real listing URLs are in Vercel env.
         </p>
       </article>
 

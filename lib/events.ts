@@ -22,7 +22,7 @@ import {
   type VenturoEvent,
   EVENT_CATEGORIES,
 } from "@/lib/event-types";
-import { nextOccurrence } from "@/lib/event-repeat";
+import { listOccurrences, nextOccurrence } from "@/lib/event-repeat";
 import type { RepeatEvery } from "@/lib/event-types";
 
 export type {
@@ -218,6 +218,7 @@ export async function listPublicEvents(options?: {
   limit?: number;
   when?: "upcoming" | "weekend" | "past";
   price?: "free" | "paid";
+  expandRepeats?: boolean;
 }): Promise<VenturoEvent[]> {
   const supabase = await createClient();
   if (!supabase) return [];
@@ -253,6 +254,13 @@ export async function listPublicEvents(options?: {
     events = events.filter(
       (event) => !nextOccurrence(event.startsAt, event.endsAt, event.repeatEvery, event.repeatUntil, now),
     );
+  } else if (options?.expandRepeats) {
+    events = events.flatMap((event) =>
+      listOccurrences(event.startsAt, event.endsAt, event.repeatEvery, event.repeatUntil, now).map(
+        (occurrence) => ({ ...event, startsAt: occurrence.startsAt, endsAt: occurrence.endsAt }),
+      ),
+    );
+    events.sort((a, b) => new Date(a.startsAt).getTime() - new Date(b.startsAt).getTime());
   } else {
     events = events.flatMap((event) => {
       const next = nextOccurrence(event.startsAt, event.endsAt, event.repeatEvery, event.repeatUntil, now);
@@ -500,13 +508,16 @@ export async function createEventDraft(userId: string, input: CreateEventInput) 
 
   if (error || !event) throw new Error(error?.message ?? "Could not create event.");
 
-  const { data: owned } = await supabase.from("communities").select("id").eq("created_by", userId);
+  const { data: owned } = await supabase
+    .from("communities")
+    .select("id, claimed_by")
+    .or(`created_by.eq.${userId},claimed_by.eq.${userId}`);
   if (owned?.length) {
     await supabase.from("community_events").insert(
       owned.map((community) => ({
         community_id: community.id,
         event_id: event.id,
-        link_status: "pending",
+        link_status: community.claimed_by === userId ? "approved" : "pending",
       })),
     );
   }
@@ -694,6 +705,8 @@ export function eventReadyToGoLive(input: {
   startsAt?: string;
   endsAt?: string;
   ticketTypes?: TicketInput[];
+  bannerUrl?: string | null;
+  listingImageUrl?: string | null;
 }) {
   if (!input.title.trim()) return "Give the event a name.";
   if (!input.description.trim()) return "Add a short description.";
@@ -703,6 +716,10 @@ export function eventReadyToGoLive(input: {
     return "End time must be after the start time.";
   }
   if (!input.ticketTypes?.length) return "Add at least one ticket type.";
+  if (!input.bannerUrl?.trim()) return "Add the event page picture for the website & the app.";
+  if (!input.listingImageUrl?.trim()) {
+    return "Add the feed post. What's On, the app, & guide posts use it.";
+  }
   return null;
 }
 
@@ -725,6 +742,8 @@ export async function goLiveEvent(
     startsAt: event.startsAt,
     endsAt: event.endsAt,
     ticketTypes: event.ticketTypes,
+    bannerUrl: event.bannerUrl,
+    listingImageUrl: event.listingImageUrl,
   });
   if (ready) throw new Error(ready);
 

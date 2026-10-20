@@ -21,7 +21,7 @@ Paywall sits on **value**, not on existence of the directory. People must taste 
 **Plans (locked 26 Aug 2026):**
 
 - **Free** — creates a profile. Can book event tickets. No subscriber benefits.
-- **Paid** — R 19.99 / month via PayFast on the website, or the App Store / Play Store in the app. Unlocks curated discovery / personal recommendations & exclusive member discounts. **`member_access.subscribed`** is the only privilege check (PayFast **or** RevenueCat write that row; members cannot edit it). Do not store Paid on `profiles.plan`.
+- **Paid** — R 19.99 / month via Paystack on the website, or the App Store / Play Store in the app. Unlocks curated discovery / personal recommendations & exclusive member discounts. **`member_access.subscribed`** is the only privilege check (Paystack **or** RevenueCat write that row; members cannot edit it). Do not store Paid on `profiles.plan`. The website billing flag column is still `member_access.payfast_active`.
 
 This matches the app prototypes (Discover is the product) and the Control Room copy (“Website, directory & memberships”).
 
@@ -127,7 +127,7 @@ Statuses: `draft` → `in_review` → `changes_needed` → `live` (or `rejected`
 - See all live directory listings
 - See member price when subscribed
 - View & book events (Free can book tickets; Paid adds member discounts)
-- Paid membership: R 19.99 / month via PayFast (website) or App Store / Play Store (app). Both write `member_access`; the website & app read `subscribed` only. The app still uses RevenueCat to take store payments.
+- Paid membership: R 19.99 / month via Paystack (website) or App Store / Play Store (app). Both write `member_access`; the website & app read `subscribed` only. The app still uses RevenueCat to take store payments. Event tickets on the website are Paystack.
 - Bucketlist / Dreams
 - Follow communities
 - Subscription status is the source of “member” benefits
@@ -156,7 +156,7 @@ Hosts use the **Venturo Companion App** (`/companion`) to scan ticket QR codes a
 
 ## Open before we code payment
 
-- Payment provider (PayFast / Paystack / Peach)
+- Payment provider — **Paystack**, test mode until approval. Live cutover is `PAYSTACK_SECRET_KEY` plus the live webhook.
 - Member price & trial
 - ~~How a discount is redeemed in-venue (QR, code, staff check)~~ → ticket door scan locked in `HOST_COMPANION_SCANNING.md`
 - Confirm existing Supabase project URL to connect (MCP auth still needed)

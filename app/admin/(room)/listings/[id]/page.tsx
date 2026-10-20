@@ -8,24 +8,41 @@ import {
   loadEditorCatalog,
   loadListing,
 } from "@/lib/control-room";
+import { listingQueueFromSearch, loadListingSteps } from "@/lib/listing-queue";
 
 export default async function ListingReviewPage({
   params,
   searchParams,
 }: {
   params: Promise<{ id: string }>;
-  searchParams: Promise<{ error?: string; done?: string }>;
+  searchParams: Promise<{
+    error?: string;
+    done?: string;
+    status?: string;
+    q?: string;
+    interest?: string;
+    author?: string;
+    sort?: string;
+    dir?: string;
+    group?: string;
+  }>;
 }) {
   const { id } = await params;
-  const { error, done } = await searchParams;
+  const query = await searchParams;
+  const { error, done } = query;
   const session = await getStaffSession();
   const listing = await loadListing(id);
   if (!listing) notFound();
 
-  const [audit, catalog, branches] = await Promise.all([
+  const queue = listingQueueFromSearch({
+    ...query,
+    status: query.status || listing.status,
+  });
+  const [audit, catalog, branches, steps] = await Promise.all([
     loadAudit(id),
     loadEditorCatalog(),
     loadEditorBranches(listing.business_id),
+    loadListingSteps(id, queue),
   ]);
 
   const notice =
@@ -46,6 +63,7 @@ export default async function ListingReviewPage({
       notice={notice}
       error={error}
       canApprove={isAdmin(session?.role)}
+      steps={steps}
     />
   );
 }

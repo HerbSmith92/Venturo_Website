@@ -78,7 +78,7 @@ export function EventPayment({
       <p className="eyebrow">Payment</p>
       <h2>How Money Moves</h2>
       <p className="lede muted">
-        Guests pay with PayFast on the website. We pay this event out <strong>3 working days</strong>{" "}
+        Guests pay with Paystack on the website. We pay this event out <strong>3 working days</strong>{" "}
         after it ends. Apple Pay &amp; Samsung Pay are not ticket rails here.
       </p>
 
@@ -100,7 +100,7 @@ export function EventPayment({
       <div className="studio-card" style={{ marginBottom: 22 }}>
         <h3>Payment Options</h3>
         <ul className="stack-list">
-          <li>PayFast — live for ticket checkout on {event.title}.</li>
+          <li>Paystack takes ticket payments for {event.title}.</li>
           <li>Payouts land 3 working days after the event.</li>
           <li>One bank for every paid event. Change it below.</li>
         </ul>

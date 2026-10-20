@@ -1,12 +1,9 @@
 import { PricingPlans } from "@/components/PricingPlans";
 import { getCurrentUser } from "@/lib/auth";
-import { getAppStoreLinks, PAID_PRICE } from "@/lib/brand";
-import { getPayFastStatus } from "@/lib/payfast";
+import { PAID_PRICE } from "@/lib/brand";
 
 export default async function JoinPage() {
   const user = await getCurrentUser();
-  const stores = getAppStoreLinks();
-  const payfast = getPayFastStatus();
 
   return (
     <main className="shell">
@@ -15,8 +12,7 @@ export default async function JoinPage() {
         <h1>Start Free. Go Paid When You&apos;re Ready.</h1>
         <p className="lede muted">
           Sign up with your email & a one-time code. Free lets you book event tickets & create
-          events for review. Paid is {PAID_PRICE} a month — on the website via PayFast, or in the
-          Venturo app via the App Store / Play Store once those listings are live.
+          events for review. Paid is {PAID_PRICE} a month on the website, or in the app.
         </p>
         <PricingPlans currentPlan={user?.plan ?? "guest"} />
       </section>
@@ -24,63 +20,20 @@ export default async function JoinPage() {
         <h2>How Paid Gets Confirmed</h2>
         <ol>
           <li>Sign up free with your email & a one-time code on the website or in the app.</li>
-          <li>
-            Subscribe on the website with PayFast at {PAID_PRICE} / month, or in the app stores
-            when the Venturo app is published.
-          </li>
-          <li>
-            We unlock curated discovery & exclusive discounts when your membership row
-            shows subscribed — PayFast on the website or the App Store / Play Store in
-            the app.
-          </li>
+          <li>Subscribe on the website at {PAID_PRICE} / month. The app can use the stores too.</li>
+          <li>We unlock curated discovery & exclusive discounts when your membership is active.</li>
         </ol>
         <div className="hero-actions" style={{ marginTop: 24 }}>
-          {user ? (
-            user.plan === "paid" ? (
-              <a className="btn btn-primary" href="/account">
-                You Are a Paid Member
-              </a>
-            ) : (
-              <a className="btn btn-primary" href="/join/subscribe">
-                Subscribe With PayFast · {PAID_PRICE}
-              </a>
-            )
-          ) : (
-            <a className="btn btn-primary" href="/signup?next=/join/subscribe">
-              Sign Up To Subscribe
-            </a>
-          )}
-          {stores.appStoreReady ? (
-            <a className="btn btn-secondary" href={stores.appStore}>
-              App Store
+          {user?.plan === "paid" ? (
+            <a className="btn btn-primary" href="/account">
+              You Are a Paid Member
             </a>
           ) : (
-            <span className="btn btn-secondary" aria-disabled="true">
-              App Store — Coming Soon
-            </span>
-          )}
-          {stores.playStoreReady ? (
-            <a className="btn btn-secondary" href={stores.playStore}>
-              Play Store
+            <a className="btn btn-primary" href="/join/subscribe">
+              Subscribe · {PAID_PRICE} / month
             </a>
-          ) : (
-            <span className="btn btn-secondary" aria-disabled="true">
-              Play Store — Coming Soon
-            </span>
           )}
         </div>
-        {!payfast.configured && (
-          <p className="notice" style={{ marginTop: 16 }}>
-            PayFast is not configured in this environment yet — website subscribe stays off until
-            merchant keys are set.
-          </p>
-        )}
-        {(!stores.appStoreReady || !stores.playStoreReady) && (
-          <p className="muted" style={{ marginTop: 12 }}>
-            Store buttons light up when <code>NEXT_PUBLIC_APP_STORE_URL</code> &{" "}
-            <code>NEXT_PUBLIC_PLAY_STORE_URL</code> point at live Venturo listings.
-          </p>
-        )}
       </section>
     </main>
   );

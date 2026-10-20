@@ -1934,6 +1934,17 @@ fieldset.field {
   padding: 0 14px;
 }
 
+.field input[aria-invalid="true"] {
+  border-color: var(--orange);
+}
+
+.field small.field-mismatch {
+  font-size: 14px;
+  letter-spacing: 0;
+  text-transform: none;
+  color: var(--orange);
+}
+
 .control-room-app {
   min-height: 100vh;
   background: var(--night);
@@ -2859,6 +2870,33 @@ fieldset.field {
 .cr-editor-head-actions .btn {
   min-height: 36px;
   padding: 6px 12px;
+}
+
+.cr-queue-nav {
+  display: grid;
+  justify-items: end;
+  gap: 4px;
+  flex-shrink: 0;
+}
+
+.cr-queue-place,
+.cr-queue-next {
+  margin: 0;
+  font-size: 13px;
+  font-weight: 200;
+  white-space: nowrap;
+  color: color-mix(in srgb, var(--snow) 72%, transparent);
+}
+
+.cr-queue-next {
+  max-width: 320px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.cr-queue-nav .btn[aria-disabled="true"] {
+  opacity: 0.4;
+  pointer-events: none;
 }
 
 .cr-branch-tabs,
@@ -4851,6 +4889,29 @@ code {
   gap: 4px;
 }
 
+.event-live-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  align-items: center;
+  justify-content: flex-end;
+}
+
+.event-live-actions form {
+  margin: 0;
+}
+
+.event-repeat-dates {
+  margin: 8px 0 0;
+  padding: 0;
+  list-style: none;
+  font-size: 14px;
+}
+
+.event-repeat-dates li + li {
+  margin-top: 4px;
+}
+
 .event-live-bar-item strong {
   font-weight: 600;
 }
@@ -5325,9 +5386,103 @@ code {
 }
 
 .host-settings-tabs a.chip.on,
-.host-settings-tabs a.chip.active {
+.host-settings-tabs a.chip.active,
+.host-settings-tabs span.chip.on {
   background: var(--canary);
   color: var(--night);
+}
+
+.host-settings-tabs span.chip {
+  background: color-mix(in srgb, var(--snow) 14%, transparent);
+  color: var(--snow);
+}
+
+.create-wizard-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  margin-top: 8px;
+}
+
+.event-review-pair {
+  display: grid;
+  gap: 28px;
+  align-items: start;
+}
+
+.event-review-site .event-review-hero {
+  min-height: 280px;
+  margin: 0 0 16px;
+}
+
+.event-review-site .event-ticket-panel {
+  position: static;
+}
+
+.event-review-phone {
+  width: min(100%, 280px);
+  padding: 14px 12px 18px;
+  border-radius: 36px;
+  background: var(--night);
+  border: 1px solid color-mix(in srgb, var(--snow) 16%, transparent);
+  box-shadow: var(--shadow-1);
+}
+
+.event-review-app-card {
+  position: relative;
+  display: grid;
+  border-radius: 22px;
+  overflow: hidden;
+  background: color-mix(in srgb, var(--currant) 40%, var(--night));
+}
+
+.event-review-app-card img,
+.event-review-app-empty {
+  width: 100%;
+  aspect-ratio: 4 / 5;
+  object-fit: cover;
+}
+
+.event-review-app-empty {
+  display: grid;
+  place-items: center;
+  margin: 0;
+  padding: 24px;
+  text-align: center;
+}
+
+.event-review-app-copy {
+  position: relative;
+  display: grid;
+  gap: 4px;
+  padding: 12px 14px 14px 18px;
+  background: color-mix(in srgb, var(--night) 92%, black);
+}
+
+.event-review-app-copy p,
+.event-review-app-copy h3 {
+  margin: 0;
+}
+
+.event-review-app-copy h3 {
+  font-size: 22px;
+  line-height: 1.05;
+}
+
+.event-review-app-accent {
+  position: absolute;
+  left: 8px;
+  top: 14px;
+  bottom: 14px;
+  width: 3px;
+  border-radius: 999px;
+}
+
+@media (max-width: 800px) {
+  .event-review-site .event-detail-grid,
+  .event-review-site .event-live-bar {
+    grid-template-columns: 1fr;
+  }
 }
 
 .host-details-block {
@@ -6307,6 +6462,82 @@ button.listing-cost-toggle {
   margin: 24px 0;
 }
 
+.ticket-offer,
+.ticket-account,
+.ticket-basket {
+  display: grid;
+  gap: 12px;
+  padding: 16px 18px;
+  border-radius: var(--radius-md);
+  background: color-mix(in srgb, var(--snow) 6%, transparent);
+  border: 1px solid color-mix(in srgb, var(--snow) 12%, transparent);
+}
+
+.ticket-offer h3,
+.ticket-account h3,
+.ticket-basket h3 {
+  margin: 0;
+}
+
+.ticket-offer .muted,
+.ticket-account .muted,
+.ticket-basket .muted,
+.ticket-offer .notice,
+.ticket-basket .field {
+  margin: 0;
+}
+
+.ticket-login-callout {
+  display: grid;
+  gap: 10px;
+  padding: 14px 16px;
+  border-radius: var(--radius-md);
+  border: 1px solid color-mix(in srgb, var(--canary) 55%, transparent);
+  background: color-mix(in srgb, var(--canary) 16%, transparent);
+}
+
+.ticket-login-callout p {
+  margin: 0;
+}
+
+.ticket-login-callout .btn {
+  width: 100%;
+}
+
+.ticket-qty {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.ticket-qty button {
+  width: 44px;
+  height: 44px;
+  border-radius: var(--radius-sm);
+  border: 1px solid color-mix(in srgb, var(--snow) 20%, transparent);
+  background: var(--night);
+  color: var(--snow);
+  font: inherit;
+  cursor: pointer;
+}
+
+.ticket-qty button:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+.ticket-qty input {
+  width: 72px;
+  height: 44px;
+  text-align: center;
+  padding: 0 8px;
+  border-radius: var(--radius-sm);
+  border: 1px solid color-mix(in srgb, var(--snow) 20%, transparent);
+  background: var(--night);
+  color: var(--snow);
+  font: inherit;
+}
+
 .ticket-row {
   display: grid;
   grid-template-columns: 1fr auto auto;
@@ -6831,7 +7062,108 @@ button.listing-cost-toggle {
 
 .guide-rec-copy .btn {
   justify-self: start;
-  margin-top: 6px;
+  margin-top: 10px;
+}
+
+.guide-see-more {
+  gap: 8px;
+  min-height: 48px;
+  padding: 10px 22px;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  font-size: 14px;
+  box-shadow:
+    0 0 0 3px color-mix(in srgb, var(--canary) 40%, transparent),
+    0 8px 18px color-mix(in srgb, var(--canary) 22%, transparent);
+}
+
+.guide-see-more:hover {
+  background: color-mix(in srgb, var(--canary) 86%, #fff);
+}
+
+.guide-layout {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 260px;
+  gap: 24px;
+  align-items: start;
+}
+
+.guide-browse {
+  position: sticky;
+  top: 92px;
+  display: grid;
+  gap: 14px;
+  padding: 16px;
+  background: color-mix(in srgb, var(--currant) 32%, var(--night));
+  border-radius: var(--radius-lg);
+  border: 1px solid color-mix(in srgb, var(--snow) 8%, transparent);
+  box-shadow: var(--shadow-1);
+}
+
+.guide-browse h2 {
+  margin: 0;
+  font-size: 22px;
+}
+
+.guide-browse-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: 8px;
+}
+
+.guide-browse-list a {
+  display: grid;
+  grid-template-columns: 72px minmax(0, 1fr);
+  gap: 10px;
+  align-items: center;
+  padding: 6px;
+  margin: 0;
+  border-radius: var(--radius-sm);
+  color: inherit;
+}
+
+.guide-browse-list a:hover {
+  background: color-mix(in srgb, var(--snow) 8%, transparent);
+}
+
+.guide-browse-list img {
+  width: 72px;
+  height: 56px;
+  object-fit: cover;
+  border-radius: 8px;
+}
+
+.guide-browse-list h3 {
+  margin: 0 0 4px;
+  font-size: 16px;
+  line-height: 1.15;
+}
+
+.guide-browse-list p {
+  margin: 0;
+  font-size: 13px;
+}
+
+.guide-browse-all {
+  justify-self: start;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  font-size: 12px;
+  color: var(--canary);
+}
+
+@media (max-width: 1100px) {
+  .guide-layout {
+    grid-template-columns: 1fr;
+  }
+
+  .guide-browse {
+    position: static;
+  }
 }
 
 .cr-guide-editor {
@@ -8898,6 +9230,14 @@ button.listing-cost-toggle {
   margin: 4px 0 0;
 }
 
+.event-dash-head .status-pill {
+  margin-top: 12px;
+}
+
+.event-dash-head .notice {
+  margin-top: 12px;
+}
+
 .event-dash-menu {
   position: relative;
 }
@@ -9618,7 +9958,6 @@ button.listing-cost-toggle {
 .companion-door-banner p {
   margin: 0 0 10px;
 }
-
 
 /* Buttons use a 12px radius, and the padding box is the hit target. */
 .btn,

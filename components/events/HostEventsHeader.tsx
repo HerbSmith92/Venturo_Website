@@ -1,17 +1,9 @@
-"use client";
+import { PORTAL_EVENTS_NEW } from "@/lib/portal";
 
-import { useState } from "react";
-import { NewEventModal } from "@/components/events/NewEventModal";
-
-export function HostEventsHeader({ startOpen = false }: { startOpen?: boolean }) {
-  const [open, setOpen] = useState(startOpen);
-
+export function HostEventsHeader() {
   return (
-    <>
-      <button className="btn btn-primary" type="button" onClick={() => setOpen(true)}>
-        + New Event
-      </button>
-      <NewEventModal open={open} onClose={() => setOpen(false)} />
-    </>
+    <a className="btn btn-primary" href={PORTAL_EVENTS_NEW}>
+      + New Event
+    </a>
   );
 }

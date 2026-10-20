@@ -1,5 +1,6 @@
 import { getCurrentUser } from "@/lib/auth";
 import { loadMembershipForUser } from "@/lib/memberships";
+import { confirmPaystackMembership } from "@/lib/paystack-fulfill";
 import { redirect } from "next/navigation";
 
 export default async function SubscribeReturnPage({
@@ -13,6 +14,8 @@ export default async function SubscribeReturnPage({
   const { membership: membershipId } = await searchParams;
   if (!membershipId) redirect("/join/subscribe");
 
+  await confirmPaystackMembership(membershipId, user.id);
+
   const row = await loadMembershipForUser(user.id, membershipId);
   if (row?.status === "active" || user.plan === "paid") {
     redirect("/account");
@@ -24,7 +27,7 @@ export default async function SubscribeReturnPage({
         <p className="eyebrow">Payment</p>
         <h1>We&apos;re Confirming Your Membership</h1>
         <p className="lede muted">
-          PayFast is notifying us. This usually takes a few seconds. Refresh shortly — or open
+          Paystack is confirming the payment. This usually takes a few seconds. Refresh shortly — or open
           your profile to see if Paid is on.
         </p>
         <div className="hero-actions">

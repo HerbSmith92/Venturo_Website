@@ -2,6 +2,7 @@
 
 import { useMemo, useState } from "react";
 import { AuthProviderIcon } from "@/components/AuthProviderIcon";
+import { portalLoginHref, portalSignupNext } from "@/lib/portal";
 import { createClient } from "@/lib/supabase/client";
 
 type Step = "methods" | "email" | "code";
@@ -72,12 +73,14 @@ export function AuthForm({
     surface === "companion"
       ? "/companion/login"
       : surface === "portal"
-        ? "/portal/login"
+        ? portalLoginHref(false, next)
         : `/login?next=${encodeURIComponent(next)}`;
   const signupHref =
-    surface === "companion" || surface === "portal"
+    surface === "companion"
       ? "/portal/login?join=1"
-      : `/signup?next=${encodeURIComponent(next)}`;
+      : surface === "portal"
+        ? portalLoginHref(true, portalSignupNext(next))
+        : `/signup?next=${encodeURIComponent(next)}`;
 
   async function sendOtp(formMode: "login" | "signup" = mode) {
     setError(null);

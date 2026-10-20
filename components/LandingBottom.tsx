@@ -135,8 +135,7 @@ export function LandingBottom() {
             </h2>
             <p className="lede">
               Free creates a profile so you can book event tickets. Paid is{" "}
-              {PAID_PRICE} a month on the website via PayFast. App Store & Play
-              Store stay for the mobile app once those listings are live.
+              {PAID_PRICE} a month. Subscribe on the website, or in the app.
             </p>
             <div className="hero-actions">
               {stores.appStoreReady ? (
@@ -169,10 +168,10 @@ export function LandingBottom() {
             <ul>
               <li>Curated discovery & personal recommendations</li>
               <li>Exclusive member discounts</li>
-              <li>Pay on the website with PayFast</li>
+              <li>Same membership on the website & the app</li>
             </ul>
             <a className="btn btn-primary" href="/join/subscribe">
-              Subscribe With PayFast
+              Subscribe · {PAID_PRICE} / month
             </a>
           </article>
         </div>

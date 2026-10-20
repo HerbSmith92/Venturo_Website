@@ -1,6 +1,24 @@
 import { NextResponse } from "next/server";
 import { getCurrentUser } from "@/lib/auth";
 import { savePayoutProfile, type PayoutInput } from "@/lib/event-input";
+import { createClient } from "@/lib/supabase/server";
+
+export async function GET() {
+  const user = await getCurrentUser();
+  if (!user) {
+    return NextResponse.json({ error: "Log in first." }, { status: 401 });
+  }
+  const supabase = await createClient();
+  if (!supabase) {
+    return NextResponse.json({ ready: false });
+  }
+  const { data } = await supabase
+    .from("organiser_payout_profiles")
+    .select("user_id")
+    .eq("user_id", user.id)
+    .maybeSingle();
+  return NextResponse.json({ ready: Boolean(data) });
+}
 
 export async function POST(request: Request) {
   const user = await getCurrentUser();

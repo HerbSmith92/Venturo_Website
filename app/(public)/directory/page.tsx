@@ -58,8 +58,7 @@ export default async function DirectoryPage({
         )}
         {!revealMember ? (
           <p className="notice" style={{ marginTop: 24 }}>
-            Member prices unlock with a subscription.{" "}
-            <a href={user ? "/join/subscribe" : "/join"}>See membership</a>.
+            <a href="/join/subscribe">Subscribe</a>
           </p>
         ) : null}
         <p style={{ marginTop: 20 }}>

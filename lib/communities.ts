@@ -26,6 +26,7 @@ type CommunityRow = {
   scale_id?: string | null;
   status: CommunityStatus;
   is_featured: boolean | null;
+  claimed_by?: string | null;
 };
 
 function mapCommunity(row: CommunityRow): CommunityRecord {
@@ -51,11 +52,12 @@ function mapCommunity(row: CommunityRow): CommunityRecord {
     scaleId: row.scale_id ?? null,
     status: row.status,
     isFeatured: Boolean(row.is_featured),
+    claimedBy: row.claimed_by ?? null,
   };
 }
 
 const SELECT =
-  "id, title, slug, about, cover_url, interest, place_label, social_url, contact_email, website_url, phone, instagram_url, facebook_url, tiktok_url, founder_name, founder_email, areas, interest_keywords, scale_id, status, is_featured";
+  "id, title, slug, about, cover_url, interest, place_label, social_url, contact_email, website_url, phone, instagram_url, facebook_url, tiktok_url, founder_name, founder_email, areas, interest_keywords, scale_id, status, is_featured, claimed_by";
 
 export async function listCommunities(status?: CommunityStatus | "all") {
   const supabase = await createClient();
@@ -69,6 +71,18 @@ export async function listCommunities(status?: CommunityStatus | "all") {
 
 export async function listPublishedCommunities() {
   return listCommunities("published");
+}
+
+export async function listClaimedCommunities(userId: string) {
+  const supabase = await createClient();
+  if (!supabase) return [];
+  const { data, error } = await supabase
+    .from("communities")
+    .select(SELECT)
+    .eq("claimed_by", userId)
+    .order("title");
+  if (error || !data) return [];
+  return (data as CommunityRow[]).map(mapCommunity);
 }
 
 export async function getCommunityBySlug(slug: string) {

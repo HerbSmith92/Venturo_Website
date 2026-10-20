@@ -1,12 +1,11 @@
 import { NextResponse } from "next/server";
 import { getCurrentUser } from "@/lib/auth";
-import { createMembershipCheckout } from "@/lib/memberships";
 import { createTicketOrder } from "@/lib/orders";
 import {
-  buildPayFastCheckout,
-  centsToPayFastAmount,
-  getPayFastConfig,
-} from "@/lib/payfast";
+  PAYSTACK_MINIMUM_CENTS,
+  getPaystackConfig,
+  initializePaystackTransaction,
+} from "@/lib/paystack";
 
 export async function POST(request: Request) {
   const user = await getCurrentUser();
@@ -43,72 +42,44 @@ export async function POST(request: Request) {
       return NextResponse.json({ redirect: order.redirect });
     }
 
-    const config = getPayFastConfig();
-    if (!config) {
+    if (order.joinAndBuy) {
       return NextResponse.json(
-        {
-          error:
-            "PayFast is not configured yet. Add PAYFAST_MERCHANT_ID & PAYFAST_MERCHANT_KEY.",
-        },
-        { status: 503 },
+        { error: "Subscribe on the website to buy a member ticket." },
+        { status: 403 },
       );
     }
 
-    if (order.joinAndBuy) {
-      if (!config.passphrase) {
-        return NextResponse.json(
-          {
-            error:
-              "PayFast recurring billing needs PAYFAST_PASSPHRASE set on the merchant & in env.",
-          },
-          { status: 503 },
-        );
-      }
-
-      const membership = await createMembershipCheckout({
-        userId: user.id,
-        email: user.email,
-        firstName: user.firstName,
-        origin,
-        bundledOrderId: order.orderId,
-        returnUrl: order.returnUrl,
-        cancelUrl: order.cancelUrl,
-        itemName: `Venturo Membership + ${order.eventTitle}`,
-      });
-
-      const payfast = buildPayFastCheckout({
-        config,
-        amountRands: centsToPayFastAmount(membership.amountCents + order.totalCents),
-        itemName: membership.itemName,
-        mPaymentId: membership.mPaymentId,
-        returnUrl: membership.returnUrl,
-        cancelUrl: membership.cancelUrl,
-        notifyUrl: membership.notifyUrl,
-        email: user.email,
-        firstName: user.firstName,
-        subscription: {
-          frequency: 3,
-          cycles: 0,
-          recurringAmountRands: membership.amountRands,
-        },
-      });
-
-      return NextResponse.json({ payfast });
+    if (order.totalCents < PAYSTACK_MINIMUM_CENTS) {
+      return NextResponse.json(
+        { error: "Paystack needs at least R 1.00 for a card payment." },
+        { status: 400 },
+      );
     }
 
-    const payfast = buildPayFastCheckout({
-      config,
-      amountRands: centsToPayFastAmount(order.totalCents),
-      itemName: order.eventTitle,
-      mPaymentId: order.mPaymentId,
-      returnUrl: order.returnUrl,
-      cancelUrl: order.cancelUrl,
-      notifyUrl: order.notifyUrl,
+    const config = getPaystackConfig();
+    if (!config) {
+      return NextResponse.json(
+        { error: "Paystack is not configured yet. Add PAYSTACK_SECRET_KEY." },
+        { status: 503 },
+      );
+    }
+    if (!user.email) {
+      return NextResponse.json(
+        { error: "Add an email to your account before paying." },
+        { status: 400 },
+      );
+    }
+
+    const checkout = await initializePaystackTransaction({
+      secretKey: config.secretKey,
       email: user.email,
-      firstName: user.firstName,
+      amountCents: order.totalCents,
+      reference: order.mPaymentId,
+      callbackUrl: order.returnUrl,
+      metadata: { kind: "ticket", order_id: order.orderId },
     });
 
-    return NextResponse.json({ payfast });
+    return NextResponse.json({ authorizationUrl: checkout.authorizationUrl });
   } catch (error) {
     return NextResponse.json(
       { error: error instanceof Error ? error.message : "Checkout failed." },

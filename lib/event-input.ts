@@ -62,7 +62,7 @@ export async function requirePaidPayout(
     .maybeSingle();
   if (!data) {
     throw new Error(
-      "Add a payout bank in Host Settings before going live with paid tickets.",
+      "Add a payout bank before paid tickets can go on sale.",
     );
   }
 }

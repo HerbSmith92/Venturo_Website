@@ -6,6 +6,7 @@ import { applyListingAction, deleteListingPhoto, saveListingDraft } from "@/app/
 import { createClient } from "@/lib/supabase/client";
 import { ListingAppPreview } from "@/components/admin/ListingAppPreview";
 import type { ListingDetail } from "@/lib/control-room-types";
+import type { ListingStep } from "@/lib/listing-queue";
 import {
   auditChanges,
   formatAuditWhen,
@@ -243,6 +244,7 @@ export function ListingEditor({
   notice,
   error,
   canApprove = false,
+  steps,
 }: {
   listing: ListingDetail;
   catalog: EditorCatalog;
@@ -251,6 +253,14 @@ export function ListingEditor({
   notice?: string;
   error?: string;
   canApprove?: boolean;
+  steps: {
+    index: number;
+    total: number;
+    previous: ListingStep | null;
+    next: ListingStep | null;
+    listHref: string;
+    query: string;
+  };
 }) {
   const router = useRouter();
   const fileRef = useRef<HTMLInputElement>(null);
@@ -265,6 +275,12 @@ export function ListingEditor({
   const [openSteps, setOpenSteps] = useState<Partial<Record<StepKey, boolean>>>({});
   const [activeStep, setActiveStep] = useState<StepKey>("business");
   const [openAuditId, setOpenAuditId] = useState<string | null>(null);
+  const [dirty, setDirty] = useState(false);
+
+  function leave(event: { preventDefault: () => void }) {
+    if (!dirty) return;
+    if (!window.confirm("This listing has unsaved changes. Leave it?")) event.preventDefault();
+  }
 
   function stepOpen(key: StepKey) {
     return openSteps[key] !== false;
@@ -297,11 +313,13 @@ export function ListingEditor({
   const media = activeMedia(draft);
 
   function patch(partial: Partial<ListingDraft>) {
+    setDirty(true);
     setDraft((current) => ({ ...current, ...partial }));
     setSaveNotice(null);
   }
 
   function patchActivity(clientKey: string, partial: Partial<DraftActivity>) {
+    setDirty(true);
     setDraft((current) => ({
       ...current,
       activities: current.activities.map((row) =>
@@ -316,6 +334,7 @@ export function ListingEditor({
     priceKey: string,
     partial: Partial<DraftPrice>,
   ) {
+    setDirty(true);
     setDraft((current) => ({
       ...current,
       activities: current.activities.map((activity) => {
@@ -332,6 +351,7 @@ export function ListingEditor({
   }
 
   function patchHour(index: number, partial: Partial<ListingDraft["hours"][number]>) {
+    setDirty(true);
     setDraft((current) => ({
       ...current,
       hours: current.hours.map((row, i) => (i === index ? { ...row, ...partial } : row)),
@@ -340,6 +360,7 @@ export function ListingEditor({
   }
 
   function patchSocial(platform: ListingDraft["social"][number]["platform"], handle: string) {
+    setDirty(true);
     setDraft((current) => ({
       ...current,
       social: current.social.map((row) =>
@@ -362,11 +383,13 @@ export function ListingEditor({
           ? "Edits saved. The live listing stays as it is until an admin approves."
           : "Draft saved.",
       );
+      setDirty(false);
       router.refresh();
     });
   }
 
   function addActivity() {
+    setDirty(true);
     setDraft((current) => ({
       ...current,
       activities: [...current.activities, emptyActivity("", current.activities.length)],
@@ -374,6 +397,7 @@ export function ListingEditor({
   }
 
   function removeActivity(clientKey: string) {
+    setDirty(true);
     setDraft((current) => ({
       ...current,
       activities: current.activities.filter((row) => row.clientKey !== clientKey),
@@ -381,6 +405,7 @@ export function ListingEditor({
   }
 
   function addPrice(activityKey: string) {
+    setDirty(true);
     setDraft((current) => ({
       ...current,
       activities: current.activities.map((activity) => {
@@ -394,6 +419,7 @@ export function ListingEditor({
   }
 
   function removePrice(activityKey: string, priceKey: string) {
+    setDirty(true);
     setDraft((current) => ({
       ...current,
       activities: current.activities.map((activity) => {
@@ -407,6 +433,7 @@ export function ListingEditor({
   }
 
   function setCover(mediaId: string) {
+    setDirty(true);
     setDraft((current) => ({
       ...current,
       cover_media_id: mediaId,
@@ -419,6 +446,7 @@ export function ListingEditor({
 
   function reorderMedia(fromId: string, toId: string) {
     if (fromId === toId) return;
+    setDirty(true);
     setDraft((current) => {
       const visible = current.media.filter((row) => !row._delete);
       const fromIndex = visible.findIndex((row) => row.id === fromId);
@@ -476,6 +504,7 @@ export function ListingEditor({
       );
       if (uploaded.length) {
         const added = [...uploaded].sort((a, b) => a.sort_order - b.sort_order);
+        setDirty(true);
         setDraft((current) => ({
           ...current,
           media: [...current.media, ...added],
@@ -503,6 +532,7 @@ export function ListingEditor({
   async function onDeletePhoto(mediaId: string) {
     const target = draft.media.find((row) => row.id === mediaId);
     if (listing.status === "approved" && !target?.is_pending) {
+      setDirty(true);
       setDraft((current) => {
         const next = current.media.map((row) =>
           row.id === mediaId ? { ...row, _delete: true } : row,
@@ -525,6 +555,7 @@ export function ListingEditor({
       setSaveError(result.error);
       return;
     }
+    setDirty(true);
     setDraft((current) => {
       const next = current.media.filter((row) => row.id !== mediaId);
       const coverStill = next.find((row) => row.id === current.cover_media_id && !row._delete);
@@ -544,7 +575,7 @@ export function ListingEditor({
           <span>Control Panel</span>
         </a>
         <div className="cr-edit-nav-body">
-          <a className="cr-edit-brand" href="/admin/listings" aria-label="Directory listings">
+          <a className="cr-edit-brand" href={steps.listHref} aria-label="Directory listings" onClick={leave}>
             <img src="/brand/logos/venturo-horizontal-simple-light.svg" alt="Venturo" />
           </a>
           <p className="cr-edit-title">Directory</p>
@@ -575,6 +606,7 @@ export function ListingEditor({
             </button>
             <form action={applyListingAction}>
               <input type="hidden" name="id" value={listing.id} />
+              <input type="hidden" name="queue" value={steps.query} />
               <input type="hidden" name="action" value="review" />
               <button className="btn" type="submit" disabled={!canSubmit || pending}>
                 Submit for Approval
@@ -583,6 +615,7 @@ export function ListingEditor({
             {editsWaiting && canApprove ? (
               <form action={applyListingAction}>
                 <input type="hidden" name="id" value={listing.id} />
+                <input type="hidden" name="queue" value={steps.query} />
                 <input type="hidden" name="action" value="approve" />
                 <button className="btn" type="submit" disabled={pending}>
                   Approve changes
@@ -591,6 +624,7 @@ export function ListingEditor({
             ) : null}
             <form action={applyListingAction}>
               <input type="hidden" name="id" value={listing.id} />
+              <input type="hidden" name="queue" value={steps.query} />
               <input type="hidden" name="action" value="feature" />
               <input type="hidden" name="featured" value={listing.is_featured ? "false" : "true"} />
               <button className={listing.is_featured ? "btn is-on" : "btn"} type="submit">
@@ -624,6 +658,37 @@ export function ListingEditor({
           <p className="cr-editor-kicker">Directory Listings</p>
           <h1>Editing {draft.business_name || draft.name || "Business"}</h1>
         </div>
+        <div className="cr-queue-nav">
+          <div className="cr-editor-head-actions">
+            <a className="btn" href={steps.listHref} onClick={leave}>
+              Directory
+            </a>
+            {steps.previous ? (
+              <a className="btn" href={steps.previous.href} onClick={leave} title={steps.previous.name}>
+                Previous
+              </a>
+            ) : (
+              <span className="btn" aria-disabled="true">
+                Previous
+              </span>
+            )}
+            {steps.index >= 0 ? (
+              <span className="cr-queue-place">
+                {steps.index + 1} of {steps.total}
+              </span>
+            ) : null}
+            {steps.next ? (
+              <a className="btn btn-primary" href={steps.next.href} onClick={leave} aria-label={`Next, ${steps.next.name}`}>
+                Next
+              </a>
+            ) : (
+              <span className="btn btn-primary" aria-disabled="true">
+                Next
+              </span>
+            )}
+          </div>
+          {steps.next ? <p className="cr-queue-next">{steps.next.name}</p> : <p className="cr-queue-next">End of this list</p>}
+        </div>
       </header>
 
       {(error || saveError) && <p className="error">{error || saveError}</p>}
@@ -635,7 +700,8 @@ export function ListingEditor({
             <a
               key={branch.id}
               className={branch.id === listing.id ? "cr-tab active" : "cr-tab"}
-              href={`/admin/listings/${branch.id}`}
+              href={steps.query ? `/admin/listings/${branch.id}?${steps.query}` : `/admin/listings/${branch.id}`}
+              onClick={leave}
             >
               {branch.branch_name || branch.name}
             </a>
