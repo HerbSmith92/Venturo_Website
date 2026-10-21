@@ -1777,6 +1777,93 @@ a.cr-nav-label.active:hover {
   min-width: 0;
 }
 
+.community-setup {
+  display: grid;
+  grid-template-columns: 220px minmax(0, 1fr);
+  gap: 28px;
+  align-items: start;
+  margin-top: 28px;
+}
+
+.community-setup.is-stack {
+  grid-template-columns: minmax(0, 1fr);
+}
+
+.community-setup .cr-edit-steps {
+  position: sticky;
+  top: 16px;
+}
+
+.community-events-wrap {
+  margin-top: 28px;
+}
+
+.community-all-block {
+  display: grid;
+  gap: 14px;
+  margin-top: 18px;
+}
+
+.community-all-block .card-kicker {
+  margin: 0 0 4px;
+}
+
+.community-all-events {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+  gap: 12px;
+}
+
+.community-events-title {
+  font-family: "Social Gothic Rough", "Arial Black", sans-serif;
+  font-style: normal;
+  font-size: 22px;
+  font-weight: 400;
+  letter-spacing: 0.02em;
+}
+
+.community-event-links {
+  margin: 8px 0 0;
+  padding: 0;
+  list-style: none;
+  display: grid;
+  gap: 8px;
+}
+
+.community-event-links a,
+.community-event-links span {
+  color: var(--night);
+  font-family: Nunito, "Trebuchet MS", sans-serif;
+  font-weight: 400;
+}
+
+.community-events-card .btn-secondary {
+  color: var(--night);
+  border-color: color-mix(in srgb, var(--night) 28%, transparent);
+}
+
+.community-setup .cr-known-row {
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: center;
+}
+
+.community-setup-actions {
+  display: flex;
+  gap: 12px;
+  align-items: center;
+  margin-top: 4px;
+}
+
+@media (max-width: 800px) {
+  .community-setup {
+    grid-template-columns: 1fr;
+  }
+
+  .community-setup .cr-edit-steps {
+    position: static;
+  }
+}
+
 @media (max-width: 900px) {
   .account-frame,
   .account-frame.is-collapsed {

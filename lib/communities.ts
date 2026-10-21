@@ -105,6 +105,26 @@ export async function getCommunityById(id: string) {
   return mapCommunity(data as CommunityRow);
 }
 
+export async function listEventIdsByCommunity(communityIds: string[]) {
+  const grouped = new Map<string, string[]>();
+  if (!communityIds.length) return grouped;
+  const supabase = await createClient();
+  if (!supabase) return grouped;
+  const { data, error } = await supabase
+    .from("community_events")
+    .select("community_id, event_id")
+    .in("community_id", communityIds)
+    .eq("link_status", "approved");
+  if (error || !data) return grouped;
+  for (const row of data) {
+    const communityId = row.community_id as string;
+    const events = grouped.get(communityId) ?? [];
+    events.push(row.event_id as string);
+    grouped.set(communityId, events);
+  }
+  return grouped;
+}
+
 export async function listCommunityEventIds(communityId: string) {
   const supabase = await createClient();
   if (!supabase) return [];

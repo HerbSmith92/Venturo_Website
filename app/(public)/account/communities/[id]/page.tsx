@@ -1,4 +1,5 @@
-import { addClaimedCommunityEvent, saveClaimedCommunity } from "@/app/community-claim-actions";
+import { addClaimedCommunityEvent } from "@/app/community-claim-actions";
+import { CommunityForm } from "@/components/profile/CommunityForm";
 import { getCurrentUser } from "@/lib/auth";
 import { getCommunityById, listCommunityEventLinks } from "@/lib/communities";
 import { portalEventHref } from "@/lib/portal";
@@ -24,102 +25,67 @@ export default async function ClaimedCommunityPage({
         <p className="eyebrow">Your Community</p>
         <h1>{community.title}</h1>
         <p className="lede muted">
-          Update the public page, then add the events this group is hosting.
+          Community Details, Founder Details, then Contact &amp; Socials.
         </p>
         {done ? <p className="notice">Saved.</p> : null}
         {error ? <p className="error">{error}</p> : null}
 
-        <form className="auth-card" action={saveClaimedCommunity}>
-          <input type="hidden" name="id" value={community.id} />
-          <label className="field">
-            <span>Community Name</span>
-            <input name="title" defaultValue={community.title} required />
-          </label>
-          <label className="field">
-            <span>About</span>
-            <textarea name="about" rows={5} defaultValue={community.about ?? ""} />
-          </label>
-          <label className="field">
-            <span>Areas</span>
-            <textarea
-              name="areas"
-              rows={3}
-              defaultValue={community.areas.join("\n")}
-              placeholder={"Sandton\nRosebank"}
-            />
-          </label>
-          <label className="field">
-            <span>Contact Email</span>
-            <input name="contact_email" type="email" defaultValue={community.contactEmail ?? ""} />
-          </label>
-          <label className="field">
-            <span>Phone</span>
-            <input name="phone" defaultValue={community.phone ?? ""} />
-          </label>
-          <label className="field">
-            <span>Website</span>
-            <input name="website_url" defaultValue={community.websiteUrl ?? ""} />
-          </label>
-          <label className="field">
-            <span>Instagram</span>
-            <input name="instagram_url" defaultValue={community.instagramUrl ?? ""} />
-          </label>
-          <label className="field">
-            <span>Facebook</span>
-            <input name="facebook_url" defaultValue={community.facebookUrl ?? ""} />
-          </label>
-          <label className="field">
-            <span>TikTok</span>
-            <input name="tiktok_url" defaultValue={community.tiktokUrl ?? ""} />
-          </label>
-          <label className="field">
-            <span>Founder Name</span>
-            <input name="founder_name" defaultValue={community.founderName ?? ""} />
-          </label>
-          <label className="field">
-            <span>Founder Email</span>
-            <input name="founder_email" type="email" defaultValue={community.founderEmail ?? ""} />
-          </label>
-          <button className="btn btn-primary" type="submit">
-            Save Community
-          </button>
-        </form>
+        <CommunityForm
+          id={community.id}
+          title={community.title}
+          about={community.about ?? ""}
+          areas={community.areas}
+          founderName={community.founderName ?? ""}
+          founderEmail={community.founderEmail ?? ""}
+          contactEmail={community.contactEmail ?? ""}
+          phone={community.phone ?? ""}
+          websiteUrl={community.websiteUrl ?? ""}
+          instagramUrl={community.instagramUrl ?? ""}
+          facebookUrl={community.facebookUrl ?? ""}
+          tiktokUrl={community.tiktokUrl ?? ""}
+        />
 
-        <div className="community-events">
-          <p className="eyebrow">Events</p>
-          <h2>Add An Event</h2>
-          <p className="muted">
-            The event is linked to this community. It goes on the public page once the event itself is live.
-          </p>
-          <form className="auth-card" action={addClaimedCommunityEvent}>
-            <input type="hidden" name="id" value={community.id} />
-            <label className="field">
-              <span>Event Name</span>
-              <input name="title" required placeholder="Sunrise Hike" />
-            </label>
-            <button className="btn btn-primary" type="submit">
-              Add Event
-            </button>
-          </form>
-          {events.length === 0 ? (
-            <p className="muted">No events linked yet.</p>
-          ) : (
-            <ul className="stack-list">
-              {events.map((event) => (
-                <li key={event.id}>
-                  <a href={portalEventHref(event.id)}>{event.title}</a>
-                  <span className="muted"> · {event.status}</span>
-                </li>
-              ))}
-            </ul>
-          )}
+        <div className="community-events-wrap">
+          <div className="cr-paper community-events-card">
+            <section className="cr-step is-open">
+              <h2>
+                <em className="community-events-title">Events</em>
+              </h2>
+              <p className="cr-about-label">
+                The event is linked to this community. It goes on the public page once the event itself is live.
+              </p>
+              <form action={addClaimedCommunityEvent}>
+                <input type="hidden" name="id" value={community.id} />
+                <label className="field cr-quiet">
+                  <span className="sr-only">Event Name</span>
+                  <input name="title" required placeholder="Event Name" aria-label="Event Name" />
+                </label>
+                <div className="community-setup-actions">
+                  <button className="btn btn-primary" type="submit">
+                    Add Event
+                  </button>
+                </div>
+              </form>
+              {events.length === 0 ? (
+                <p className="cr-about-label">No events linked yet.</p>
+              ) : (
+                <ul className="community-event-links">
+                  {events.map((event) => (
+                    <li key={event.id}>
+                      <a href={portalEventHref(event.id)}>{event.title}</a>
+                      <span> · {event.status}</span>
+                    </li>
+                  ))}
+                </ul>
+              )}
+              <p className="community-setup-actions">
+                <a className="btn btn-secondary" href={`/communities/${community.slug}`}>
+                  View Public Page
+                </a>
+              </p>
+            </section>
+          </div>
         </div>
-
-        <p style={{ marginTop: 28 }}>
-          <a className="btn btn-secondary" href={`/communities/${community.slug}`}>
-            View Public Page
-          </a>
-        </p>
     </>
   );
 }

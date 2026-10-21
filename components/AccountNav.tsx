@@ -32,11 +32,13 @@ function isCurrent(pathname: string, href: string) {
 export function AccountNav({
   host,
   events,
+  communities,
   collapsed,
   onToggleCollapsed,
 }: {
   host: boolean;
   events: { id: string; title: string }[];
+  communities: { id: string; title: string }[];
   collapsed: boolean;
   onToggleCollapsed: () => void;
 }) {
@@ -65,6 +67,7 @@ export function AccountNav({
   }
 
   const eventsOpen = isOpen("events", host);
+  const communitiesOpen = isOpen("communities", true);
 
   const groups: { label: string; items: { href: string; label: string; icon: MenuIconName }[] }[] = [
     {
@@ -215,19 +218,63 @@ export function AccountNav({
             <span className="v-label">Become an Event Host</span>
           </a>
         )}
-        <a
-          className="v-item"
-          href="/account/communities"
-          aria-current={isCurrent(pathname, "/account/communities") ? "page" : undefined}
-          title="Communities"
+        <div
+          className={communitiesOpen ? "account-fold open" : "account-fold"}
+          onMouseEnter={(event) => pinMenuFlyout(event.currentTarget)}
+          onMouseLeave={(event) => clearMenuFlyout(event.currentTarget)}
+          onFocus={(event) => pinMenuFlyout(event.currentTarget)}
+          onBlur={(event) => {
+            if (!event.currentTarget.contains(event.relatedTarget)) clearMenuFlyout(event.currentTarget);
+          }}
         >
-          <MenuIcon name="flag" />
-          <span className="v-label">Communities</span>
-        </a>
-        <a className="v-item" href="/account/community" aria-current={pathname === "/account/community" ? "page" : undefined} title="Register a Community">
-          <MenuIcon name="plus" />
-          <span className="v-label">Register a Community</span>
-        </a>
+          <div className="account-fold-row">
+            <a className="v-item" href="/account/communities" title="Communities">
+              <MenuIcon name="flag" />
+              <span className="v-label">Communities</span>
+            </a>
+            <button
+              type="button"
+              className="v-chevron"
+              aria-expanded={communitiesOpen}
+              aria-label={communitiesOpen ? "Fold Communities" : "Open Communities"}
+              onClick={() => setFold("communities", true)}
+            >
+              <MenuChevron />
+            </button>
+          </div>
+          <div className="account-subnav">
+            <a
+              className="v-item"
+              href="/account/communities"
+              aria-current={pathname === "/account/communities" ? "page" : undefined}
+              title="All"
+            >
+              <MenuIcon name="list" />
+              <span className="v-label">All</span>
+            </a>
+            <a
+              className="v-item"
+              href="/account/community"
+              aria-current={pathname === "/account/community" ? "page" : undefined}
+              title="New Community"
+            >
+              <MenuIcon name="plus" />
+              <span className="v-label">New Community</span>
+            </a>
+            {communities.map((community) => (
+              <a
+                key={community.id}
+                className="v-item"
+                href={`/account/communities/${community.id}`}
+                aria-current={pathname === `/account/communities/${community.id}` ? "page" : undefined}
+                title={community.title}
+              >
+                <MenuIcon name="flag" />
+                <span className="v-label">{community.title}</span>
+              </a>
+            ))}
+          </div>
+        </div>
       </div>
     </nav>
   );

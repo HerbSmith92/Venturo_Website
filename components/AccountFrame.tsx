@@ -9,10 +9,12 @@ const NAV_KEY = "venturo-account-nav";
 export function AccountFrame({
   host,
   events = [],
+  communities = [],
   children,
 }: {
   host: boolean;
   events?: { id: string; title: string }[];
+  communities?: { id: string; title: string }[];
   children: React.ReactNode;
 }) {
   const pathname = usePathname();
@@ -35,7 +37,13 @@ export function AccountFrame({
   return (
     <div className="shell">
       <section className={collapsed ? "section account-frame is-collapsed" : "section account-frame"}>
-        <AccountNav host={host} events={events} collapsed={collapsed} onToggleCollapsed={toggleCollapsed} />
+        <AccountNav
+          host={host}
+          events={events}
+          communities={communities}
+          collapsed={collapsed}
+          onToggleCollapsed={toggleCollapsed}
+        />
         <div className="account-main">{children}</div>
       </section>
     </div>

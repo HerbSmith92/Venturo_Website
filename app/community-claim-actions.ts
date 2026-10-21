@@ -5,6 +5,7 @@ import { redirect } from "next/navigation";
 import { getCurrentUser } from "@/lib/auth";
 import { getCommunityById } from "@/lib/communities";
 import { createEventStub } from "@/lib/events";
+import { tidyCellphone } from "@/lib/phone";
 import { portalEventHref } from "@/lib/portal";
 import { createClient } from "@/lib/supabase/server";
 
@@ -12,6 +13,57 @@ const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-
 
 function areasFrom(raw: string) {
   return [...new Set(raw.split(/[\n,]/).map((area) => area.trim()).filter(Boolean))].slice(0, 12);
+}
+
+export async function registerCommunity(input: {
+  title: string;
+  about: string;
+  areas: string[];
+  phone: string;
+  contactEmail: string;
+  founderName: string;
+  founderEmail: string;
+  websiteUrl: string;
+  instagramUrl: string;
+  facebookUrl: string;
+  tiktokUrl: string;
+}): Promise<{ id: string } | { error: string }> {
+  const user = await getCurrentUser();
+  if (!user) return { error: "Sign in to register a community." };
+  const title = input.title.trim();
+  const about = input.about.trim();
+  const founderName = input.founderName.trim();
+  const areas = [...new Set(input.areas.map((area) => area.trim()).filter(Boolean))].slice(0, 12);
+  if (!title) return { error: "Give the community a name." };
+  if (!about) return { error: "Describe the community." };
+  if (!founderName) return { error: "Add the founder's name." };
+  const phoneRaw = input.phone.trim();
+  const phone = phoneRaw ? tidyCellphone(phoneRaw) : "";
+  if (phoneRaw && !phone) return { error: "That contact number does not look right." };
+  const contactEmail = input.contactEmail.trim();
+  if (!phone && !contactEmail) return { error: "Add a contact email or a contact number." };
+
+  const supabase = await createClient();
+  if (!supabase) return { error: "Could not register that community." };
+  const { data, error } = await supabase.rpc("register_community", {
+    p_title: title,
+    p_about: about,
+    p_phone: phone,
+    p_contact_email: contactEmail,
+    p_founder_name: founderName,
+    p_founder_email: input.founderEmail.trim(),
+    p_place_label: areas[0] ?? "",
+    p_website_url: input.websiteUrl.trim(),
+    p_instagram_url: input.instagramUrl.trim(),
+    p_facebook_url: input.facebookUrl.trim(),
+    p_tiktok_url: input.tiktokUrl.trim(),
+    p_areas: areas,
+  });
+  if (error || !data) return { error: error?.message ?? "Could not register that community." };
+
+  revalidatePath("/account/communities");
+  revalidatePath("/account/community");
+  return { id: String(data) };
 }
 
 export async function claimCommunityNow(formData: FormData) {
