@@ -2,22 +2,13 @@
 
 import { useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
-import { EnergySpectrum } from "@/components/EnergySpectrum";
 import { createClient } from "@/lib/supabase/client";
 import {
-  MAX_INTERESTS,
-  MAX_PERSONAS,
   onboardingStepFor,
   profileProgress,
   type MemberProfile,
   type ProfileCatalog,
 } from "@/lib/profile-shared";
-
-function toggleId(ids: string[], id: string, max: number) {
-  if (ids.includes(id)) return ids.filter((item) => item !== id);
-  if (ids.length >= max) return ids;
-  return [...ids, id];
-}
 
 function initials(firstName: string, lastName: string) {
   const first = firstName.trim();
@@ -25,10 +16,6 @@ function initials(firstName: string, lastName: string) {
   if (!first && !last) return "V";
   if (first && last) return `${first[0] ?? ""}${last[0] ?? ""}`.toUpperCase();
   return first.slice(0, 2).toUpperCase() || last.slice(0, 2).toUpperCase();
-}
-
-function kindClass(kindKey: string) {
-  return `kind kind-${kindKey}`;
 }
 
 export function ProfileForm({
@@ -51,16 +38,7 @@ export function ProfileForm({
   const [phone, setPhone] = useState(profile.phone);
   const [avatarUrl, setAvatarUrl] = useState(profile.avatarUrl);
   const [homePlaceId, setHomePlaceId] = useState(profile.homePlaceId ?? "");
-  const [personaIds, setPersonaIds] = useState(profile.personaIds);
-  const [interestIds, setInterestIds] = useState(profile.interestIds);
-  const [energyLow, setEnergyLow] = useState(profile.energyLow != null ? String(profile.energyLow) : "");
-  const [energyHigh, setEnergyHigh] = useState(
-    profile.energyHigh != null ? String(profile.energyHigh) : "",
-  );
-  const [query, setQuery] = useState("");
   const [error, setError] = useState<string | null>(null);
-  const [saved, setSaved] = useState(false);
-  const [pending, setPending] = useState(false);
   const [uploading, setUploading] = useState(false);
   const [editingDetails, setEditingDetails] = useState(false);
   const [detailsPending, setDetailsPending] = useState(false);
@@ -77,12 +55,12 @@ export function ProfileForm({
         firstName,
         avatarUrl,
         homePlaceId: homePlaceId || null,
-        personaIds,
-        interestIds,
-        energyLow: energyLow ? Number(energyLow) : null,
-        energyHigh: energyHigh ? Number(energyHigh) : null,
+        personaIds: profile.personaIds,
+        interestIds: profile.interestIds,
+        energyLow: profile.energyLow,
+        energyHigh: profile.energyHigh,
       }),
-    [avatarUrl, energyHigh, energyLow, firstName, homePlaceId, interestIds, personaIds],
+    [avatarUrl, firstName, homePlaceId, profile.energyHigh, profile.energyLow, profile.interestIds, profile.personaIds],
   );
 
   const regions = useMemo(() => {
@@ -101,47 +79,6 @@ export function ProfileForm({
     return catalog.places.find((place) => place.id === homePlaceId)?.name ?? "Not set yet";
   }, [catalog.places, homePlaceId]);
 
-  const visibleInterests = useMemo(() => {
-    const needle = query.trim().toLowerCase();
-    const rows = needle
-      ? catalog.interests.filter((item) => item.title.toLowerCase().includes(needle))
-      : catalog.interests;
-    const groups = new Map<string, { key: string; title: string; items: typeof rows }>();
-    for (const item of rows) {
-      const existing = groups.get(item.kind_key);
-      if (existing) {
-        existing.items.push(item);
-      } else {
-        groups.set(item.kind_key, {
-          key: item.kind_key,
-          title: item.kind_title,
-          items: [item],
-        });
-      }
-    }
-    return [...groups.values()];
-  }, [catalog.interests, query]);
-
-  function pickEnergy(rank: number) {
-    const lo = energyLow ? Number(energyLow) : null;
-    const hi = energyHigh ? Number(energyHigh) : null;
-    if (lo == null || hi == null) {
-      setEnergyLow(String(rank));
-      setEnergyHigh(String(rank));
-      return;
-    }
-    if (rank < lo) {
-      setEnergyLow(String(rank));
-      return;
-    }
-    if (rank > hi) {
-      setEnergyHigh(String(rank));
-      return;
-    }
-    setEnergyLow(String(rank));
-    setEnergyHigh(String(rank));
-  }
-
   async function onAvatarChange(event: React.ChangeEvent<HTMLInputElement>) {
     const file = event.target.files?.[0];
     event.target.value = "";
@@ -158,7 +95,6 @@ export function ProfileForm({
       return;
     }
     setAvatarUrl(payload.avatarUrl ?? null);
-    setSaved(false);
     router.refresh();
   }
 
@@ -173,27 +109,22 @@ export function ProfileForm({
       return;
     }
     setAvatarUrl(null);
-    setSaved(false);
     router.refresh();
   }
 
-  async function saveProfile(options?: { detailsOnly?: boolean }) {
+  async function saveDetails() {
     setError(null);
-    setSaved(false);
     setDetailsSaved(false);
-    if (options?.detailsOnly) setDetailsPending(true);
-    else setPending(true);
+    setDetailsPending(true);
 
-    const nextEnergyLow = energyLow ? Number(energyLow) : null;
-    const nextEnergyHigh = energyHigh ? Number(energyHigh) : null;
     const finishOnboarding =
       onboardingStepFor({
         firstName,
         homePlaceId: homePlaceId || null,
-        personaIds,
-        interestIds,
-        energyLow: nextEnergyLow,
-        energyHigh: nextEnergyHigh,
+        personaIds: profile.personaIds,
+        interestIds: profile.interestIds,
+        energyLow: profile.energyLow,
+        energyHigh: profile.energyHigh,
       }) === "complete";
 
     const response = await fetch("/api/account/profile", {
@@ -202,41 +133,28 @@ export function ProfileForm({
       body: JSON.stringify({
         firstName,
         lastName,
-        ...(options?.detailsOnly ? { phone } : {}),
+        phone,
         homePlaceId: homePlaceId || null,
-        personaIds,
-        interestIds,
-        energyLow: nextEnergyLow,
-        energyHigh: nextEnergyHigh,
         finishOnboarding,
       }),
     });
     const payload = (await response.json()) as { error?: string };
-    if (options?.detailsOnly) setDetailsPending(false);
-    else setPending(false);
+    setDetailsPending(false);
 
     if (!response.ok) {
       setError(payload.error ?? "Could not save your profile.");
-      return false;
+      return;
     }
 
-    if (options?.detailsOnly) {
-      setDetailsSaved(true);
-      setEditingDetails(false);
-    } else {
-      setSaved(true);
-    }
+    setDetailsSaved(true);
+    setEditingDetails(false);
     router.refresh();
-    return true;
   }
 
   async function onSubmit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
-    if (editingDetails) {
-      setError("Save or cancel Your Details before saving the full profile.");
-      return;
-    }
-    await saveProfile();
+    if (!editingDetails) return;
+    await saveDetails();
   }
 
   function cancelDetailsEdit() {
@@ -501,7 +419,7 @@ export function ProfileForm({
                     type="button"
                     className="btn btn-primary"
                     disabled={detailsPending || !firstName.trim() || !phone.trim()}
-                    onClick={() => void saveProfile({ detailsOnly: true })}
+                    onClick={() => void saveDetails()}
                   >
                     {detailsPending ? "Please Wait" : "Save Details"}
                   </button>
@@ -527,6 +445,7 @@ export function ProfileForm({
                 {showPassword ? "Cancel Password Change" : "Change Password"}
               </button>
             </div>
+            {error && <p className="error">{error}</p>}
             {detailsSaved && <p className="notice">Details saved.</p>}
 
             <div className="profile-password">
@@ -567,108 +486,6 @@ export function ProfileForm({
           </section>
         </div>
 
-        <section className="profile-section">
-          <p className="eyebrow">Going Out</p>
-          <h3>How You Usually Go Out</h3>
-          <p className="muted" style={{ marginTop: 0 }}>
-            Choose the situations that fit you—solo, with a partner, family, friends, or work.
-            Skip any that don’t.
-          </p>
-          <div className="tag-picker persona-picker">
-            {catalog.personas.map((persona) => {
-              const on = personaIds.includes(persona.id);
-              return (
-                <button
-                  key={persona.id}
-                  type="button"
-                  className={`chip chip-persona${on ? " on" : ""}`}
-                  onClick={() => setPersonaIds(toggleId(personaIds, persona.id, MAX_PERSONAS))}
-                >
-                  <span>{persona.title}</span>
-                  {persona.subtitle && <small>{persona.subtitle}</small>}
-                </button>
-              );
-            })}
-          </div>
-        </section>
-
-        <section className="profile-section">
-          <p className="eyebrow">Interests</p>
-          <h3>Activities You Enjoy</h3>
-          <p className="muted">
-            Pick as many as you like — up to {MAX_INTERESTS}. A handful helps Made For You.
-          </p>
-          <label className="field">
-            <span>Search</span>
-            <input
-              type="search"
-              value={query}
-              onChange={(e) => setQuery(e.target.value)}
-              placeholder="Search interests"
-              aria-label="Search interests"
-            />
-          </label>
-          {visibleInterests.map((group) => (
-            <div key={group.key} className="profile-kind" data-kind={group.key}>
-              <p className="eyebrow profile-kind-title">
-                <span className="profile-kind-swatch" aria-hidden />
-                {group.title}
-              </p>
-              <div className="tag-picker">
-                {group.items.map((item) => {
-                  const on = interestIds.includes(item.id);
-                  return (
-                    <button
-                      key={item.id}
-                      type="button"
-                      className={`chip ${kindClass(item.kind_key)}${on ? " on" : ""}`}
-                      onClick={() => setInterestIds(toggleId(interestIds, item.id, MAX_INTERESTS))}
-                    >
-                      {item.title}
-                    </button>
-                  );
-                })}
-              </div>
-            </div>
-          ))}
-        </section>
-
-        <section className="profile-section">
-          <p className="eyebrow">Activity Level</p>
-          <h3>How Active You Feel</h3>
-          <p className="muted" style={{ marginTop: 0 }}>
-            Set a range on the scale—from chilled to full throttle. This is your current mood,
-            not a permanent setting.
-          </p>
-          <EnergySpectrum
-            scales={catalog.scales}
-            energyLow={energyLow}
-            energyHigh={energyHigh}
-            onPick={pickEnergy}
-          />
-          {(energyLow || energyHigh) && (
-            <button
-              type="button"
-              className="btn btn-ghost"
-              onClick={() => {
-                setEnergyLow("");
-                setEnergyHigh("");
-              }}
-            >
-              Clear Activity Level
-            </button>
-          )}
-        </section>
-
-        {error && <p className="error">{error}</p>}
-        {saved && <p className="notice">Saved. The app sees the same profile.</p>}
-        <button
-          className="btn btn-primary"
-          type="submit"
-          disabled={pending || uploading || editingDetails}
-        >
-          {pending ? "Please Wait" : "Save Profile"}
-        </button>
       </div>
     </form>
   );

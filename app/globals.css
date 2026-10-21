@@ -229,22 +229,40 @@ select {
 
 .nav-drawer-links a,
 .nav-drawer-links button {
-  display: block;
+  display: flex;
+  align-items: center;
+  gap: 10px;
   width: 100%;
-  padding: 12px 10px;
+  padding: 10px;
   border: 0;
-  border-radius: var(--radius-sm);
+  border-radius: 12px;
   background: transparent;
   color: var(--snow);
   text-align: left;
   text-decoration: none;
-  font-size: 17px;
+  font-size: 16px;
+  font-weight: 400;
   cursor: pointer;
+}
+
+.nav-drawer-links a[aria-current="page"] {
+  background: var(--canary);
+  color: var(--night);
+  font-weight: 600;
+}
+
+.nav-drawer-links form {
+  margin: 0;
 }
 
 .nav-drawer-links a:hover,
 .nav-drawer-links button:hover {
   background: color-mix(in srgb, var(--snow) 8%, transparent);
+}
+
+.nav-drawer-links a[aria-current="page"]:hover {
+  background: var(--canary);
+  color: var(--night);
 }
 
 .nav-drawer-label {
@@ -1377,21 +1395,462 @@ a.chip.active {
   color: color-mix(in srgb, var(--snow) 65%, transparent);
 }
 
-.account-nav {
-  margin: 0 0 28px;
-  flex-wrap: wrap;
+.account-frame {
+  display: grid;
+  grid-template-columns: 260px minmax(0, 1fr);
+  gap: 40px;
+  align-items: start;
+}
+
+.account-frame.is-collapsed {
+  grid-template-columns: 84px minmax(0, 1fr);
+  gap: 24px;
+}
+
+.account-rail {
+  position: sticky;
+  top: 16px;
+  z-index: 5;
+  display: grid;
+  align-content: start;
+  gap: 4px;
+  max-height: calc(100vh - 32px);
+  padding: 12px 10px 16px;
+  overflow-x: clip;
+  overflow-y: auto;
+  border: 1px solid color-mix(in srgb, var(--snow) 10%, transparent);
+  border-radius: 22px;
+  background: color-mix(in srgb, var(--snow) 6%, var(--night));
+}
+
+.account-rail.is-collapsed {
+  z-index: 20;
   overflow: visible;
 }
 
-.account-nav a.chip {
-  background: var(--snow);
+.v-menu-top {
+  display: flex;
+  justify-content: flex-end;
+  margin-bottom: 6px;
+}
+
+.account-rail.is-collapsed .v-menu-top {
+  justify-content: center;
+}
+
+.v-collapse,
+.cr-nav-toggle {
+  display: grid;
+  place-items: center;
+  width: 32px;
+  height: 32px;
+  border: 1px solid color-mix(in srgb, var(--snow) 22%, transparent);
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--snow) 6%, transparent);
+  color: var(--snow);
+  cursor: pointer;
+}
+
+.v-collapse .v-chevron-icon {
+  transform: rotate(180deg);
+}
+
+.account-rail.is-collapsed .v-collapse .v-chevron-icon,
+.cr-nav.is-collapsed .cr-nav-toggle .v-chevron-icon {
+  transform: none;
+}
+
+.v-menu-icon,
+.v-chevron-icon {
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.75;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.v-menu-icon {
+  width: 18px;
+  height: 18px;
+  flex: 0 0 18px;
+}
+
+.v-chevron-icon {
+  width: 16px;
+  height: 16px;
+  flex: 0 0 16px;
+  transition: transform 160ms ease;
+}
+
+.account-rail-group,
+.cr-nav-group {
+  display: grid;
+  gap: 2px;
+  min-width: 0;
+}
+
+.account-fold,
+.account-fold-row,
+.account-subnav,
+.account-rail .v-item,
+.v-item-main {
+  min-width: 0;
+}
+
+.account-rail-group + .account-rail-group,
+.cr-nav-group + .cr-nav-group {
+  margin-top: 12px;
+  padding-top: 0;
+  border-top: 0;
+}
+
+.account-rail-label,
+p.cr-nav-label {
+  margin: 10px 12px 6px;
+  font-family: Nunito, "Trebuchet MS", sans-serif;
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.14em;
+  line-height: 1.2;
+  text-transform: uppercase;
+  color: color-mix(in srgb, var(--snow) 52%, transparent);
+}
+
+.account-rail .v-item,
+.cr-heading,
+.cr-leaf,
+.cr-subnav a,
+.cr-subnav button,
+a.cr-nav-label {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  min-height: 40px;
+  margin: 0;
+  padding: 8px 10px;
+  border: 0;
+  border-radius: 12px;
+  background: transparent;
+  color: color-mix(in srgb, var(--snow) 88%, transparent);
+  font: inherit;
+  font-size: 15px;
+  font-weight: 400;
+  line-height: 1.2;
+  letter-spacing: 0;
+  text-align: left;
+  text-transform: none;
+  text-decoration: none;
+  cursor: pointer;
+}
+
+.v-item-main {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-width: 0;
+  flex: 1;
+}
+
+.v-label {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.account-rail .v-item:hover,
+.cr-heading:hover,
+.cr-leaf:hover,
+.cr-subnav a:hover,
+.cr-subnav button:hover,
+a.cr-nav-label:hover {
+  background: color-mix(in srgb, var(--snow) 10%, transparent);
+  color: var(--snow);
+}
+
+.account-rail .v-item[aria-current="page"],
+.cr-heading.active,
+.cr-subnav a.active,
+.cr-leaf.active,
+a.cr-nav-label.active {
+  background: var(--canary);
   color: var(--night);
   font-weight: 600;
 }
 
-.account-nav a.chip.active {
+.account-rail .v-item[aria-current="page"]:hover,
+.cr-heading.active:hover,
+.cr-subnav a.active:hover,
+a.cr-nav-label.active:hover {
   background: var(--canary);
   color: var(--night);
+}
+
+.account-fold-row {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+}
+
+.account-fold-row > a,
+.account-rail .account-fold-row > .v-item {
+  flex: 1 1 auto;
+  width: auto;
+  min-width: 0;
+}
+
+.v-chevron {
+  display: grid;
+  place-items: center;
+  width: 28px;
+  height: 28px;
+  flex: 0 0 28px;
+  padding: 0;
+  border: 0;
+  border-radius: 8px;
+  background: transparent;
+  color: inherit;
+  cursor: pointer;
+}
+
+.account-fold.open > .account-fold-row .v-chevron-icon,
+.cr-section.open > .cr-heading .v-chevron-icon {
+  transform: rotate(90deg);
+}
+
+.account-subnav,
+.cr-subnav {
+  display: none;
+  gap: 2px;
+  margin: 2px 0 6px 20px;
+  padding: 2px 0 2px 10px;
+  border-left: 1px solid color-mix(in srgb, var(--snow) 32%, transparent);
+}
+
+.account-fold.open > .account-subnav,
+.cr-section.open > .cr-subnav {
+  display: grid;
+}
+
+.account-rail a:focus-visible,
+.account-rail button:focus-visible,
+.cr-heading:focus-visible,
+.cr-leaf:focus-visible,
+.cr-subnav a:focus-visible,
+.cr-subnav button:focus-visible,
+.cr-nav-toggle:focus-visible,
+.v-collapse:focus-visible {
+  outline: 2px solid var(--canary);
+  outline-offset: 2px;
+}
+
+.account-rail.is-collapsed .account-rail-label,
+.cr-nav.is-collapsed p.cr-nav-label {
+  display: none;
+}
+
+.account-rail.is-collapsed .v-item,
+.account-rail.is-collapsed .account-fold-row > a,
+.cr-nav.is-collapsed .cr-heading,
+.cr-nav.is-collapsed a.cr-nav-label,
+.cr-nav.is-collapsed .cr-leaf {
+  justify-content: center;
+  width: 44px;
+  margin-inline: auto;
+  padding-right: 0;
+  padding-left: 0;
+}
+
+.account-rail.is-collapsed .account-fold-row > a {
+  flex: 0 0 44px;
+}
+
+.account-rail.is-collapsed .v-label,
+.cr-nav.is-collapsed .v-label {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  margin: -1px;
+  padding: 0;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+.account-rail.is-collapsed .account-subnav .v-label,
+.cr-nav.is-collapsed .cr-subnav .v-label {
+  position: static;
+  width: auto;
+  height: auto;
+  margin: 0;
+  overflow: hidden;
+  clip: auto;
+}
+
+.account-rail.is-collapsed .account-subnav .v-item,
+.account-rail.is-collapsed .account-subnav .account-fold-row > a,
+.cr-nav.is-collapsed .cr-subnav a,
+.cr-nav.is-collapsed .cr-subnav button {
+  justify-content: flex-start;
+  width: 100%;
+  margin-inline: 0;
+  padding: 8px 10px;
+}
+
+.account-rail.is-collapsed .account-subnav .account-fold-row > a {
+  flex: 1 1 auto;
+}
+
+.account-rail.is-collapsed .account-rail-group > .account-fold > .account-fold-row > .v-chevron,
+.cr-nav.is-collapsed .cr-heading .v-chevron-icon {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+}
+
+.account-rail.is-collapsed .account-subnav .v-chevron {
+  position: static;
+  width: 28px;
+  height: 28px;
+  overflow: visible;
+  clip: auto;
+}
+
+.account-rail.is-collapsed .account-subnav,
+.cr-nav.is-collapsed .cr-subnav {
+  display: none;
+}
+
+.account-rail.is-collapsed .account-rail-group > .account-fold:hover > .account-subnav,
+.account-rail.is-collapsed .account-rail-group > .account-fold:focus-within > .account-subnav,
+.account-rail.is-collapsed .account-rail-group > .account-fold.is-fly > .account-subnav,
+.cr-nav.is-collapsed .cr-section:hover > .cr-subnav,
+.cr-nav.is-collapsed .cr-section:focus-within > .cr-subnav,
+.cr-nav.is-collapsed .cr-section.is-fly > .cr-subnav {
+  display: grid;
+  min-width: 232px;
+  max-width: 280px;
+  max-height: min(70vh, 520px);
+  margin: 0;
+  padding: 8px;
+  overflow: auto;
+  border: 1px solid color-mix(in srgb, var(--snow) 18%, transparent);
+  border-radius: 16px;
+  background: color-mix(in srgb, var(--snow) 14%, var(--night));
+  box-shadow: 0 18px 48px rgba(0, 0, 0, 0.5);
+}
+
+.account-rail.is-collapsed .account-subnav::before,
+.cr-nav.is-collapsed .cr-subnav::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  right: 100%;
+  width: 16px;
+  height: 100%;
+}
+
+.account-rail.is-collapsed .account-subnav .account-fold.open > .account-subnav {
+  position: static;
+  display: grid;
+  min-width: 0;
+  max-height: none;
+  margin: 2px 0 4px 16px;
+  padding: 2px 0 2px 10px;
+  overflow: visible;
+  border: 0;
+  border-left: 1px solid color-mix(in srgb, var(--snow) 32%, transparent);
+  border-radius: 0;
+  background: transparent;
+  box-shadow: none;
+}
+
+.account-rail.is-collapsed .account-subnav .account-fold.open > .account-subnav::before {
+  content: none;
+}
+
+.account-main {
+  min-width: 0;
+}
+
+@media (max-width: 900px) {
+  .account-frame,
+  .account-frame.is-collapsed {
+    grid-template-columns: 1fr;
+    gap: 28px;
+  }
+
+  .account-rail,
+  .account-rail.is-collapsed {
+    position: static;
+    max-height: none;
+    overflow: visible;
+  }
+
+  .account-rail .v-menu-top {
+    display: none;
+  }
+
+  .account-rail.is-collapsed .account-rail-label {
+    display: block;
+  }
+
+  .account-rail.is-collapsed .v-label,
+  .account-rail.is-collapsed .account-subnav .v-label {
+    position: static;
+    width: auto;
+    height: auto;
+    margin: 0;
+    overflow: hidden;
+    clip: auto;
+  }
+
+  .account-rail.is-collapsed .v-item,
+  .account-rail.is-collapsed .account-fold-row > a {
+    justify-content: flex-start;
+    width: 100%;
+    margin-inline: 0;
+    padding: 8px 10px;
+  }
+
+  .account-rail.is-collapsed .account-fold-row > a {
+    flex: 1;
+  }
+
+  .account-rail.is-collapsed .account-rail-group > .account-fold > .account-fold-row > .v-chevron {
+    position: static;
+    width: 28px;
+    height: 28px;
+    overflow: visible;
+    clip: auto;
+  }
+
+  .account-rail.is-collapsed .account-subnav,
+  .account-rail.is-collapsed .account-rail-group > .account-fold:hover > .account-subnav,
+  .account-rail.is-collapsed .account-rail-group > .account-fold:focus-within > .account-subnav {
+    position: static;
+    display: none;
+    min-width: 0;
+    max-width: none;
+    max-height: none;
+    margin: 2px 0 6px 20px;
+    padding: 2px 0 2px 10px;
+    border: 0;
+    border-left: 1px solid color-mix(in srgb, var(--snow) 32%, transparent);
+    border-radius: 0;
+    background: transparent;
+    box-shadow: none;
+  }
+
+  .account-rail.is-collapsed .account-fold.open > .account-subnav,
+  .account-rail.is-collapsed .account-rail-group > .account-fold.open:hover > .account-subnav,
+  .account-rail.is-collapsed .account-rail-group > .account-fold.open:focus-within > .account-subnav {
+    display: grid;
+  }
 }
 
 .profile-form {
@@ -1995,17 +2454,21 @@ fieldset.field {
 }
 
 .cr-nav.is-collapsed {
-  width: 48px;
-  padding: 10px 8px;
+  width: 76px;
+  padding: 12px 8px;
 }
 
 .cr-nav-body {
   overflow: auto;
   min-height: 0;
   flex: 1;
+  padding-right: 2px;
 }
 
-.cr-nav.is-collapsed .cr-nav-body,
+.cr-nav.is-collapsed .cr-nav-body {
+  overflow: visible;
+}
+
 .cr-nav.is-collapsed .cr-brand a,
 .cr-nav.is-collapsed .cr-brand > span {
   display: none;
@@ -2013,37 +2476,49 @@ fieldset.field {
 
 .cr-brand {
   display: grid;
-  gap: 6px;
+  grid-template-columns: minmax(0, 1fr) 32px;
+  align-items: center;
+  column-gap: 8px;
+  row-gap: 4px;
   min-height: 32px;
   margin: 0 0 14px;
-  padding-left: 36px;
+}
+
+.cr-nav.is-collapsed .cr-brand {
+  display: flex;
+  justify-content: center;
+}
+
+.cr-brand a {
+  grid-column: 1;
+  grid-row: 1;
+  min-width: 0;
 }
 
 .cr-brand img {
-  width: min(176px, 100%);
+  width: min(168px, 100%);
 }
 
 .cr-brand > span {
+  grid-column: 1;
+  grid-row: 2;
   font-family: "Social Gothic Rough", "Arial Black", sans-serif;
   letter-spacing: 0.04em;
-  font-size: 22px;
+  font-size: 16px;
   line-height: 1;
 }
 
 .cr-nav-toggle {
-  position: absolute;
-  top: 10px;
-  left: 10px;
+  position: static;
   z-index: 2;
-  display: grid;
-  place-items: center;
-  width: 28px;
-  height: 28px;
-  border: 1px solid color-mix(in srgb, var(--snow) 35%, transparent);
-  border-radius: 4px;
-  background: transparent;
-  color: var(--snow);
-  cursor: pointer;
+  grid-column: 2;
+  grid-row: 1 / span 2;
+  margin-left: 0;
+}
+
+.cr-nav.is-collapsed .cr-nav-toggle {
+  grid-column: auto;
+  grid-row: auto;
 }
 
 .cr-nav-chevron {
@@ -2060,59 +2535,12 @@ fieldset.field {
   margin-left: -3px;
 }
 
-.cr-nav-label {
-  display: block;
-  margin: 0 8px 2px;
-  font-family: "Social Gothic Rough", "Arial Black", sans-serif;
-  font-size: 15px;
-  font-weight: 400;
-  letter-spacing: 0.04em;
-  line-height: 1.1;
-  text-transform: uppercase;
-  color: var(--snow);
-}
-
 .cr-nav-group:not(:has(.cr-section)) .cr-nav-label {
   margin-bottom: 0;
 }
 
-.cr-nav-label.active {
-  color: var(--canary);
-}
-
-.cr-nav-group {
-  display: grid;
-  gap: 0;
-}
-
 .cr-nav-group:not(:last-child) {
-  padding-bottom: 6px;
-}
-
-.cr-nav-group + .cr-nav-group {
-  margin-top: 0;
-  padding-top: 6px;
-  border-top: 1px solid color-mix(in srgb, var(--snow) 16%, transparent);
-}
-
-.cr-leaf {
-  display: block;
-  width: 100%;
-  padding: 1px 8px;
-  border: 0;
-  border-radius: var(--radius-sm);
-  background: transparent;
-  color: color-mix(in srgb, var(--snow) 82%, transparent);
-  font: inherit;
-  font-size: 13px;
-  line-height: 1.25;
-  text-align: left;
-  cursor: pointer;
-}
-
-.cr-leaf:hover {
-  background: color-mix(in srgb, var(--canary) 18%, transparent);
-  color: var(--canary);
+  padding-bottom: 4px;
 }
 
 .cr-link {
@@ -2129,54 +2557,18 @@ fieldset.field {
 }
 
 .cr-section {
+  position: relative;
   display: grid;
-  gap: 0;
+  gap: 2px;
 }
 
 .cr-heading {
-  display: flex;
-  align-items: center;
+  position: relative;
   justify-content: space-between;
-  gap: 8px;
-  width: 100%;
-  padding: 1px 8px;
-  border: 0;
-  border-radius: var(--radius-sm);
-  background: transparent;
-  color: var(--snow);
-  font: inherit;
-  font-size: 13px;
-  line-height: 1.25;
-  text-align: left;
-  cursor: pointer;
-}
-
-.cr-heading.active,
-.cr-section.open .cr-heading {
-  color: var(--canary);
-}
-
-.cr-heading-caret {
-  width: 6px;
-  height: 6px;
-  flex: 0 0 6px;
-  margin-right: 4px;
-  border-right: 1.5px solid currentColor;
-  border-bottom: 1.5px solid currentColor;
-  transform: rotate(-45deg);
-  transform-origin: center;
-}
-
-.cr-section.open .cr-heading-caret {
-  transform: rotate(45deg);
 }
 
 .cr-subnav {
-  display: grid;
-  gap: 0;
-  margin: 2px 4px 0 18px;
-  padding-left: 10px;
-  border-left: 1px dashed color-mix(in srgb, var(--snow) 55%, transparent);
+  position: relative;
 }
 
 .cr-subnav form {
@@ -2189,25 +2581,7 @@ fieldset.field {
 
 .cr-subnav a,
 .cr-subnav button {
-  display: block;
-  width: 100%;
-  padding: 1px 8px;
-  border: 0;
-  border-radius: var(--radius-sm);
-  background: transparent;
-  color: color-mix(in srgb, var(--snow) 72%, transparent);
-  font: inherit;
-  font-size: 13px;
-  line-height: 1.25;
-  text-align: left;
-  cursor: pointer;
-}
-
-.cr-subnav a.active,
-.cr-subnav a:hover,
-.cr-subnav button:hover {
-  background: color-mix(in srgb, var(--canary) 18%, transparent);
-  color: var(--canary);
+  color: color-mix(in srgb, var(--snow) 78%, transparent);
 }
 
 .cr-board {
@@ -2228,7 +2602,7 @@ fieldset.field {
 }
 
 .cr-shell:has(.cr-nav.is-collapsed) .cr-main {
-  margin-left: 48px;
+  margin-left: 76px;
 }
 
 .cr-stats {
@@ -4696,9 +5070,80 @@ code {
     border-bottom: 1px solid color-mix(in srgb, var(--snow) 8%, transparent);
   }
 
+  .cr-nav-toggle {
+    display: none;
+  }
+
+  .cr-brand,
+  .cr-nav.is-collapsed .cr-brand {
+    display: grid;
+    grid-template-columns: 1fr;
+  }
+
   .cr-main,
   .cr-shell:has(.cr-nav.is-collapsed) .cr-main {
     margin-left: 0;
+  }
+
+  .cr-nav.is-collapsed .cr-brand a,
+  .cr-nav.is-collapsed .cr-brand > span,
+  .cr-nav.is-collapsed p.cr-nav-label {
+    display: block;
+  }
+
+  .cr-nav.is-collapsed .v-label,
+  .cr-nav.is-collapsed .cr-subnav .v-label {
+    position: static;
+    width: auto;
+    height: auto;
+    margin: 0;
+    overflow: hidden;
+    clip: auto;
+  }
+
+  .cr-nav.is-collapsed .cr-heading,
+  .cr-nav.is-collapsed a.cr-nav-label,
+  .cr-nav.is-collapsed .cr-leaf {
+    justify-content: flex-start;
+    width: 100%;
+    margin-inline: 0;
+    padding: 8px 10px;
+  }
+
+  .cr-nav.is-collapsed .cr-heading .v-chevron-icon {
+    position: static;
+    width: 16px;
+    height: 16px;
+    overflow: visible;
+    clip: auto;
+  }
+
+  .cr-nav.is-collapsed .cr-nav-body {
+    overflow: auto;
+  }
+
+  .cr-nav.is-collapsed .cr-subnav,
+  .cr-nav.is-collapsed .cr-section:hover > .cr-subnav,
+  .cr-nav.is-collapsed .cr-section:focus-within > .cr-subnav {
+    position: static;
+    display: none;
+    min-width: 0;
+    max-width: none;
+    max-height: none;
+    margin: 2px 0 6px 20px;
+    padding: 2px 0 2px 10px;
+    overflow: visible;
+    border: 0;
+    border-left: 1px solid color-mix(in srgb, var(--snow) 32%, transparent);
+    border-radius: 0;
+    background: transparent;
+    box-shadow: none;
+  }
+
+  .cr-nav.is-collapsed .cr-section.open > .cr-subnav,
+  .cr-nav.is-collapsed .cr-section.open:hover > .cr-subnav,
+  .cr-nav.is-collapsed .cr-section.open:focus-within > .cr-subnav {
+    display: grid;
   }
 
   .cr-stats {
@@ -9493,7 +9938,7 @@ button.listing-cost-toggle {
 @media print {
   body.printing-passport .site-header,
   body.printing-passport .site-footer,
-  body.printing-passport .account-nav,
+  body.printing-passport .account-rail,
   body.printing-passport .ticket-wallet-head,
   body.printing-passport .ticket-wallet-tools,
   body.printing-passport .passport-actions,

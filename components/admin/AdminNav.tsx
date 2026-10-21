@@ -2,6 +2,7 @@
 
 import { createListing } from "@/app/admin/actions";
 import { createCommunity } from "@/app/admin/content-actions";
+import { MenuChevron, MenuIcon, clearMenuFlyout, iconFor, pinMenuFlyout } from "@/components/menu/MenuIcon";
 import type { StaffSession } from "@/lib/auth";
 import { isAdmin } from "@/lib/roles";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
@@ -223,6 +224,17 @@ export function AdminNav({ user }: { user: StaffSession }) {
     if (window.localStorage.getItem(NAV_KEY) === "collapsed") setCollapsed(true);
   }, []);
 
+  useEffect(() => {
+    if (collapsed) return;
+    document.querySelectorAll(".cr-nav .cr-subnav").forEach((node) => {
+      if (!(node instanceof HTMLElement)) return;
+      node.style.position = "";
+      node.style.top = "";
+      node.style.left = "";
+      node.style.zIndex = "";
+    });
+  }, [collapsed]);
+
   const here = leafActive(path, params);
   const activeHeading = groups
     .flatMap((group) => group.headings)
@@ -261,7 +273,7 @@ export function AdminNav({ user }: { user: StaffSession }) {
           aria-label={collapsed ? "Expand menu" : "Minimise menu"}
           onClick={toggleCollapsed}
         >
-          <span className="cr-nav-chevron" aria-hidden="true" />
+          <MenuChevron />
         </button>
         <a href="/admin" aria-label="Control Room home">
           <img src="/brand/logos/venturo-horizontal-light.svg" alt="Venturo" />
@@ -273,8 +285,9 @@ export function AdminNav({ user }: { user: StaffSession }) {
           <div key={group.id} className="cr-nav-group">
             {group.label ? (
               group.labelHref ? (
-                <a className={labelActive(group, path) ? "cr-nav-label active" : "cr-nav-label"} href={group.labelHref}>
-                  {group.label}
+                <a className={labelActive(group, path) ? "cr-nav-label active" : "cr-nav-label"} href={group.labelHref} title={group.label}>
+                  <MenuIcon name={iconFor(group.id, group.label)} />
+                  <span className="v-label">{group.label}</span>
                 </a>
               ) : (
                 <p className="cr-nav-label">{group.label}</p>
@@ -288,6 +301,8 @@ export function AdminNav({ user }: { user: StaffSession }) {
                 path={path}
                 here={here}
                 onToggle={() => toggleHeading(heading)}
+                onFlyout={pinMenuFlyout}
+                onFlyoutEnd={clearMenuFlyout}
               />
             ))}
           </div>
@@ -303,46 +318,70 @@ function HeadingRow({
   path,
   here,
   onToggle,
+  onFlyout,
+  onFlyoutEnd,
 }: {
   heading: Heading;
   open: boolean;
   path: string;
   here: string;
   onToggle: () => void;
+  onFlyout: (host: HTMLElement) => void;
+  onFlyoutEnd: (host: HTMLElement) => void;
 }) {
-  const active = headingMatches(heading, path, here) || heading.leaves.some((leaf) => leaf.href === here);
+  const leafHere = heading.leaves.some((leaf) => leaf.href === here);
+  const active = !leafHere && headingMatches(heading, path, here);
 
   if (heading.action === "sign-out") {
     return (
       <form action="/auth/sign-out" method="post">
         <input type="hidden" name="next" value="/admin/login" />
-        <button className="cr-leaf" type="submit">
-          Log Out
+        <button className="cr-leaf" type="submit" title="Log Out">
+          <MenuIcon name="logout" />
+          <span className="v-label">Log Out</span>
         </button>
       </form>
     );
   }
 
   return (
-    <div className={open ? "cr-section open" : "cr-section"}>
-      <button type="button" className={active ? "cr-heading active" : "cr-heading"} aria-expanded={heading.leaves.length > 0 ? open : undefined} onClick={onToggle}>
-        <span>{heading.label}</span>
-        {heading.leaves.length > 0 ? <span className="cr-heading-caret" aria-hidden="true" /> : null}
+    <div
+      className={open ? "cr-section open" : "cr-section"}
+      onMouseEnter={(event) => onFlyout(event.currentTarget)}
+      onMouseLeave={(event) => onFlyoutEnd(event.currentTarget)}
+      onFocus={(event) => onFlyout(event.currentTarget)}
+      onBlur={(event) => {
+        if (!event.currentTarget.contains(event.relatedTarget)) onFlyoutEnd(event.currentTarget);
+      }}
+    >
+      <button type="button" className={active ? "cr-heading active" : "cr-heading"} aria-expanded={heading.leaves.length > 0 ? open : undefined} title={heading.label} onClick={onToggle}>
+        <span className="v-item-main">
+          <MenuIcon name={iconFor(heading.id, heading.label)} />
+          <span className="v-label">{heading.label}</span>
+        </span>
+        {heading.leaves.length > 0 ? <MenuChevron /> : null}
       </button>
-      {open ? (
+      {heading.leaves.length > 0 ? (
         <div className="cr-subnav">
           {heading.leaves.map((leaf) =>
             leaf.action === "create-listing" ? (
               <form key={leaf.id} action={createListing}>
-                <button type="submit">{leaf.label}</button>
+                <button type="submit" title={leaf.label}>
+                  <MenuIcon name={iconFor(leaf.id, leaf.label)} />
+                  <span className="v-label">{leaf.label}</span>
+                </button>
               </form>
             ) : leaf.action === "create-community" ? (
               <form key={leaf.id} action={createCommunity}>
-                <button type="submit">{leaf.label}</button>
+                <button type="submit" title={leaf.label}>
+                  <MenuIcon name={iconFor(leaf.id, leaf.label)} />
+                  <span className="v-label">{leaf.label}</span>
+                </button>
               </form>
             ) : (
-              <a key={leaf.id} className={leaf.href === here ? "active" : undefined} href={leaf.href}>
-                {leaf.label}
+              <a key={leaf.id} className={leaf.href === here ? "active" : undefined} href={leaf.href} title={leaf.label}>
+                <MenuIcon name={iconFor(leaf.id, leaf.label)} />
+                <span className="v-label">{leaf.label}</span>
               </a>
             ),
           )}

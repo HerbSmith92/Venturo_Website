@@ -13,6 +13,18 @@ function asNullable(value: string) {
   return value || null;
 }
 
+export async function isEventHost(userId: string) {
+  const supabase = await createClient();
+  if (!supabase) return false;
+
+  const [{ data: profile }, { data: events }] = await Promise.all([
+    supabase.from("organiser_profiles").select("user_id").eq("user_id", userId).maybeSingle(),
+    supabase.from("events").select("id").eq("organiser_id", userId).limit(1),
+  ]);
+
+  return Boolean(profile?.user_id) || (events?.length ?? 0) > 0;
+}
+
 export async function loadOrganiserProfile(userId: string): Promise<OrganiserProfile | null> {
   const supabase = await createClient();
   if (!supabase) return null;

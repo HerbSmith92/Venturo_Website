@@ -1,4 +1,3 @@
-import { AccountNav } from "@/components/AccountNav";
 import { getCurrentUser } from "@/lib/auth";
 import { createClient } from "@/lib/supabase/server";
 import { redirect } from "next/navigation";
@@ -22,9 +21,7 @@ export default async function AccountReviewsPage() {
   }[];
 
   return (
-    <main className="shell">
-      <section className="section">
-        <AccountNav current="reviews" />
+    <>
         <p className="eyebrow">My Venturo</p>
         <h1>Reviews</h1>
         {rows.length === 0 ? <p className="muted">You have not written a review yet.</p> : null}
@@ -44,7 +41,6 @@ export default async function AccountReviewsPage() {
             );
           })}
         </ul>
-      </section>
-    </main>
+    </>
   );
 }

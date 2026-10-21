@@ -6,18 +6,27 @@ import {
   getPaystackConfig,
   initializePaystackTransaction,
 } from "@/lib/paystack";
+import { bearerToken, userFromBearer } from "@/lib/supabase/bearer";
+import type { SupabaseClient } from "@supabase/supabase-js";
 
 export async function POST(request: Request) {
-  const user = await getCurrentUser();
+  const token = bearerToken(request);
+  const bearerUser = token ? await userFromBearer(token) : null;
+  if (token && !bearerUser) {
+    return NextResponse.json({ error: "Log in to buy tickets." }, { status: 401 });
+  }
+  const user = bearerUser ?? (await getCurrentUser());
   if (!user) {
     return NextResponse.json({ error: "Log in to buy tickets." }, { status: 401 });
   }
+  const orderClient: SupabaseClient | undefined = bearerUser?.supabase;
 
   const body = (await request.json()) as {
     eventSlug?: string;
     lines?: { ticketTypeId: string; quantity: number }[];
     promoCode?: string;
     inviteToken?: string;
+    source?: string;
   };
 
   if (!body.eventSlug || !body.lines?.length) {
@@ -36,10 +45,16 @@ export async function POST(request: Request) {
       origin,
       promoCode: body.promoCode,
       inviteToken: body.inviteToken,
-    });
+      appCheckout: body.source === "app",
+    }, orderClient);
 
     if (order.free) {
-      return NextResponse.json({ redirect: order.redirect });
+      return NextResponse.json({
+        redirect: order.redirect,
+        orderId: order.orderId,
+        totalCents: order.totalCents,
+        free: true,
+      });
     }
 
     if (order.joinAndBuy) {
@@ -79,7 +94,12 @@ export async function POST(request: Request) {
       metadata: { kind: "ticket", order_id: order.orderId },
     });
 
-    return NextResponse.json({ authorizationUrl: checkout.authorizationUrl });
+    return NextResponse.json({
+      authorizationUrl: checkout.authorizationUrl,
+      orderId: order.orderId,
+      totalCents: order.totalCents,
+      free: false,
+    });
   } catch (error) {
     return NextResponse.json(
       { error: error instanceof Error ? error.message : "Checkout failed." },

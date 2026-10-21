@@ -1,4 +1,3 @@
-import { AccountNav } from "@/components/AccountNav";
 import { ProfileForm } from "@/components/ProfileForm";
 import { getCurrentUser } from "@/lib/auth";
 import { PAID_PRICE } from "@/lib/brand";
@@ -30,9 +29,7 @@ export default async function AccountPage() {
   });
 
   return (
-    <main className="shell">
-      <section className="section">
-        <AccountNav current="profile" />
+    <>
         <div className="profile-greeting">
           <p className="eyebrow">Your Profile</p>
           <h1>Hey {firstName}</h1>
@@ -50,7 +47,7 @@ export default async function AccountPage() {
         <p className="lede muted">
           {progress.complete
             ? "Edit anytime. These details power Made For You here & in the app."
-            : "Photo, details, how you go out, interests & activity level—the same fields the app uses."}
+            : "Photo & details. Going out, interests & activity level live in the menu."}
         </p>
         <ProfileForm
           profile={formProfile}
@@ -59,7 +56,6 @@ export default async function AccountPage() {
           paid={paid}
           paidPrice={PAID_PRICE}
         />
-      </section>
-    </main>
+    </>
   );
 }

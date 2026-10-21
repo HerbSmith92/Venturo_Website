@@ -1,4 +1,3 @@
-import { AccountNav } from "@/components/AccountNav";
 import { EventCard } from "@/components/EventCard";
 import { GuideCard } from "@/components/GuideCard";
 import { ListingCard } from "@/components/ListingCard";
@@ -27,9 +26,7 @@ export default async function SavedPage() {
   const savedEvents = events.filter((event) => event && event.status === "approved");
 
   return (
-    <main className="shell">
-      <section className="section">
-        <AccountNav current="saved" />
+    <>
         <p className="eyebrow">My Venturo</p>
         <h1>Saved</h1>
         <p className="lede muted">Activities, events, and guides you keep. The app reads this same list.</p>
@@ -75,7 +72,6 @@ export default async function SavedPage() {
             </div>
           </>
         ) : null}
-      </section>
-    </main>
+    </>
   );
 }

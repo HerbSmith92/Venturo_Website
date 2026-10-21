@@ -1,4 +1,3 @@
-import { AccountNav } from "@/components/AccountNav";
 import { TicketWallet, type WalletTicket } from "@/components/tickets/TicketWallet";
 import { getCurrentUser } from "@/lib/auth";
 import { listBuyerTickets } from "@/lib/orders";
@@ -116,12 +115,5 @@ export default async function MyTicketsPage({
     }),
   );
 
-  return (
-    <main className="shell">
-      <section className="section">
-        <AccountNav current="tickets" />
-        <TicketWallet tickets={tickets} highlightOrder={params.order} />
-      </section>
-    </main>
-  );
+  return <TicketWallet tickets={tickets} highlightOrder={params.order} />;
 }

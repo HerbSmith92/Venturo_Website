@@ -1,9 +1,20 @@
 "use client";
 
 import { useEffect, useId, useRef, useState } from "react";
+import { usePathname } from "next/navigation";
 import type { CurrentUser } from "@/lib/auth";
+import { MenuIcon, type MenuIconName } from "@/components/menu/MenuIcon";
+
+const SITE_LINKS: { href: string; label: string; icon: MenuIconName }[] = [
+  { href: "/directory", label: "Directory", icon: "grid" },
+  { href: "/events", label: "Events", icon: "calendar" },
+  { href: "/communities", label: "Communities", icon: "flag" },
+  { href: "/guides", label: "Guides", icon: "book" },
+  { href: "/admin", label: "Admin", icon: "settings" },
+];
 
 export function SiteHeaderNav({ user }: { user: CurrentUser | null }) {
+  const pathname = usePathname();
   const [open, setOpen] = useState(false);
   const panelId = useId();
   const rootRef = useRef<HTMLDivElement>(null);
@@ -58,20 +69,30 @@ export function SiteHeaderNav({ user }: { user: CurrentUser | null }) {
       {open && (
         <div className="nav-drawer-panel" id={panelId}>
           <nav className="nav-drawer-links" aria-label="Site menu">
-            <a href="/directory">Directory</a>
-            <a href="/events">Events</a>
-            <a href="/communities">Communities</a>
-            <a href="/guides">Guides</a>
-            <a href="/admin">Admin</a>
+            {SITE_LINKS.map((item) => (
+              <a key={item.href} href={item.href} aria-current={pathname === item.href || pathname.startsWith(`${item.href}/`) ? "page" : undefined}>
+                <MenuIcon name={item.icon} />
+                <span>{item.label}</span>
+              </a>
+            ))}
             {user ? (
               <>
-                <a href="/account">{profileLabel}</a>
+                <a href="/account" aria-current={pathname === "/account" || pathname.startsWith("/account/") ? "page" : undefined}>
+                  <MenuIcon name="user" />
+                  <span>{profileLabel}</span>
+                </a>
                 <form action="/auth/sign-out" method="post">
-                  <button type="submit">Sign Out</button>
+                  <button type="submit">
+                    <MenuIcon name="logout" />
+                    <span>Sign Out</span>
+                  </button>
                 </form>
               </>
             ) : (
-              <a href="/login">Log In / Sign Up</a>
+              <a href="/login" aria-current={pathname === "/login" ? "page" : undefined}>
+                <MenuIcon name="user" />
+                <span>Log In / Sign Up</span>
+              </a>
             )}
           </nav>
         </div>

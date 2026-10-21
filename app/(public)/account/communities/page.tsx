@@ -1,4 +1,3 @@
-import { AccountNav } from "@/components/AccountNav";
 import { getCurrentUser } from "@/lib/auth";
 import { listClaimedCommunities, listFollowedCommunityIds, listPublishedCommunities } from "@/lib/communities";
 import { redirect } from "next/navigation";
@@ -14,9 +13,7 @@ export default async function AccountCommunitiesPage() {
   const followed = communities.filter((community) => ids.includes(community.id));
 
   return (
-    <main className="shell">
-      <section className="section">
-        <AccountNav current="communities" />
+    <>
         <p className="eyebrow">My Venturo</p>
         <h1>Communities</h1>
         <h2>Yours</h2>
@@ -47,7 +44,6 @@ export default async function AccountCommunitiesPage() {
             ))}
           </ul>
         )}
-      </section>
-    </main>
+    </>
   );
 }

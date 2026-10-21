@@ -1,4 +1,3 @@
-import { AccountNav } from "@/components/AccountNav";
 import { addClaimedCommunityEvent, saveClaimedCommunity } from "@/app/community-claim-actions";
 import { getCurrentUser } from "@/lib/auth";
 import { getCommunityById, listCommunityEventLinks } from "@/lib/communities";
@@ -21,9 +20,7 @@ export default async function ClaimedCommunityPage({
   const events = await listCommunityEventLinks(community.id);
 
   return (
-    <main className="shell">
-      <section className="section">
-        <AccountNav current="communities" />
+    <>
         <p className="eyebrow">Your Community</p>
         <h1>{community.title}</h1>
         <p className="lede muted">
@@ -123,7 +120,6 @@ export default async function ClaimedCommunityPage({
             View Public Page
           </a>
         </p>
-      </section>
-    </main>
+    </>
   );
 }

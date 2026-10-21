@@ -1,149 +1,20 @@
-import { AccountNav } from "@/components/AccountNav";
-import { HostEventsHeader } from "@/components/events/HostEventsHeader";
-import { EventCard } from "@/components/EventCard";
 import { getCurrentUser } from "@/lib/auth";
-import {
-  formatCents,
-  getOrganiserSalesSummary,
-  listOrganiserEvents,
-} from "@/lib/events";
-import { companionEventHref } from "@/lib/companion";
-import { PORTAL_EVENTS_NEW } from "@/lib/portal";
-import { createClient } from "@/lib/supabase/server";
+import { isEventHost } from "@/lib/host-profile";
+import { PORTAL_EVENTS, PORTAL_EVENTS_NEW } from "@/lib/portal";
 import { redirect } from "next/navigation";
-
-function statusLabel(status: string) {
-  if (status === "approved") return "Live";
-  if (status === "review") return "In Review";
-  if (status === "draft") return "Draft";
-  if (status === "cancelled") return "Cancelled";
-  return status;
-}
 
 export default async function MyEventsPage({
   searchParams,
 }: {
-  searchParams: Promise<{ when?: string; new?: string }>;
+  searchParams: Promise<{ new?: string }>;
 }) {
   const params = await searchParams;
   const user = await getCurrentUser();
   if (!user) {
-    const next = params.new === "1" ? PORTAL_EVENTS_NEW : "/account/events";
+    const next = params.new === "1" ? PORTAL_EVENTS_NEW : PORTAL_EVENTS;
     redirect(`/login?next=${encodeURIComponent(next)}`);
   }
+  if (!(await isEventHost(user.id))) redirect("/account/host");
   if (params.new === "1") redirect(PORTAL_EVENTS_NEW);
-  const when = params.when === "past" ? "past" : "current";
-  const events = await listOrganiserEvents(user.id);
-  const now = Date.now();
-  const filtered = events.filter((event) => {
-    const end = event.endsAt ? new Date(event.endsAt).getTime() : null;
-    const isPast = end !== null && end < now;
-    return when === "past" ? isPast : !isPast;
-  });
-  const currentCount = events.filter((event) => {
-    const end = event.endsAt ? new Date(event.endsAt).getTime() : null;
-    return !(end !== null && end < now);
-  }).length;
-  const pastCount = events.length - currentCount;
-  const sales = await getOrganiserSalesSummary(user.id);
-  const supabase = await createClient();
-  const { data: payout } = supabase
-    ? await supabase
-        .from("organiser_payout_profiles")
-        .select("bank_name, account_number_last4, account_holder")
-        .eq("user_id", user.id)
-        .maybeSingle()
-    : { data: null };
-
-  return (
-    <main className="shell">
-      <section className="section">
-        <AccountNav current="events" />
-        <div className="studio-top host-events-head">
-          <div>
-            <p className="eyebrow">Organiser</p>
-            <h1>Events</h1>
-          </div>
-          <div className="host-events-tools">
-            <div className="chips">
-              <a
-                className={`chip${when === "current" ? " active" : ""}`}
-                href="/account/events?when=current"
-              >
-                Current ({currentCount})
-              </a>
-              <a
-                className={`chip${when === "past" ? " active" : ""}`}
-                href="/account/events?when=past"
-              >
-                Past ({pastCount})
-              </a>
-            </div>
-            <HostEventsHeader />
-          </div>
-        </div>
-
-        <div className="grid" style={{ marginBottom: 32 }}>
-          <article className="plan">
-            <h2>{sales.ticketsSold}</h2>
-            <p className="muted">Tickets sold</p>
-          </article>
-          <article className="plan">
-            <h2>{formatCents(sales.grossCents)}</h2>
-            <p className="muted">Gross ticket sales</p>
-          </article>
-          <article className="plan">
-            <h2>{formatCents(sales.feesCents)}</h2>
-            <p className="muted">Platform fees</p>
-          </article>
-          <article className="plan featured">
-            <h2>{formatCents(sales.owedCents)}</h2>
-            <p className="muted">Owed for payout</p>
-          </article>
-        </div>
-
-        {payout && (
-          <p className="notice">
-            Payout bank: {payout.account_holder} · {payout.bank_name} · ****
-            {payout.account_number_last4}. Change it in{" "}
-            <a href="/portal/settings?tab=bank">Host Settings</a>.
-          </p>
-        )}
-
-        {filtered.length === 0 ? (
-          <p className="muted">
-            {when === "past"
-              ? "No past events yet."
-              : "No current events. Tap New Event to start with a name."}
-          </p>
-        ) : (
-          <div className="host-event-list">
-            {filtered.map((event) => (
-              <article key={event.id} className="host-event-card">
-                <EventCard
-                  event={event}
-                  href={`/account/events/${event.id}`}
-                  showMemberPrice
-                    imageBadge={
-                    event.status !== "approved" ? (
-                      <span className={`card-status-badge ${event.status}`}>
-                        {statusLabel(event.status)}
-                      </span>
-                    ) : undefined
-                  }
-                />
-                {event.status === "approved" && (
-                  <div className="host-event-actions">
-                    <a className="btn btn-primary" href={companionEventHref(event.id)}>
-                      Open Door
-                    </a>
-                  </div>
-                )}
-              </article>
-            ))}
-          </div>
-        )}
-      </section>
-    </main>
-  );
+  redirect(PORTAL_EVENTS);
 }

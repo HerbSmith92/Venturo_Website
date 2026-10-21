@@ -1,4 +1,3 @@
-import { AccountNav } from "@/components/AccountNav";
 import { getCurrentUser } from "@/lib/auth";
 import { PAID_PRICE } from "@/lib/brand";
 import { createClient } from "@/lib/supabase/server";
@@ -35,9 +34,7 @@ export default async function MembershipPage() {
     : "Free";
 
   return (
-    <main className="shell">
-      <section className="section">
-        <AccountNav current="membership" />
+    <>
         <p className="eyebrow">My Venturo</p>
         <h1>Membership</h1>
         <p className="lede">
@@ -65,7 +62,6 @@ export default async function MembershipPage() {
         <p className="muted" style={{ marginTop: 16 }}>
           The website & the app read the same membership.
         </p>
-      </section>
-    </main>
+    </>
   );
 }

@@ -1,4 +1,5 @@
 import { newPaystackReference, PAYSTACK_WEBHOOK_PATH } from "@/lib/paystack";
+import type { SupabaseClient } from "@supabase/supabase-js";
 import { sendTicketEmail } from "@/lib/ticket-email";
 import { stampTicketContact } from "@/lib/ticket-contact";
 import { createClient } from "@/lib/supabase/server";
@@ -39,8 +40,10 @@ export async function createTicketOrder(input: {
   origin: string;
   promoCode?: string;
   inviteToken?: string;
-}): Promise<TicketOrderResult> {
-  const supabase = await createClient();
+  /** Paystack returns into the iOS app instead of the website account. */
+  appCheckout?: boolean;
+}, client?: SupabaseClient): Promise<TicketOrderResult> {
+  const supabase = client ?? (await createClient());
   if (!supabase) throw new Error("Supabase is not connected.");
 
   const event = await getEventBySlug(input.eventSlug);
@@ -183,7 +186,9 @@ export async function createTicketOrder(input: {
     eventTitle: event.title,
     eventSlug: event.slug,
     joinAndBuy,
-    returnUrl: `${input.origin}/events/${event.slug}/checkout/return?order=${order.id}`,
+    returnUrl: input.appCheckout
+      ? `${publicOrigin}/events/${event.slug}/checkout/app?order=${order.id}`
+      : `${input.origin}/events/${event.slug}/checkout/return?order=${order.id}`,
     cancelUrl: `${input.origin}/events/${event.slug}?cancelled=1`,
     notifyUrl: `${publicOrigin}${PAYSTACK_WEBHOOK_PATH}`,
   };

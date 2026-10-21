@@ -1,4 +1,3 @@
-import { AccountNav } from "@/components/AccountNav";
 import { PrivacyTools } from "@/components/PrivacyTools";
 import { getCurrentUser } from "@/lib/auth";
 import { redirect } from "next/navigation";
@@ -8,9 +7,7 @@ export default async function PrivacyPage() {
   if (!user) redirect("/login?next=/account/privacy");
 
   return (
-    <main className="shell">
-      <section className="section">
-        <AccountNav current="privacy" />
+    <>
         <p className="eyebrow">My Venturo</p>
         <h1>Privacy</h1>
         <p className="lede muted">
@@ -26,7 +23,6 @@ export default async function PrivacyPage() {
             Sign Out
           </button>
         </form>
-      </section>
-    </main>
+    </>
   );
 }
