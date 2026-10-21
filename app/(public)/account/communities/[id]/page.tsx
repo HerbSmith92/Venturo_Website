@@ -1,5 +1,6 @@
 import { addClaimedCommunityEvent } from "@/app/community-claim-actions";
 import { CommunityForm } from "@/components/profile/CommunityForm";
+import { FoldSection } from "@/components/profile/FoldSection";
 import { getCurrentUser } from "@/lib/auth";
 import { getCommunityById, listCommunityEventLinks } from "@/lib/communities";
 import { portalEventHref } from "@/lib/portal";
@@ -47,10 +48,7 @@ export default async function ClaimedCommunityPage({
 
         <div className="community-events-wrap">
           <div className="cr-paper community-events-card">
-            <section className="cr-step is-open">
-              <h2>
-                <em className="community-events-title">Events</em>
-              </h2>
+            <FoldSection title="Events">
               <p className="cr-about-label">
                 The event is linked to this community. It goes on the public page once the event itself is live.
               </p>
@@ -83,7 +81,7 @@ export default async function ClaimedCommunityPage({
                   View Public Page
                 </a>
               </p>
-            </section>
+            </FoldSection>
           </div>
         </div>
     </>

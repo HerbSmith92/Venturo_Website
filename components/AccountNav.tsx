@@ -151,65 +151,68 @@ export function AccountNav({
               </button>
             </div>
             <div className="account-subnav">
-              <a className="v-item" href={PORTAL_EVENTS} aria-current={pathname === PORTAL_EVENTS ? "page" : undefined} title="All">
+              <a className="v-item" href={PORTAL_EVENTS} aria-current={pathname === PORTAL_EVENTS ? "page" : undefined} title="All Events">
                 <MenuIcon name="list" />
-                <span className="v-label">All</span>
+                <span className="v-label">All Events</span>
               </a>
               <a className="v-item" href={PORTAL_EVENTS_NEW} aria-current={pathname.startsWith(PORTAL_EVENTS_NEW) ? "page" : undefined} title="New Event">
                 <MenuIcon name="plus" />
                 <span className="v-label">New Event</span>
               </a>
-              {events.map((event) => {
-                const onEvent = eventPath?.eventId === event.id;
-                const eventOpen = isOpen(event.id, Boolean(onEvent));
-                return (
-                  <div key={event.id} className={eventOpen ? "account-fold open" : "account-fold"}>
-                    <div className="account-fold-row">
-                      <a
-                        className="v-item"
-                        href={portalEventSectionHref(event.id, "dashboard")}
-                        aria-current={onEvent && eventPath?.section === "menu" ? "page" : undefined}
-                        title={event.title}
-                      >
-                        <MenuIcon name="calendar" />
-                        <span className="v-label">{event.title}</span>
-                      </a>
-                      <button
-                        type="button"
-                        className="v-chevron"
-                        aria-expanded={eventOpen}
-                        aria-label={eventOpen ? `Fold ${event.title}` : `Open ${event.title}`}
-                        onClick={() => setFold(event.id, Boolean(onEvent))}
-                      >
-                        <MenuChevron />
-                      </button>
-                    </div>
-                    <div className="account-subnav">
-                      {EVENT_MENU_ITEMS.map((item) => (
-                        <a
-                          key={item.id}
-                          className="v-item"
-                          href={portalEventSectionHref(event.id, item.slug)}
-                          aria-current={onEvent && eventPath?.section === item.id ? "page" : undefined}
-                          title={item.label}
-                        >
-                          <MenuIcon name={EVENT_ICONS[item.id]} />
-                          <span className="v-label">{item.label}</span>
-                        </a>
-                      ))}
-                      <a
-                        className="v-item"
-                        href={portalDoorHref(event.id)}
-                        aria-current={onEvent && eventPath?.section === "door" ? "page" : undefined}
-                        title="Door"
-                      >
-                        <MenuIcon name="door" />
-                        <span className="v-label">Door</span>
-                      </a>
-                    </div>
-                  </div>
-                );
-              })}
+              {eventPath
+                ? (() => {
+                    const event = events.find((item) => item.id === eventPath.eventId);
+                    if (!event) return null;
+                    const eventOpen = isOpen(event.id, true);
+                    return (
+                      <div className={eventOpen ? "account-fold open" : "account-fold"}>
+                        <div className="account-fold-row">
+                          <a
+                            className="v-item"
+                            href={portalEventSectionHref(event.id, "dashboard")}
+                            aria-current={eventPath.section === "menu" ? "page" : undefined}
+                            title={event.title}
+                          >
+                            <MenuIcon name="calendar" />
+                            <span className="v-label">{event.title}</span>
+                          </a>
+                          <button
+                            type="button"
+                            className="v-chevron"
+                            aria-expanded={eventOpen}
+                            aria-label={eventOpen ? `Fold ${event.title}` : `Open ${event.title}`}
+                            onClick={() => setFold(event.id, true)}
+                          >
+                            <MenuChevron />
+                          </button>
+                        </div>
+                        <div className="account-subnav">
+                          {EVENT_MENU_ITEMS.map((item) => (
+                            <a
+                              key={item.id}
+                              className="v-item"
+                              href={portalEventSectionHref(event.id, item.slug)}
+                              aria-current={eventPath.section === item.id ? "page" : undefined}
+                              title={item.label}
+                            >
+                              <MenuIcon name={EVENT_ICONS[item.id]} />
+                              <span className="v-label">{item.label}</span>
+                            </a>
+                          ))}
+                          <a
+                            className="v-item"
+                            href={portalDoorHref(event.id)}
+                            aria-current={eventPath.section === "door" ? "page" : undefined}
+                            title="Door"
+                          >
+                            <MenuIcon name="door" />
+                            <span className="v-label">Door</span>
+                          </a>
+                        </div>
+                      </div>
+                    );
+                  })()
+                : null}
             </div>
           </div>
         ) : (
@@ -247,10 +250,10 @@ export function AccountNav({
               className="v-item"
               href="/account/communities"
               aria-current={pathname === "/account/communities" ? "page" : undefined}
-              title="All"
+              title="All Communities"
             >
               <MenuIcon name="list" />
-              <span className="v-label">All</span>
+              <span className="v-label">All Communities</span>
             </a>
             <a
               className="v-item"

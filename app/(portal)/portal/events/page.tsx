@@ -1,7 +1,7 @@
 import { CreateEventPrompt } from "@/components/portal/CreateEventPrompt";
 import { EventCard } from "@/components/EventCard";
 import { getCurrentUser } from "@/lib/auth";
-import { listAccessibleEvents } from "@/lib/events";
+import { listOrganiserEvents } from "@/lib/events";
 import { getEventDoorStats } from "@/lib/host-scanning";
 import {
   PORTAL_LOGIN,
@@ -24,7 +24,7 @@ export default async function PortalEventsPage() {
   const user = await getCurrentUser();
   if (!user) redirect(PORTAL_LOGIN);
 
-  const events = await listAccessibleEvents(user.id);
+  const events = await listOrganiserEvents(user.id);
   const doorStats = await Promise.all(
     events
       .filter((event) => event.status === "approved" || event.status === "cancelled")
@@ -44,7 +44,7 @@ export default async function PortalEventsPage() {
       <div className="host-events-head section-head">
         <div>
           <p className="eyebrow">Event Host</p>
-          <h1>My Events</h1>
+          <h1>All Events</h1>
           <p className="lede muted">
             Open an event for its dashboard. The door unlocks once it&apos;s live.
           </p>

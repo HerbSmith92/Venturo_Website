@@ -4,7 +4,6 @@ import {
   communityStatusLabel,
   listClaimedCommunities,
   listEventIdsByCommunity,
-  listPublishedCommunities,
   type CommunityRecord,
 } from "@/lib/communities";
 import type { VenturoEvent } from "@/lib/event-types";
@@ -61,13 +60,8 @@ export default async function AccountCommunitiesPage() {
   const user = await getCurrentUser();
   if (!user) redirect("/login?next=/account/communities");
 
-  const [claimed, published] = await Promise.all([
-    listClaimedCommunities(user.id),
-    listPublishedCommunities(),
-  ]);
-  const others = published.filter((community) => community.claimedBy !== user.id);
-  const listed = [...claimed, ...others];
-  const eventIds = await listEventIdsByCommunity(listed.map((community) => community.id));
+  const claimed = await listClaimedCommunities(user.id);
+  const eventIds = await listEventIdsByCommunity(claimed.map((community) => community.id));
   const events = await listEventsByIds([...new Set([...eventIds.values()].flat())]);
   const byId = new Map(events.map((event) => [event.id, event]));
   const now = Date.now();
@@ -85,7 +79,7 @@ export default async function AccountCommunitiesPage() {
     <>
       <p className="eyebrow">Community</p>
       <h1>All Communities</h1>
-      <p className="lede muted">Register a community, or open one that is already listed.</p>
+      <p className="lede muted">The communities you have registered.</p>
 
       <section className="portal-create">
         <div className="colour-bar" aria-hidden="true" />
@@ -101,41 +95,20 @@ export default async function AccountCommunitiesPage() {
         </div>
       </section>
 
-      <section>
-        <h2>Yours</h2>
-        {claimed.length === 0 ? (
-          <p className="muted">You have not registered a community yet.</p>
-        ) : (
-          claimed.map((community) => (
-            <CommunityBlock
-              key={community.id}
-              community={community}
-              href={`/account/communities/${community.id}`}
-              kicker={community.status === "published" ? "Yours" : `Yours · ${communityStatusLabel(community.status)}`}
-              events={upcoming(community.id)}
-              showMemberPrice={showMemberPrice}
-            />
-          ))
-        )}
-      </section>
-
-      <section>
-        <h2>Other Communities</h2>
-        {others.length === 0 ? (
-          <p className="muted">No other communities are listed yet.</p>
-        ) : (
-          others.map((community) => (
-            <CommunityBlock
-              key={community.id}
-              community={community}
-              href={`/communities/${community.slug}`}
-              kicker="Community"
-              events={upcoming(community.id)}
-              showMemberPrice={showMemberPrice}
-            />
-          ))
-        )}
-      </section>
+      {claimed.length === 0 ? (
+        <p className="muted">You have not registered a community yet.</p>
+      ) : (
+        claimed.map((community) => (
+          <CommunityBlock
+            key={community.id}
+            community={community}
+            href={`/account/communities/${community.id}`}
+            kicker={communityStatusLabel(community.status)}
+            events={upcoming(community.id)}
+            showMemberPrice={showMemberPrice}
+          />
+        ))
+      )}
     </>
   );
 }

@@ -32,7 +32,7 @@ export function CommunityForm({
   facebookUrl: string;
   tiktokUrl: string;
 }) {
-  const [open, setOpen] = useState<StepKey>("details");
+  const [open, setOpen] = useState<StepKey | null>("details");
   const [title, setTitle] = useState(initialTitle);
   const [about, setAbout] = useState(initialAbout);
   const [areas, setAreas] = useState<string[]>(initialAreas.length > 0 ? initialAreas : [""]);
@@ -59,6 +59,10 @@ export function CommunityForm({
   function show(step: StepKey) {
     setOpen(step);
     document.getElementById(`step-${step}`)?.scrollIntoView({ behavior: "smooth", block: "start" });
+  }
+
+  function toggle(step: StepKey) {
+    setOpen((current) => (current === step ? null : step));
   }
 
   function nextIncomplete(from: StepKey) {
@@ -99,7 +103,7 @@ export function CommunityForm({
       <div className="cr-paper">
         <section className={open === "details" ? "cr-step is-open" : "cr-step"} id="step-details">
           <h2>
-            <button type="button" className="cr-step-toggle" aria-expanded={open === "details"} onClick={() => show("details")}>
+            <button type="button" className="cr-step-toggle" aria-expanded={open === "details"} onClick={() => toggle("details")}>
               <em>Community Details</em>
               <i className="cr-step-caret" aria-hidden="true" />
             </button>
@@ -166,7 +170,7 @@ export function CommunityForm({
 
         <section className={open === "founder" ? "cr-step is-open" : "cr-step"} id="step-founder">
           <h2>
-            <button type="button" className="cr-step-toggle" aria-expanded={open === "founder"} onClick={() => show("founder")}>
+            <button type="button" className="cr-step-toggle" aria-expanded={open === "founder"} onClick={() => toggle("founder")}>
               <em>Founder Details</em>
               <i className="cr-step-caret" aria-hidden="true" />
             </button>
@@ -204,7 +208,7 @@ export function CommunityForm({
 
         <section className={open === "contact" ? "cr-step is-open" : "cr-step"} id="step-contact">
           <h2>
-            <button type="button" className="cr-step-toggle" aria-expanded={open === "contact"} onClick={() => show("contact")}>
+            <button type="button" className="cr-step-toggle" aria-expanded={open === "contact"} onClick={() => toggle("contact")}>
               <em>Contact &amp; Socials</em>
               <i className="cr-step-caret" aria-hidden="true" />
             </button>
