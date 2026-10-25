@@ -453,6 +453,23 @@ async function fulfillMembershipRow(
     const { error } = await service.from("memberships").update(patch).eq("id", membership.id);
     if (error) return { ok: false as const, error: error.message };
 
+    const provider = input.paystack ? "paystack" : "payfast";
+    const externalId = input.paystack?.transactionId || input.paymentId || `${membership.id}:${now.toISOString()}`;
+    const { error: paymentError } = await service.from("membership_payments").upsert(
+      {
+        membership_id: membership.id,
+        user_id: membership.user_id,
+        amount_cents: membership.amount_cents,
+        paid_at: now.toISOString(),
+        provider,
+        external_id: externalId,
+      },
+      { onConflict: "provider,external_id", ignoreDuplicates: true },
+    );
+    if (paymentError && !/membership_payments/i.test(paymentError.message)) {
+      console.error("membership payment ledger", paymentError.message);
+    }
+
     if (bundled && bundled.status !== "paid") {
       const fulfillError = await fulfillBundledOrder(service, bundled.id, input.paymentId);
       if (fulfillError) return { ok: false as const, error: fulfillError.message };

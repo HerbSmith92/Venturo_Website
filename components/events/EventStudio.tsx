@@ -194,9 +194,12 @@ export function EventStudio({
         passCommissionToBuyer: ticket.passCommissionToBuyer,
         soldCount: 0,
         sortOrder: index,
+        listed: true,
       };
     });
     const publicPrices = mappedTickets.filter((ticket) => !ticket.membersOnly).map((ticket) => ticket.priceCents);
+    const hasFree = mappedTickets.some((ticket) => !ticket.membersOnly && (ticket.kind === "free" || ticket.priceCents === 0));
+    const hasPaid = mappedTickets.some((ticket) => !ticket.membersOnly && ticket.kind !== "free" && ticket.priceCents > 0);
     const memberPrices = mappedTickets
       .map((ticket) => ticket.memberPriceCents)
       .filter((price): price is number => price !== null);
@@ -232,6 +235,7 @@ export function EventStudio({
       fromPriceCents: publicPrices.length ? Math.min(...publicPrices) : membersOnly ? null : 0,
       memberFromPriceCents: memberPrices.length ? Math.min(...memberPrices) : null,
       membersOnly,
+      priceMix: hasFree && hasPaid ? "both" : hasPaid ? "paid" : hasFree ? "free" : "none",
       ticketTypes: mappedTickets,
     };
   }, [

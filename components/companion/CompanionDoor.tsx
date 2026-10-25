@@ -432,6 +432,7 @@ export function CompanionDoor({ eventId, eventTitle, initialStats, initialGuests
                   <div>
                     <strong>{guestLabel(guest)}</strong>
                     <p className="muted">
+                      {guest.occurrenceStartsAt ? `${formatWhen(guest.occurrenceStartsAt)} · ` : ""}
                       {guest.ticketTypeName}
                       {guest.guestEmail ? ` · ${guest.guestEmail}` : ""}
                       {" · "}

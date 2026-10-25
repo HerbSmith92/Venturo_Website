@@ -26,6 +26,7 @@ export type DoorGuest = {
   scannedBy: string | null;
   purchasedAt: string;
   isScanned: boolean;
+  occurrenceStartsAt: string | null;
 };
 
 export type ScanResultCode =
@@ -80,6 +81,7 @@ function mapGuest(row: Record<string, unknown>): DoorGuest {
     scannedBy: (row.scanned_by as string | null) ?? null,
     purchasedAt: String(row.purchased_at),
     isScanned: Boolean(row.is_scanned),
+    occurrenceStartsAt: (row.occurrence_starts_at as string | null) ?? null,
   };
 }
 

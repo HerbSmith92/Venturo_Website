@@ -77,8 +77,8 @@ export default async function MyTicketsPage({
       const event = one(row.events as EventJoin | EventJoin[] | null);
       const type = one(row.event_ticket_types as TypeJoin | TypeJoin[] | null);
       const timezone = event?.timezone || "Africa/Johannesburg";
-      const starts = event?.starts_at ?? null;
-      const ends = event?.ends_at ?? null;
+      const starts = (row.occurrence_starts_at as string | null) || event?.starts_at || null;
+      const ends = (row.occurrence_ends_at as string | null) || event?.ends_at || null;
       const finish = ends || starts;
       const past = finish ? new Date(finish).getTime() < Date.now() : false;
       const qr = await QRCode.toDataURL(ticketQrPayload(row.code), {

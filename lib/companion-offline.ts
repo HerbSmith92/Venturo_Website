@@ -155,6 +155,7 @@ export function applyLocalCheckIn(
       scannedBy: null,
       purchasedAt: scannedAt,
       isScanned: true,
+      occurrenceStartsAt: null,
     });
   }
 

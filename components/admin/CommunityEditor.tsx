@@ -501,6 +501,7 @@ export function CommunityEditor({
                   <i className="cr-step-caret" aria-hidden="true" />
                 </button>
               </h2>
+              <p className="muted">Cover 1920 × 1080 (16:9) for the community page. The card crops to 1080 × 1350 (4:5), the same frame as an event feed post.</p>
               <div
                 className={photoDrag ? "cr-photo-well is-over" : "cr-photo-well"}
                 onDragEnter={(event) => {

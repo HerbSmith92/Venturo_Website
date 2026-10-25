@@ -1,6 +1,8 @@
 "use client";
 
 import { useState } from "react";
+import { PolicyConsent } from "@/components/PolicyConsent";
+import { CONSENT_REQUIRED } from "@/lib/policy-consent";
 
 export function ClaimCommunityForm({
   communityId,
@@ -20,6 +22,8 @@ export function ClaimCommunityForm({
   const [password, setPassword] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [pending, setPending] = useState(false);
+  const [acceptTerms, setAcceptTerms] = useState(false);
+  const [acceptPrivacy, setAcceptPrivacy] = useState(false);
 
   async function sendCode(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -33,12 +37,18 @@ export function ClaimCommunityForm({
       setError("Those passwords do not match.");
       return;
     }
+    if (!acceptTerms || !acceptPrivacy) {
+      setError(CONSENT_REQUIRED);
+      return;
+    }
     setPending(true);
     const form = new FormData();
     form.set("email", email.trim().toLowerCase());
     form.set("mode", "signup");
     form.set("firstName", firstName.trim());
     form.set("phone", phone.trim());
+    form.set("acceptTerms", "on");
+    form.set("acceptPrivacy", "on");
     const response = await fetch("/auth/otp/send", { method: "POST", body: form });
     const payload = (await response.json()) as { error?: string; email?: string };
     setPending(false);
@@ -60,6 +70,8 @@ export function ClaimCommunityForm({
     form.set("firstName", firstName.trim());
     form.set("phone", phone.trim());
     form.set("communityId", communityId);
+    if (acceptTerms) form.set("acceptTerms", "on");
+    if (acceptPrivacy) form.set("acceptPrivacy", "on");
     const response = await fetch("/auth/community-claim/verify", { method: "POST", body: form });
     const payload = (await response.json()) as { error?: string; redirect?: string };
     setPending(false);
@@ -159,6 +171,12 @@ export function ClaimCommunityForm({
         <span>Confirm Password</span>
         <input name="confirm" type="password" autoComplete="new-password" minLength={8} required />
       </label>
+      <PolicyConsent
+        acceptTerms={acceptTerms}
+        acceptPrivacy={acceptPrivacy}
+        onTerms={setAcceptTerms}
+        onPrivacy={setAcceptPrivacy}
+      />
       {error ? <p className="error">{error}</p> : null}
       {!configured ? <p className="notice">Connect Supabase in `.env.local` to turn this form on.</p> : null}
       <button className="btn btn-primary" type="submit" disabled={!configured || pending}>

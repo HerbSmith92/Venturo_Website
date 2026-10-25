@@ -7,13 +7,21 @@ import {
   initializePaystackTransaction,
 } from "@/lib/paystack";
 import { bearerToken, userFromBearer } from "@/lib/supabase/bearer";
+import { bodyHasConsent, CONSENT_REQUIRED, hasMemberConsent, recordMemberConsent } from "@/lib/policy-consent";
 import type { SupabaseClient } from "@supabase/supabase-js";
 
 export async function POST(request: Request) {
   const token = bearerToken(request);
-  const bearerUser = token ? await userFromBearer(token) : null;
-  if (token && !bearerUser) {
-    return NextResponse.json({ error: "Log in to buy tickets." }, { status: 401 });
+  let bearerUser: Awaited<ReturnType<typeof userFromBearer>> = null;
+  if (token) {
+    try {
+      bearerUser = await userFromBearer(token);
+    } catch {
+      bearerUser = null;
+    }
+    if (!bearerUser) {
+      return NextResponse.json({ error: "Log in to buy tickets." }, { status: 401 });
+    }
   }
   const user = bearerUser ?? (await getCurrentUser());
   if (!user) {
@@ -27,6 +35,10 @@ export async function POST(request: Request) {
     promoCode?: string;
     inviteToken?: string;
     source?: string;
+    platform?: string;
+    occurrenceStartsAt?: string;
+    acceptTerms?: boolean;
+    acceptPrivacy?: boolean;
   };
 
   if (!body.eventSlug || !body.lines?.length) {
@@ -34,6 +46,12 @@ export async function POST(request: Request) {
   }
 
   try {
+    const consented = await hasMemberConsent(user.id);
+    if (!consented && !bodyHasConsent(body)) {
+      return NextResponse.json({ error: CONSENT_REQUIRED }, { status: 400 });
+    }
+    if (!consented) await recordMemberConsent(user.id, "checkout");
+
     const origin = new URL(request.url).origin;
     const order = await createTicketOrder({
       userId: user.id,
@@ -45,7 +63,14 @@ export async function POST(request: Request) {
       origin,
       promoCode: body.promoCode,
       inviteToken: body.inviteToken,
+      occurrenceStartsAt: body.occurrenceStartsAt,
       appCheckout: body.source === "app",
+      activityPlatform:
+        body.platform === "ios" || body.platform === "android" || body.platform === "web"
+          ? body.platform
+          : body.source === "app"
+            ? "unknown"
+            : "web",
     }, orderClient);
 
     if (order.free) {

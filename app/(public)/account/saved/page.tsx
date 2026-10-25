@@ -5,6 +5,7 @@ import { getCurrentUser } from "@/lib/auth";
 import { getEventById } from "@/lib/events";
 import { liveGuides } from "@/lib/guides";
 import { listingsByCategory } from "@/lib/listings";
+import { listFollowedCommunities } from "@/lib/communities";
 import { listSaves } from "@/lib/saves";
 import { redirect } from "next/navigation";
 
@@ -12,6 +13,7 @@ export default async function SavedPage() {
   const user = await getCurrentUser();
   if (!user) redirect("/login?next=/account/saved");
   const saves = await listSaves(user.id);
+  const followed = await listFollowedCommunities(user.id);
   const [listings, events, guides] = await Promise.all([
     listingsByCategory("all"),
     Promise.all(
@@ -30,7 +32,23 @@ export default async function SavedPage() {
         <p className="eyebrow">My Venturo</p>
         <h1>Saved</h1>
         <p className="lede muted">Activities, events, and guides you keep. The app reads this same list.</p>
-        {savedListings.length + savedGuides.length + savedEvents.length === 0 ? (
+        {followed.length > 0 ? (
+          <>
+            <h2>Communities You Follow</h2>
+            <div className="grid">
+              {followed.map((community) => (
+                <a key={community.id} className="card" href={`/communities/${community.slug}`}>
+                  <div className="card-body">
+                    <p className="card-kicker">Following</p>
+                    <h3>{community.title}</h3>
+                    <p className="card-meta">{community.placeLabel || "South Africa"}</p>
+                  </div>
+                </a>
+              ))}
+            </div>
+          </>
+        ) : null}
+        {savedListings.length + savedGuides.length + savedEvents.length + followed.length === 0 ? (
           <p className="muted">
             Nothing saved yet. <a href="/directory">Browse the directory</a>.
           </p>

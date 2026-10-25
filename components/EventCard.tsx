@@ -25,7 +25,7 @@ export type EventCardModel = Pick<
   | "fromPriceCents"
   | "memberFromPriceCents"
   | "membersOnly"
-> & { slug?: string; repeatEvery?: VenturoEvent["repeatEvery"] };
+> & { slug?: string; repeatEvery?: VenturoEvent["repeatEvery"]; priceMix?: VenturoEvent["priceMix"] };
 
 export function EventCard({
   event,
@@ -49,7 +49,11 @@ export function EventCard({
 
   const className = `card card-event${hasMemberDeal ? " card-deal" : ""}`;
   const style = { ["--card-accent" as string]: colour };
-  const target = href ?? (event.slug ? `/events/${event.slug}` : undefined);
+  const target =
+    href ??
+    (event.slug
+      ? `/events/${event.slug}${event.startsAt ? `?on=${encodeURIComponent(event.startsAt)}` : ""}`
+      : undefined);
   const body = (
     <>
       <div className="card-image card-image-post">
@@ -110,7 +114,8 @@ function publicPriceLabel(event: EventCardModel) {
   if (event.membersOnly && event.memberFromPriceCents !== null) {
     return `Members from ${formatCents(event.memberFromPriceCents)}`;
   }
+  if (event.priceMix === "both") return "Free & paid options";
+  if (event.priceMix === "free" || event.fromPriceCents === 0) return "Free";
   if (event.fromPriceCents == null) return "Tickets soon";
-  if (event.fromPriceCents === 0) return "Free";
   return `From ${formatCents(event.fromPriceCents)}`;
 }

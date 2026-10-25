@@ -1,4 +1,6 @@
 import { ListingContact, listingContactLinks } from "@/components/ListingContact";
+import { ListingGallery } from "@/components/ListingGallery";
+import { UsageBeacon } from "@/components/UsageBeacon";
 import { ListingCostList } from "@/components/ListingCostList";
 import { SaveForm } from "@/components/SaveForm";
 import { getCurrentUser } from "@/lib/auth";
@@ -75,6 +77,7 @@ export default async function ListingDetailPage({
 
   return (
     <main>
+      {user && !isStaff(user.role) ? <UsageBeacon kind="view_listing" /> : null}
       <section className="shell">
         <div className="event-detail-hero listing-detail-hero">
           <img src={listing.media[0]?.url ?? listing.image} alt="" />
@@ -84,6 +87,13 @@ export default async function ListingDetailPage({
               {listing.indoorOutdoor ? ` · ${listing.indoorOutdoor}` : ""}
             </p>
             <h1>{listing.name}</h1>
+            {listing.memberFromPrice !== null ? (
+              <p className="member-save-banner">
+                {revealMember
+                  ? `Members from R ${listing.memberFromPrice.toFixed(2)}`
+                  : "Members save on the standard price. Subscribe to see it."}
+              </p>
+            ) : null}
             <p className="lede">
               {listing.area}
               {listing.city && listing.city !== listing.area ? ` · ${listing.city}` : ""}
@@ -106,10 +116,10 @@ export default async function ListingDetailPage({
               {listing.memberFromPrice !== null &&
                 (revealMember ? (
                   <span className="member-price">
-                    Members from {formatFromPrice(listing.memberFromPrice)}
+                    Members from R {listing.memberFromPrice.toFixed(2)}
                   </span>
                 ) : (
-                  <span className="member-price">Members save 15%</span>
+                  <span className="member-price">Members save</span>
                 ))}
             </div>
             <div className="hero-actions" style={{ marginTop: 16 }}>
@@ -120,7 +130,7 @@ export default async function ListingDetailPage({
                 next={`/directory/${listing.slug}`}
               />
               <a className="btn btn-secondary" href={`/directory/claim?q=${encodeURIComponent(listing.name)}`}>
-                Claim Listing
+                Claim your listing
               </a>
               {listing.mapsUrl ? (
                 <a className="btn btn-secondary" href={listing.mapsUrl}>
@@ -145,21 +155,29 @@ export default async function ListingDetailPage({
               {listing.description || listing.shortDescription || "Details coming soon."}
             </p>
 
-            {listing.media.length > 1 && (
-              <div className="listing-gallery">
-                {listing.media.slice(1, 5).map((item, index) => (
-                  <img key={`${item.url}-${index}`} src={item.url} alt={item.alt ?? ""} />
-                ))}
-              </div>
-            )}
+            {listing.media.length > 0 ? (
+              <>
+                <div className="listing-gallery">
+                  {listing.media.slice(0, 4).map((item, index) => (
+                    <img key={`${item.url}-${index}`} src={item.url} alt={item.alt ?? ""} />
+                  ))}
+                </div>
+                <ListingGallery photos={listing.media.map((item) => ({ url: item.url, alt: item.alt ?? null }))} />
+              </>
+            ) : null}
 
-            {address && (
+            {address ? (
               <div className="event-venue-card">
-                <p className="eyebrow">Find Us</p>
+                <p className="eyebrow">Find us</p>
                 <h3>{listing.name}</h3>
-                <p className="muted">{address}</p>
+                <p>
+                  <a href={listing.mapsUrl || googleReviewsHref(listing)} target="_blank" rel="noreferrer">
+                    {address}
+                  </a>
+                </p>
+                <p className="muted">Opens this place in Google Maps.</p>
               </div>
-            )}
+            ) : null}
 
             <ListingContact links={contactLinks} />
 
@@ -228,6 +246,9 @@ export default async function ListingDetailPage({
             ) : (
               <ListingCostList groups={costGroups} />
             )}
+            <p className="listing-price-note">
+              Prices are a guide. The business can change them, so confirm the cost with them before you go.
+            </p>
 
             {listing.hours.length > 0 && (
               <div style={{ marginTop: 24 }}>

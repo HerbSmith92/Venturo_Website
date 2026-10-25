@@ -160,6 +160,10 @@ export async function loadDirectoryQueue(filters: {
       .eq("status", "approved")
       .eq("is_suspended", false)
       .gt("publish_at", new Date().toISOString());
+  } else if (status === "changes") {
+    query = query.eq("status", "draft").not("review_note", "is", null).neq("review_note", "");
+  } else if (status === "draft") {
+    query = query.eq("status", "draft").or("review_note.is.null,review_note.eq.");
   } else if (status && isListingStatus(status)) {
     query = query.eq("status", status);
     if (status === "approved") query = query.eq("is_suspended", false);
@@ -460,11 +464,18 @@ export type EnquiryRow = {
   area: string | null;
   message: string;
   created_at: string;
+  resolved_at?: string | null;
 };
 
 export async function loadEnquiries(): Promise<EnquiryRow[]> {
   const supabase = await createClient();
   if (!supabase) return [];
+  const full = await supabase
+    .from("enquiries")
+    .select("id, kind, name, email, phone, business_name, area, message, created_at, resolved_at")
+    .order("created_at", { ascending: false })
+    .limit(100);
+  if (!full.error) return (full.data ?? []) as EnquiryRow[];
   const { data } = await supabase
     .from("enquiries")
     .select("id, kind, name, email, phone, business_name, area, message, created_at")

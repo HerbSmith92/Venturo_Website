@@ -26,16 +26,18 @@ export function LandingDiscover({
   listings,
   events,
   communities,
-  appHref,
-  appLabel,
+  appStoreHref,
+  playStoreHref,
+  device,
   showMemberPrice = false,
 }: {
   copy: WebsiteCopy;
   listings: Listing[];
   events: VenturoEvent[];
   communities: CommunityRecord[];
-  appHref: string;
-  appLabel: string;
+  appStoreHref: string;
+  playStoreHref: string | null;
+  device: "ios" | "android" | "desktop";
   showMemberPrice?: boolean;
 }) {
   return (
@@ -51,14 +53,19 @@ export function LandingDiscover({
             <h1>{copy.heroTitle}</h1>
             <p className="lede">{copy.heroLede}</p>
             <div className="hero-actions">
-              <a
-                className="btn btn-primary"
-                href={appHref}
-                target="_blank"
-                rel="noopener noreferrer"
-              >
-                {appLabel}
-              </a>
+              {device !== "android" ? (
+                <a className="btn btn-primary" href={appStoreHref} target="_blank" rel="noopener noreferrer">
+                  App Store
+                </a>
+              ) : null}
+              {device !== "ios" && playStoreHref ? (
+                <a className="btn btn-secondary" href={playStoreHref} target="_blank" rel="noopener noreferrer">
+                  Google Play
+                </a>
+              ) : null}
+              {device !== "ios" && !playStoreHref ? (
+                <p className="notice">Google Play does not list the Venturo app yet.</p>
+              ) : null}
             </div>
           </div>
         </div>
@@ -205,14 +212,16 @@ export function LandingDiscover({
               <li>One membership for the website & the app</li>
             </ul>
             <div className="hero-actions">
-              <a
-                className="btn btn-primary"
-                href={appHref}
-                target="_blank"
-                rel="noopener noreferrer"
-              >
-                {appLabel}
-              </a>
+              {device !== "android" ? (
+                <a className="btn btn-primary" href={appStoreHref} target="_blank" rel="noopener noreferrer">
+                  App Store
+                </a>
+              ) : null}
+              {playStoreHref ? (
+                <a className="btn btn-secondary" href={playStoreHref} target="_blank" rel="noopener noreferrer">
+                  Google Play
+                </a>
+              ) : null}
               <a
                 className="btn btn-secondary"
                 href={showMemberPrice ? "/account/membership" : "/join/subscribe"}

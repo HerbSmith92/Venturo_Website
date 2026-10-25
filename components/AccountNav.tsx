@@ -82,6 +82,16 @@ export function AccountNav({
       ],
     },
     {
+      label: "Documents",
+      items: [
+        { href: "/terms", label: "Terms & Conditions", icon: "book" },
+        { href: "/privacy_policy", label: "Privacy Policy", icon: "lock" },
+        { href: "/refunds", label: "Refunds & Cancellations", icon: "card" },
+        { href: "/copyright", label: "Copyright", icon: "flag" },
+        { href: "/community-guidelines", label: "Community Guidelines", icon: "users" },
+      ],
+    },
+    {
       label: "Made For You",
       items: [
         { href: "/account/going-out", label: "Going Out", icon: "users" },

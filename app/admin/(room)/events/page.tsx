@@ -3,10 +3,11 @@ import { BulkForm } from "@/components/admin/BulkForm";
 import { listAdminEvents, type EventStatus } from "@/lib/events";
 import { formatEventWhen } from "@/lib/events";
 
-const FILTERS: { id: EventStatus | "all"; label: string }[] = [
+const FILTERS: { id: EventStatus | "all" | "changes"; label: string }[] = [
   { id: "review", label: "In Review" },
   { id: "approved", label: "Live" },
-  { id: "draft", label: "Draft" },
+  { id: "changes", label: "Changes requested" },
+  { id: "draft", label: "Drafts" },
   { id: "rejected", label: "Rejected" },
   { id: "cancelled", label: "Cancelled" },
   { id: "archived", label: "Archived" },
@@ -21,7 +22,7 @@ export default async function AdminEventsPage({
   const params = await searchParams;
   const status = (FILTERS.some((f) => f.id === params.status)
     ? params.status
-    : "review") as EventStatus | "all";
+    : "review") as EventStatus | "all" | "changes";
   const events = await listAdminEvents(status);
   const returnTo = `/admin/events?status=${status}`;
 

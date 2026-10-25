@@ -2,6 +2,8 @@
 
 import { useState } from "react";
 import { registerCommunity } from "@/app/community-claim-actions";
+import { PolicyConsent, PolicyLinks } from "@/components/PolicyConsent";
+import { CONSENT_REQUIRED } from "@/lib/policy-consent";
 
 type StepKey = "details" | "founder" | "contact";
 
@@ -30,6 +32,8 @@ export function RegisterCommunityForm({
   const [instagramUrl, setInstagramUrl] = useState("");
   const [facebookUrl, setFacebookUrl] = useState("");
   const [tiktokUrl, setTiktokUrl] = useState("");
+  const [acceptTerms, setAcceptTerms] = useState(false);
+  const [acceptPrivacy, setAcceptPrivacy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [pending, setPending] = useState(false);
 
@@ -74,6 +78,11 @@ export function RegisterCommunityForm({
       show("contact");
       return;
     }
+    if (!acceptTerms || !acceptPrivacy) {
+      setError(CONSENT_REQUIRED);
+      show("contact");
+      return;
+    }
 
     setError(null);
     setPending(true);
@@ -90,6 +99,8 @@ export function RegisterCommunityForm({
         instagramUrl,
         facebookUrl,
         tiktokUrl,
+        acceptTerms,
+        acceptPrivacy,
       });
       if ("error" in result) throw new Error(result.error);
       window.location.assign("/account/communities");
@@ -273,6 +284,13 @@ export function RegisterCommunityForm({
               />
             </label>
           </div>
+          <PolicyConsent
+            acceptTerms={acceptTerms}
+            acceptPrivacy={acceptPrivacy}
+            onTerms={setAcceptTerms}
+            onPrivacy={setAcceptPrivacy}
+          />
+          <PolicyLinks />
           <div className="community-setup-actions">
             <button className="btn btn-primary" type="submit" disabled={pending}>
               {pending ? "Please Wait" : "Submit"}

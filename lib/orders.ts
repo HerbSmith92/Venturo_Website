@@ -5,12 +5,14 @@ import { stampTicketContact } from "@/lib/ticket-contact";
 import { createClient } from "@/lib/supabase/server";
 import { createServiceClient } from "@/lib/supabase/admin";
 import { getEventBySlug, getPlatformFees } from "@/lib/events";
+import { listOccurrences, parseRepeat } from "@/lib/event-repeat";
 import { checkoutBuyerShare } from "@/lib/event-fees";
 import {
   remainingTickets,
   unitPriceCents,
   type EventTicketType,
 } from "@/lib/event-types";
+import { recordMemberActivity, type ActivityPlatform } from "@/lib/member-activity";
 import { getPublicSiteUrl } from "@/lib/site-url";
 
 export type CheckoutLine = {
@@ -40,8 +42,11 @@ export async function createTicketOrder(input: {
   origin: string;
   promoCode?: string;
   inviteToken?: string;
+  occurrenceStartsAt?: string;
+  occurrenceEndsAt?: string;
   /** Paystack returns into the iOS app instead of the website account. */
   appCheckout?: boolean;
+  activityPlatform?: ActivityPlatform;
 }, client?: SupabaseClient): Promise<TicketOrderResult> {
   const supabase = client ?? (await createClient());
   if (!supabase) throw new Error("Supabase is not connected.");
@@ -53,13 +58,32 @@ export async function createTicketOrder(input: {
 
   const fees = await getPlatformFees();
   const ticketMap = new Map(event.ticketTypes.map((t) => [t.id, t]));
+  const occurrences = listOccurrences(event.startsAt, event.endsAt, event.repeatEvery, event.repeatUntil);
+  const repeating = parseRepeat(event.repeatEvery) != null;
+  let occurrenceStarts: string | null = null;
+  let occurrenceEnds: string | null = null;
+  if (repeating) {
+    const wanted = input.occurrenceStartsAt ? new Date(input.occurrenceStartsAt).getTime() : Number.NaN;
+    const match = occurrences.find((item) => Math.abs(new Date(item.startsAt).getTime() - wanted) < 1000);
+    if (!match) throw new Error("Choose a date that is still on.");
+    occurrenceStarts = match.startsAt;
+    occurrenceEnds = match.endsAt;
+  } else if (occurrences[0]) {
+    occurrenceStarts = occurrences[0].startsAt;
+    occurrenceEnds = occurrences[0].endsAt;
+  }
+  const soldForDate = occurrenceStarts
+    ? await ticketsSoldForOccurrence(event.id, occurrenceStarts)
+    : null;
 
   const picked: { ticket: EventTicketType; quantity: number }[] = [];
   for (const line of input.lines) {
     if (line.quantity <= 0) continue;
     const ticket = ticketMap.get(line.ticketTypeId);
-    if (!ticket) throw new Error("Unknown ticket type.");
-    if (remainingTickets(ticket) < line.quantity) {
+    if (!ticket || !ticket.listed) throw new Error("That ticket is not on sale.");
+    const sold = soldForDate ? (soldForDate.get(ticket.id) ?? 0) : ticket.soldCount;
+    const left = ticket.quantity - sold;
+    if (left < line.quantity || remainingTickets({ ...ticket, soldCount: sold }) < line.quantity) {
       throw new Error(`Not enough ${ticket.name} tickets left.`);
     }
     picked.push({ ticket, quantity: line.quantity });
@@ -161,11 +185,18 @@ export async function createTicketOrder(input: {
       payout_status: total > 0 ? "pending" : "waived",
       promo_code_id: promoCodeId,
       invite_id: inviteId,
+      occurrence_starts_at: occurrenceStarts,
+      occurrence_ends_at: occurrenceEnds,
     })
     .select("id, m_payment_id, total_cents")
     .single();
 
   if (error || !order) throw new Error(error?.message ?? "Could not create order.");
+  await recordMemberActivity(
+    input.userId,
+    "checkout",
+    input.activityPlatform ?? (input.appCheckout ? "unknown" : "web"),
+  );
 
   const { error: itemsError } = await supabase.from("event_order_items").insert(
     resolved.map((line) => ({
@@ -217,6 +248,23 @@ export async function createTicketOrder(input: {
   };
 }
 
+export async function ticketsSoldForOccurrence(eventId: string, startsAt: string) {
+  const service = createServiceClient() ?? (await createClient());
+  const counts = new Map<string, number>();
+  if (!service) return counts;
+  const { data, error } = await service
+    .from("event_tickets")
+    .select("ticket_type_id")
+    .eq("event_id", eventId)
+    .eq("occurrence_starts_at", startsAt);
+  if (error || !data) return counts;
+  for (const row of data) {
+    const id = String(row.ticket_type_id);
+    counts.set(id, (counts.get(id) ?? 0) + 1);
+  }
+  return counts;
+}
+
 export async function listBuyerTickets(userId: string) {
   const supabase = await createClient();
   if (!supabase) return [];
@@ -225,7 +273,7 @@ export async function listBuyerTickets(userId: string) {
     .from("event_tickets")
     .select(
       `
-      id, code, created_at, order_id, event_id,
+      id, code, created_at, order_id, event_id, occurrence_starts_at, occurrence_ends_at,
       events (
         id, slug, title, starts_at, ends_at, timezone,
         venue_name, address_line1, city, latitude, longitude, status,

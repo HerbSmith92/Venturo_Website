@@ -30,6 +30,7 @@ export type EventTicketType = {
   quantity: number;
   soldCount: number;
   sortOrder: number;
+  listed: boolean;
 };
 
 export type VenturoEvent = {
@@ -68,6 +69,7 @@ export type VenturoEvent = {
   fromPriceCents: number | null;
   memberFromPriceCents: number | null;
   membersOnly: boolean;
+  priceMix: "free" | "paid" | "both" | "none";
   ticketTypes: EventTicketType[];
 };
 

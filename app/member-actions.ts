@@ -3,6 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { getCurrentUser } from "@/lib/auth";
+import { recordMemberActivity } from "@/lib/member-activity";
 import type { SaveKind } from "@/lib/saves";
 import { createClient } from "@/lib/supabase/server";
 
@@ -42,6 +43,7 @@ export async function toggleSave(formData: FormData) {
       kind,
       target_id: targetId,
     });
+    await recordMemberActivity(user.id, "save", "web");
   }
   revalidatePath(next);
   revalidatePath("/account/saved");
@@ -72,6 +74,7 @@ export async function toggleFollow(formData: FormData) {
       user_id: user.id,
       community_id: communityId,
     });
+    await recordMemberActivity(user.id, "follow", "web");
   }
   revalidatePath("/communities");
   revalidatePath("/account/communities");

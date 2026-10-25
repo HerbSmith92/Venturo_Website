@@ -102,6 +102,7 @@ type TicketTypeRow = {
   quantity: number;
   sold_count: number;
   sort_order: number;
+  listed?: boolean | null;
 };
 
 function mapTicket(row: TicketTypeRow): EventTicketType {
@@ -124,6 +125,7 @@ function mapTicket(row: TicketTypeRow): EventTicketType {
     quantity: row.quantity,
     soldCount: row.sold_count,
     sortOrder: row.sort_order,
+    listed: row.listed !== false,
   };
 }
 
@@ -132,15 +134,22 @@ function mapEvent(row: EventRow): VenturoEvent {
     .sort((a, b) => a.sort_order - b.sort_order)
     .map(mapTicket);
 
-  const publicTickets = ticketTypes.filter((t) => !t.membersOnly);
-  const publicPrices = publicTickets.map((t) => t.priceCents);
-  const memberPrices = ticketTypes
+  const visibleTickets = ticketTypes.filter((t) => t.listed);
+  const publicTickets = visibleTickets.filter((t) => !t.membersOnly);
+  const onSale = publicTickets.filter((t) => t.quantity - t.soldCount > 0);
+  const priced = onSale.length ? onSale : publicTickets;
+  const hasFree = priced.some((t) => t.kind === "free" || t.priceCents === 0);
+  const paidPrices = priced.filter((t) => t.kind !== "free" && t.priceCents > 0).map((t) => t.priceCents);
+  const hasPaid = paidPrices.length > 0;
+  const publicPrices = hasPaid ? paidPrices : hasFree ? [0] : publicTickets.map((t) => t.priceCents);
+  const memberPrices = visibleTickets
     .map((t) => t.memberPriceCents)
     .filter((p): p is number => p !== null);
   const membersOnly =
-    ticketTypes.length > 0 &&
-    ticketTypes.some((t) => t.kind !== "free") &&
-    ticketTypes.filter((t) => t.kind !== "free").every((t) => t.membersOnly);
+    visibleTickets.length > 0 &&
+    visibleTickets.some((t) => t.kind !== "free") &&
+    visibleTickets.filter((t) => t.kind !== "free").every((t) => t.membersOnly);
+  const priceMix = hasFree && hasPaid ? "both" : hasPaid ? "paid" : hasFree ? "free" : "none";
 
   return {
     id: row.id,
@@ -182,6 +191,7 @@ function mapEvent(row: EventRow): VenturoEvent {
         : (ticketTypes[0]?.priceCents ?? null),
     memberFromPriceCents: memberPrices.length ? Math.min(...memberPrices) : null,
     membersOnly,
+    priceMix,
     ticketTypes,
   };
 }
@@ -195,7 +205,7 @@ const EVENT_SELECT = `
   event_ticket_types (
     id, event_id, name, description, kind, price_cents, member_price_cents,
     member_discount_kind, member_discount_value, members_only, pass_fees_to_buyer,
-    pass_commission_to_buyer, quantity, sold_count, sort_order
+    pass_commission_to_buyer, quantity, sold_count, sort_order, listed
   )
 `;
 
@@ -277,10 +287,10 @@ export async function listPublicEvents(options?: {
     });
   }
   if (options?.price === "free") {
-    events = events.filter((event) => (event.fromPriceCents ?? 0) === 0);
+    events = events.filter((event) => event.priceMix === "free" || event.priceMix === "both");
   }
   if (options?.price === "paid") {
-    events = events.filter((event) => (event.fromPriceCents ?? 0) > 0);
+    events = events.filter((event) => event.priceMix === "paid" || event.priceMix === "both");
   }
   if (options?.limit) events = events.slice(0, options.limit);
   return events;
@@ -380,7 +390,7 @@ export async function listOrganiserEvents(userId: string): Promise<VenturoEvent[
   return (data as EventRow[]).map(mapEvent);
 }
 
-export async function listAdminEvents(status?: EventStatus | "all"): Promise<VenturoEvent[]> {
+export async function listAdminEvents(status?: EventStatus | "all" | "changes"): Promise<VenturoEvent[]> {
   const supabase = await createClient();
   if (!supabase) return [];
 
@@ -389,7 +399,11 @@ export async function listAdminEvents(status?: EventStatus | "all"): Promise<Ven
     .select(EVENT_SELECT)
     .order("updated_at", { ascending: false });
 
-  if (status && status !== "all") {
+  if (status === "changes") {
+    query = query.eq("status", "draft").not("review_note", "is", null).neq("review_note", "");
+  } else if (status === "draft") {
+    query = query.eq("status", "draft").or("review_note.is.null,review_note.eq.");
+  } else if (status && status !== "all") {
     query = query.eq("status", status);
   }
 

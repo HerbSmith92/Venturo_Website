@@ -4,6 +4,8 @@ import { useMemo, useState } from "react";
 import { AuthProviderIcon } from "@/components/AuthProviderIcon";
 import { portalLoginHref, portalSignupNext } from "@/lib/portal";
 import { createClient } from "@/lib/supabase/client";
+import { PolicyConsent } from "@/components/PolicyConsent";
+import { CONSENT_REQUIRED } from "@/lib/policy-consent";
 
 type Step = "methods" | "email" | "code";
 type OAuthProvider = "google" | "apple" | "facebook";
@@ -42,6 +44,14 @@ export function AuthForm({
   const [error, setError] = useState<string | null>(initialError);
   const [pending, setPending] = useState(false);
   const [oauthPending, setOauthPending] = useState<OAuthProvider | null>(null);
+  const [acceptTerms, setAcceptTerms] = useState(false);
+  const [acceptPrivacy, setAcceptPrivacy] = useState(false);
+
+  function consentReady() {
+    if (mode !== "signup" || (acceptTerms && acceptPrivacy)) return true;
+    setError(CONSENT_REQUIRED);
+    return false;
+  }
 
   const heading = useMemo(() => {
     if (surface === "companion") return "Log In To Companion";
@@ -91,7 +101,16 @@ export function AuthForm({
     form.set("mode", formMode);
     form.set("next", next);
     if (firstName.trim()) form.set("firstName", firstName.trim());
-    if (formMode === "signup" && phone.trim()) form.set("phone", phone.trim());
+    if (formMode === "signup") {
+      if (!acceptTerms || !acceptPrivacy) {
+        setPending(false);
+        setError(CONSENT_REQUIRED);
+        return false;
+      }
+      form.set("acceptTerms", "on");
+      form.set("acceptPrivacy", "on");
+      if (phone.trim()) form.set("phone", phone.trim());
+    }
     const response = await fetch("/auth/otp/send", {
       method: "POST",
       body: form,
@@ -123,7 +142,12 @@ export function AuthForm({
     const form = new FormData(event.currentTarget);
     form.set("email", email);
     form.set("firstName", firstName);
-    if (mode === "signup") form.set("phone", phone.trim());
+    if (mode === "signup") {
+      form.set("phone", phone.trim());
+      form.set("mode", "signup");
+      if (acceptTerms) form.set("acceptTerms", "on");
+      if (acceptPrivacy) form.set("acceptPrivacy", "on");
+    }
     form.set("next", next);
     const response = await fetch("/auth/otp/verify", {
       method: "POST",
@@ -140,6 +164,7 @@ export function AuthForm({
 
   async function startOAuth(provider: OAuthProvider) {
     setError(null);
+    if (mode === "signup" && !consentReady()) return;
     if (!configured) {
       setError("Connect Supabase in `.env.local` to turn social login on.");
       return;
@@ -150,6 +175,14 @@ export function AuthForm({
       return;
     }
     setOauthPending(provider);
+    if (mode === "signup") {
+      const consent = await fetch("/auth/consent", { method: "POST" });
+      if (!consent.ok) {
+        setOauthPending(null);
+        setError(CONSENT_REQUIRED);
+        return;
+      }
+    }
     const redirectTo = `${window.location.origin}/auth/callback?next=${encodeURIComponent(next)}`;
     const { error: oauthError } = await supabase.auth.signInWithOAuth({
       provider,
@@ -170,6 +203,7 @@ export function AuthForm({
 
   function pickMethod(id: "email" | OAuthProvider) {
     setError(null);
+    if (mode === "signup" && !consentReady()) return;
     if (id === "email") {
       setStep("email");
       return;
@@ -265,6 +299,14 @@ export function AuthForm({
             />
           </label>
         )}
+        {mode === "signup" ? (
+          <PolicyConsent
+            acceptTerms={acceptTerms}
+            acceptPrivacy={acceptPrivacy}
+            onTerms={setAcceptTerms}
+            onPrivacy={setAcceptPrivacy}
+          />
+        ) : null}
         <label className="field">
           <span>Email</span>
           <input
@@ -334,6 +376,14 @@ export function AuthForm({
           Connect Supabase in `.env.local` to turn this form on.
         </p>
       )}
+      {mode === "signup" ? (
+        <PolicyConsent
+          acceptTerms={acceptTerms}
+          acceptPrivacy={acceptPrivacy}
+          onTerms={setAcceptTerms}
+          onPrivacy={setAcceptPrivacy}
+        />
+      ) : null}
       <div className="auth-methods">
         {METHODS.map((method) => {
           const busy = method.id !== "email" && oauthPending === method.id;

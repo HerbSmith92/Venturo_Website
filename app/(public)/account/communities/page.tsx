@@ -4,6 +4,7 @@ import {
   communityStatusLabel,
   listClaimedCommunities,
   listEventIdsByCommunity,
+  listFollowedCommunities,
   type CommunityRecord,
 } from "@/lib/communities";
 import type { VenturoEvent } from "@/lib/event-types";
@@ -60,7 +61,12 @@ export default async function AccountCommunitiesPage() {
   const user = await getCurrentUser();
   if (!user) redirect("/login?next=/account/communities");
 
-  const claimed = await listClaimedCommunities(user.id);
+  const [claimed, followedAll] = await Promise.all([
+    listClaimedCommunities(user.id),
+    listFollowedCommunities(user.id),
+  ]);
+  const ownedIds = new Set(claimed.map((community) => community.id));
+  const followed = followedAll.filter((community) => !ownedIds.has(community.id));
   const eventIds = await listEventIdsByCommunity(claimed.map((community) => community.id));
   const events = await listEventsByIds([...new Set([...eventIds.values()].flat())]);
   const byId = new Map(events.map((event) => [event.id, event]));
@@ -104,6 +110,24 @@ export default async function AccountCommunitiesPage() {
             community={community}
             href={`/account/communities/${community.id}`}
             kicker={communityStatusLabel(community.status)}
+            events={upcoming(community.id)}
+            showMemberPrice={showMemberPrice}
+          />
+        ))
+      )}
+
+      <h2>Communities You Follow</h2>
+      {followed.length === 0 ? (
+        <p className="muted">
+          You are not following a community yet. <a href="/communities">Browse communities</a>.
+        </p>
+      ) : (
+        followed.map((community) => (
+          <CommunityBlock
+            key={community.id}
+            community={community}
+            href={`/communities/${community.slug}`}
+            kicker="Following"
             events={upcoming(community.id)}
             showMemberPrice={showMemberPrice}
           />

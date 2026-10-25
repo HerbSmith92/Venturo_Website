@@ -1,49 +1,18 @@
-import { controlRoomStats } from "@/lib/control-room";
+import { OverviewDashboard } from "@/components/admin/overview/OverviewDashboard";
+import { getStaffSession } from "@/lib/auth";
+import { loadControlRoomOverview } from "@/lib/overview/load";
+import { isAdmin } from "@/lib/roles";
 
-export default async function ControlRoomHome() {
-  const stats = await controlRoomStats();
+export const dynamic = "force-dynamic";
 
-  return (
-    <section>
-      <p className="eyebrow">Staff</p>
-      <h1>Control Room</h1>
-      <p className="lede muted">
-        Directory, Events, and Community are the desks. Open a heading to reach its screens.
-      </p>
-      <div className="cr-board">
-        <h2>Directory</h2>
-        <div className="cr-stats">
-          <a className="cr-stat" href="/admin/listings?status=approved">
-            <span>Live</span>
-            <strong>{stats.live}</strong>
-          </a>
-          <a className="cr-stat" href="/admin/listings?status=review">
-            <span>New Listings Requested</span>
-            <strong>{stats.review}</strong>
-          </a>
-          <a className="cr-stat" href="/admin/listings?status=draft">
-            <span>Changes Requested</span>
-            <strong>{stats.draft}</strong>
-          </a>
-          <a className="cr-stat" href="/admin/listings?status=archived">
-            <span>Archived</span>
-            <strong>{stats.archived}</strong>
-          </a>
-        </div>
-      </div>
-      <div className="cr-board">
-        <h2>Events</h2>
-        <div className="cr-stats">
-          <a className="cr-stat" href="/admin/events?status=review">
-            <span>In Review</span>
-            <strong>{stats.eventsReview}</strong>
-          </a>
-          <a className="cr-stat" href="/admin/events">
-            <span>All Events</span>
-            <strong>Open</strong>
-          </a>
-        </div>
-      </div>
-    </section>
-  );
+export default async function ControlRoomHome({
+  searchParams,
+}: {
+  searchParams: Promise<{ range?: string; from?: string; to?: string; platform?: string; saved?: string; error?: string }>;
+}) {
+  const params = await searchParams;
+  const session = await getStaffSession();
+  const model = await loadControlRoomOverview(params, { admin: isAdmin(session?.role) });
+  const notice = params.saved === "thresholds" ? "Thresholds saved." : params.error ?? null;
+  return <OverviewDashboard model={model} notice={notice} />;
 }

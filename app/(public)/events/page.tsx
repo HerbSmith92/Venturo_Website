@@ -23,7 +23,7 @@ function chipStyle(fill: string, active: boolean) {
 export default async function EventsPage({
   searchParams,
 }: {
-  searchParams: Promise<{ category?: string; when?: string; price?: string }>;
+  searchParams: Promise<{ category?: string; when?: string; price?: string; q?: string }>;
 }) {
   const params = await searchParams;
   const category = params.category ?? "all";
@@ -32,13 +32,27 @@ export default async function EventsPage({
       ? params.when
       : "upcoming";
   const price = params.price === "free" || params.price === "paid" ? params.price : "";
+  const needle = (params.q ?? "").trim().toLowerCase();
   const user = await getCurrentUser();
-  const events = await listPublicEvents({
+  const listed = await listPublicEvents({
     category: category === "all" ? undefined : category,
     when: when === "calendar" ? "upcoming" : when,
     price: price || undefined,
     expandRepeats: true,
   });
+  const events = listed.filter((event) => {
+    if (!needle) return true;
+    return `${event.title} ${event.city ?? ""} ${event.category ?? ""}`.toLowerCase().includes(needle);
+  });
+  const showRows = when === "upcoming" && category === "all" && !needle && !price;
+  const comingUp = events.slice(0, 6);
+  const hot = events
+    .filter(
+      (event) =>
+        event.memberFromPriceCents !== null &&
+        (event.fromPriceCents === null || event.memberFromPriceCents < event.fromPriceCents),
+    )
+    .slice(0, 6);
 
   return (
     <main>
@@ -65,6 +79,13 @@ export default async function EventsPage({
       </section>
 
       <section className="section shell">
+        <form className="field" method="get" action="/events">
+          <span>Search events</span>
+          <input name="q" defaultValue={params.q ?? ""} placeholder="Name, place, or category" />
+          {when !== "upcoming" ? <input type="hidden" name="when" value={when} /> : null}
+          {category !== "all" ? <input type="hidden" name="category" value={category} /> : null}
+          {price ? <input type="hidden" name="price" value={price} /> : null}
+        </form>
         <div className="section-head">
           <div>
             <p className="eyebrow">Around South Africa</p>
@@ -179,6 +200,27 @@ export default async function EventsPage({
               </section>
             ))}
           </div>
+        ) : showRows ? (
+          <>
+            <div className="discover-row">
+              <h2>Coming up</h2>
+              <div className="grid">
+                {comingUp.map((event) => (
+                  <EventCard key={`${event.id}-${event.startsAt}`} event={event} showMemberPrice={user?.plan === "paid"} />
+                ))}
+              </div>
+            </div>
+            {hot.length > 0 ? (
+              <div className="discover-row">
+                <h2>Hot on Venturo</h2>
+                <div className="grid">
+                  {hot.map((event) => (
+                    <EventCard key={`hot-${event.id}-${event.startsAt}`} event={event} showMemberPrice={user?.plan === "paid"} />
+                  ))}
+                </div>
+              </div>
+            ) : null}
+          </>
         ) : (
           <div className="grid">
             {events.map((event) => (

@@ -3,6 +3,7 @@ import { createClient } from "@/lib/supabase/server";
 import { isPortalPath } from "@/lib/portal";
 import { safeNextPath } from "@/lib/member-auth";
 import { tidyCellphone } from "@/lib/phone";
+import { CONSENT_REQUIRED, formHasConsent } from "@/lib/policy-consent";
 
 function loginUnknownMessage(message: string, next: string) {
   const lower = message.toLowerCase();
@@ -47,6 +48,9 @@ export async function POST(request: Request) {
   }
   if (mode === "signup" && !tidyCellphone(String(form.get("phone") ?? ""))) {
     return NextResponse.json({ error: "Add a cellphone number." }, { status: 400 });
+  }
+  if (mode === "signup" && !formHasConsent(form)) {
+    return NextResponse.json({ error: CONSENT_REQUIRED }, { status: 400 });
   }
 
   const { error } = await supabase.auth.signInWithOtp({

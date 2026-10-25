@@ -11,6 +11,7 @@ function Figures({ item }: { item: ListingCostItem }) {
   return (
     <span className="listing-cost-figures">
       <span className="listing-cost-amount">
+        {item.memberLocked ? <em className="listing-cost-kind">Standard</em> : null}
         {item.wasAmount ? <s className="listing-cost-was">{item.wasAmount}</s> : null}
         {item.wasAmount ? <b>{item.amountLabel}</b> : item.amountLabel}
       </span>
@@ -22,7 +23,7 @@ function Figures({ item }: { item: ListingCostItem }) {
 function MemberLock() {
   return (
     <span className="listing-cost-lock" aria-hidden="true">
-      <span>Members Exclusive Discount</span>
+      <span>Members-only price</span>
     </span>
   );
 }

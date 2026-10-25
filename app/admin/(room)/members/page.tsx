@@ -1,12 +1,13 @@
 import { MemberActions } from "@/components/admin/MemberActions";
 import { getStaffSession } from "@/lib/auth";
 import { formatClock, loadMembers } from "@/lib/control-room";
+import { isTestEmail } from "@/lib/overview/metrics";
 import { isAdmin } from "@/lib/roles";
 
 export default async function MembersPage({
   searchParams,
 }: {
-  searchParams: Promise<{ q?: string; done?: string; error?: string }>;
+  searchParams: Promise<{ q?: string; done?: string; error?: string; plan?: string; metrics?: string }>;
 }) {
   const params = await searchParams;
   const session = await getStaffSession();
@@ -14,6 +15,13 @@ export default async function MembersPage({
   const { members, serviceRoleReady, loadError } = await loadMembers(
     params.q,
   );
+  const businessOnly = params.metrics === "1";
+  const visible = members.filter((member) => {
+    if (params.plan === "paid" && member.plan !== "paid") return false;
+    if (params.plan === "free" && member.plan !== "free") return false;
+    if (businessOnly && isTestEmail(member.email)) return false;
+    return true;
+  });
   const paidCount = members.filter((member) => member.plan === "paid").length;
   const fullDirectory = serviceRoleReady && !loadError;
 
@@ -23,7 +31,8 @@ export default async function MembersPage({
       <h1>Members</h1>
       <p className="lede muted">
         Every auth user on the Venturo project. Paid is <code>member_access.subscribed</code>
-        — Paystack on the website or RevenueCat in the app write that row; this list only reads it. Reset Password emails
+        — Paystack on the website or RevenueCat in the app write that row; this list only reads it.
+        The overview count excludes test accounts and is not capped at the first 200 auth users. This directory is. Reset Password emails
         a recovery link. Delete removes the auth user (profile cascades).
       </p>
 
@@ -52,8 +61,8 @@ export default async function MembersPage({
           <strong>{members.length}</strong>
         </article>
         <article className="cr-stat">
-          <span className="muted">Paid</span>
-          <strong>{paidCount}</strong>
+          <span className="muted">Paid in this list</span>
+          <strong>{businessOnly ? visible.filter((member) => member.plan === "paid").length : paidCount}</strong>
         </article>
         <article className="cr-stat">
           <span className="muted">Free</span>
@@ -91,14 +100,14 @@ export default async function MembersPage({
             </tr>
           </thead>
           <tbody>
-            {members.length === 0 && (
+            {visible.length === 0 && (
               <tr>
                 <td colSpan={8} className="muted">
                   No users match.
                 </td>
               </tr>
             )}
-            {members.map((member) => (
+            {visible.map((member) => (
               <tr key={member.id}>
                 <td>
                   {member.display_name || "Unnamed"}

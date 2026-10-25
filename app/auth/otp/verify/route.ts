@@ -3,6 +3,7 @@ import { provisionMember, safeNextPath } from "@/lib/member-auth";
 import { tidyCellphone } from "@/lib/phone";
 import { postAuthPathAfterProvision } from "@/lib/onboarding";
 import { createClient } from "@/lib/supabase/server";
+import { CONSENT_REQUIRED, formHasConsent, recordMemberConsent } from "@/lib/policy-consent";
 
 export async function POST(request: Request) {
   const supabase = await createClient();
@@ -29,6 +30,10 @@ export async function POST(request: Request) {
   if (!email || !token) {
     return NextResponse.json({ error: "Email and code are required." }, { status: 400 });
   }
+  const signup = String(form.get("mode") ?? "") === "signup" || Boolean(firstName);
+  if (signup && !formHasConsent(form)) {
+    return NextResponse.json({ error: CONSENT_REQUIRED }, { status: 400 });
+  }
 
   const { data, error } = await supabase.auth.verifyOtp({
     email,
@@ -43,6 +48,7 @@ export async function POST(request: Request) {
   const userId = data.user?.id;
   if (userId) {
     await provisionMember(userId, firstName, phone ?? undefined);
+    if (formHasConsent(form)) await recordMemberConsent(userId, "signup");
   }
 
   return NextResponse.json({ redirect: await postAuthPathAfterProvision(next) });

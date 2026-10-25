@@ -56,18 +56,8 @@ export function TicketWallet({
   }
 
   function download() {
-    document.body.classList.add("printing-passport");
-    const previous = document.title;
-    document.title = ticket
-      ? `Venturo ticket · ${ticket.title}`
-      : "Venturo ticket";
-    const done = () => {
-      document.body.classList.remove("printing-passport");
-      document.title = previous;
-      window.removeEventListener("afterprint", done);
-    };
-    window.addEventListener("afterprint", done);
-    window.print();
+    if (!ticket) return;
+    window.location.href = `/api/account/tickets/${ticket.id}/pdf`;
   }
 
   return (

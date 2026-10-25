@@ -9,6 +9,8 @@ import {
   type PlatformFees,
 } from "@/lib/event-types";
 import { checkoutBuyerShare } from "@/lib/event-fees";
+import { PolicyConsent, PolicyLinks } from "@/components/PolicyConsent";
+import { CONSENT_REQUIRED } from "@/lib/policy-consent";
 
 type View = "list" | "account" | "code" | "basket";
 
@@ -43,6 +45,8 @@ export function TicketCheckoutForm({
   fees,
   inviteToken = "",
   initialBasket,
+  occurrenceStartsAt = "",
+  needsConsent = false,
 }: {
   eventSlug: string;
   tickets: EventTicketType[];
@@ -52,6 +56,9 @@ export function TicketCheckoutForm({
   fees: PlatformFees;
   inviteToken?: string;
   initialBasket?: string;
+  occurrenceStartsAt?: string;
+  occurrenceEndsAt?: string;
+  needsConsent?: boolean;
 }) {
   const [qty, setQty] = useState<Record<string, number>>(() =>
     startingQuantities(tickets, initialBasket),
@@ -66,6 +73,8 @@ export function TicketCheckoutForm({
   const [phone, setPhone] = useState("");
   const [email, setEmail] = useState("");
   const [promoCode, setPromoCode] = useState("");
+  const [acceptTerms, setAcceptTerms] = useState(false);
+  const [acceptPrivacy, setAcceptPrivacy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [pending, setPending] = useState(false);
 
@@ -98,6 +107,7 @@ export function TicketCheckoutForm({
     const basket = lines.map((line) => `${line.ticket.id}:${line.quantity}`).join(",");
     if (basket) params.set("basket", basket);
     if (inviteToken) params.set("invite", inviteToken);
+    if (occurrenceStartsAt) params.set("on", occurrenceStartsAt);
     const query = params.toString();
     return query ? `/events/${eventSlug}?${query}` : `/events/${eventSlug}`;
   }
@@ -126,8 +136,15 @@ export function TicketCheckoutForm({
     form.set("mode", authMode);
     form.set("next", returnPath());
     if (authMode === "signup") {
+      if (!acceptTerms || !acceptPrivacy) {
+        setPending(false);
+        setError(CONSENT_REQUIRED);
+        return;
+      }
       form.set("firstName", firstName.trim());
       form.set("phone", phone.trim());
+      form.set("acceptTerms", "on");
+      form.set("acceptPrivacy", "on");
     }
     const response = await fetch("/auth/otp/send", { method: "POST", body: form });
     const payload = (await response.json()) as { error?: string; email?: string };
@@ -147,7 +164,12 @@ export function TicketCheckoutForm({
     const form = new FormData(event.currentTarget);
     form.set("email", email.trim().toLowerCase());
     form.set("firstName", authMode === "signup" ? firstName.trim() : "");
-    if (authMode === "signup") form.set("phone", phone.trim());
+    if (authMode === "signup") {
+      form.set("phone", phone.trim());
+      if (acceptTerms) form.set("acceptTerms", "on");
+      if (acceptPrivacy) form.set("acceptPrivacy", "on");
+      form.set("mode", "signup");
+    }
     form.set("next", returnPath());
     const response = await fetch("/auth/otp/verify", { method: "POST", body: form });
     const payload = (await response.json()) as { error?: string; redirect?: string };
@@ -163,6 +185,10 @@ export function TicketCheckoutForm({
     event.preventDefault();
     if (!lines.length) {
       setError("Choose how many.");
+      return;
+    }
+    if (needsConsent && (!acceptTerms || !acceptPrivacy)) {
+      setError(CONSENT_REQUIRED);
       return;
     }
     setError(null);
@@ -188,6 +214,9 @@ export function TicketCheckoutForm({
         lines: lines.map((line) => ({ ticketTypeId: line.ticket.id, quantity: line.quantity })),
         promoCode,
         inviteToken,
+        occurrenceStartsAt,
+        acceptTerms,
+        acceptPrivacy,
       }),
     });
     const payload = (await response.json()) as {
@@ -257,6 +286,14 @@ export function TicketCheckoutForm({
             required
           />
         </label>
+        {authMode === "signup" ? (
+          <PolicyConsent
+            acceptTerms={acceptTerms}
+            acceptPrivacy={acceptPrivacy}
+            onTerms={setAcceptTerms}
+            onPrivacy={setAcceptPrivacy}
+          />
+        ) : null}
         {error ? <p className="error">{error}</p> : null}
         <button className="btn btn-primary" type="submit" disabled={pending}>
           {pending ? "Please Wait" : "Email Me A Code"}
@@ -391,6 +428,15 @@ export function TicketCheckoutForm({
             autoComplete="off"
           />
         </label>
+        {needsConsent ? (
+          <PolicyConsent
+            acceptTerms={acceptTerms}
+            acceptPrivacy={acceptPrivacy}
+            onTerms={setAcceptTerms}
+            onPrivacy={setAcceptPrivacy}
+          />
+        ) : null}
+        <PolicyLinks />
         {error ? <p className="error">{error}</p> : null}
         <button className="btn btn-primary" type="submit" disabled={pending || !lines.length}>
           {payLabel}

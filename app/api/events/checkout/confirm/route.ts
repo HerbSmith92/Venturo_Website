@@ -7,7 +7,12 @@ export async function POST(request: Request) {
   if (!token) {
     return NextResponse.json({ error: "Log in to buy tickets." }, { status: 401 });
   }
-  const user = await userFromBearer(token);
+  let user: Awaited<ReturnType<typeof userFromBearer>> = null;
+  try {
+    user = await userFromBearer(token);
+  } catch {
+    user = null;
+  }
   if (!user) {
     return NextResponse.json({ error: "Log in to buy tickets." }, { status: 401 });
   }

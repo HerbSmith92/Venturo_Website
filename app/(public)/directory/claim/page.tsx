@@ -28,8 +28,7 @@ export default async function ClaimListingPage({
         <p className="eyebrow">Businesses</p>
         <h1>Claim Your Listing</h1>
         <p className="lede muted">
-          Find your spot, log in, & ask Control Room to verify you. Until then
-          staff keep the listing — you never publish yourself.
+          This is how the owner takes the listing. You confirm it is your business, then Control Room checks it before you can edit what the public sees.
         </p>
 
         <form className="field" method="get" action="/directory/claim">

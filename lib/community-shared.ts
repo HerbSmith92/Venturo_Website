@@ -3,7 +3,7 @@ export type CommunityStatus = "draft" | "requested" | "published" | "archived" |
 export function communityStatusLabel(status: CommunityStatus) {
   switch (status) {
     case "requested":
-      return "Requested";
+      return "Pending Approval";
     case "draft":
       return "Changes Requested";
     case "published":

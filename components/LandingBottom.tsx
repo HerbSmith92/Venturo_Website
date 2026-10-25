@@ -152,9 +152,7 @@ export function LandingBottom() {
                   Play Store
                 </a>
               ) : (
-                <a className="btn btn-secondary" href="/join">
-                  Play Store — Link Soon
-                </a>
+                <p className="notice">Google Play does not list the Venturo app yet.</p>
               )}
             </div>
           </div>

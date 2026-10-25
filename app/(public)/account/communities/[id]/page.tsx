@@ -77,9 +77,17 @@ export default async function ClaimedCommunityPage({
                 </ul>
               )}
               <p className="community-setup-actions">
-                <a className="btn btn-secondary" href={`/communities/${community.slug}`}>
-                  View Public Page
-                </a>
+                {community.status === "published" ? (
+                  <a className="btn btn-secondary" href={`/communities/${community.slug}`}>
+                    View Public Page
+                  </a>
+                ) : (
+                  <span className="notice">
+                    {community.status === "requested"
+                      ? "Pending approval. The public page opens once Venturo publishes this community."
+                      : "This community is not on the public page yet."}
+                  </span>
+                )}
               </p>
             </FoldSection>
           </div>

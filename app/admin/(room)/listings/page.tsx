@@ -162,6 +162,7 @@ function ListingRow({
           {listingStatusLabel(listing.status, {
             suspended: Boolean(listing.is_suspended),
             scheduled,
+            changes: Boolean(listing.review_note?.trim()),
           })}
         </span>
         {listing.status === "draft" && listing.review_note ? (

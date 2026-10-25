@@ -3,6 +3,13 @@ import { provisionMember, safeNextPath } from "@/lib/member-auth";
 import { postAuthPathAfterProvision } from "@/lib/onboarding";
 import { isPortalPath } from "@/lib/portal";
 import { createClient } from "@/lib/supabase/server";
+import {
+  CONSENT_COOKIE,
+  CONSENT_REQUIRED,
+  consentCookieValue,
+  hasMemberConsent,
+  recordMemberConsent,
+} from "@/lib/policy-consent";
 
 export async function GET(request: Request) {
   const url = new URL(request.url);
@@ -40,6 +47,8 @@ export async function GET(request: Request) {
     const userId = data.user?.id ?? data.session?.user?.id;
     if (userId) {
       await provisionMember(userId);
+      const blocked = await freshUserNeedsConsent(request, userId, data.user?.created_at);
+      if (blocked) return NextResponse.redirect(blocked);
     }
     return succeed();
   }
@@ -56,9 +65,23 @@ export async function GET(request: Request) {
     const userId = data.user?.id ?? data.session?.user?.id;
     if (userId) {
       await provisionMember(userId);
+      const blocked = await freshUserNeedsConsent(request, userId, data.user?.created_at);
+      if (blocked) return NextResponse.redirect(blocked);
     }
     return succeed();
   }
 
   return NextResponse.redirect(new URL(safeNext, url.origin));
+}
+
+async function freshUserNeedsConsent(request: Request, userId: string, createdAt?: string) {
+  const raw = request.headers.get("cookie") ?? "";
+  const accepted = raw.split(";").some((part) => part.trim() === `${CONSENT_COOKIE}=${consentCookieValue()}`);
+  if (accepted) await recordMemberConsent(userId, "social");
+  const fresh = createdAt ? Date.now() - new Date(createdAt).getTime() < 10 * 60 * 1000 : false;
+  if (!fresh || (await hasMemberConsent(userId))) return null;
+  const gate = new URL("/account/consent", new URL(request.url).origin);
+  gate.searchParams.set("next", safeNextPath(new URL(request.url).searchParams.get("next")));
+  gate.searchParams.set("error", CONSENT_REQUIRED);
+  return gate;
 }

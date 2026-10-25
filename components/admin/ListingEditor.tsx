@@ -306,6 +306,7 @@ export function ListingEditor({
   const statusText = listingStatusLabel(listing.status, {
     suspended: Boolean(listing.is_suspended),
     scheduled,
+    changes: Boolean(listing.review_note?.trim()),
   });
   const editsSaved = listing.status === "approved" && listing.pending_state === "draft";
   const editsWaiting = listing.status === "approved" && listing.pending_state === "review";

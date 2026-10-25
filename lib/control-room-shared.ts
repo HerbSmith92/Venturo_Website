@@ -20,13 +20,16 @@ export function isListingAction(value: string): value is ListingAction {
   return LISTING_ACTIONS.includes(value as ListingAction);
 }
 
-export function listingStatusLabel(status: string, flags?: { suspended?: boolean; scheduled?: boolean }) {
+export function listingStatusLabel(
+  status: string,
+  flags?: { suspended?: boolean; scheduled?: boolean; changes?: boolean },
+) {
   if (flags?.suspended) return "Suspended";
   if (flags?.scheduled) return "Scheduled";
   if (status === "approved") return "Live";
   if (status === "review") return "New Listings Requested";
   if (status === "archived") return "Archived";
-  if (status === "draft") return "Changes Requested";
+  if (status === "draft") return flags?.changes ? "Changes requested" : "Draft";
   return "Draft";
 }
 

@@ -1,7 +1,10 @@
 import { EventMap } from "@/components/EventMap";
 import { EventPageHero } from "@/components/events/EventPageHero";
 import { EventViewBeacon } from "@/components/events/EventViewBeacon";
+import { UsageBeacon } from "@/components/UsageBeacon";
+import { InviteOthers } from "@/components/InviteOthers";
 import { SaveForm } from "@/components/SaveForm";
+import { loadAttendancePreview } from "@/lib/event-attendance";
 import { TicketCheckoutForm } from "@/components/TicketCheckoutForm";
 import { getCurrentUser } from "@/lib/auth";
 import {
@@ -13,6 +16,8 @@ import {
 } from "@/lib/events";
 import { listOccurrences, repeatPhrase } from "@/lib/event-repeat";
 import { formatEventWhen } from "@/lib/event-types";
+import { ticketsSoldForOccurrence } from "@/lib/orders";
+import { hasMemberConsent } from "@/lib/policy-consent";
 import { loadMemberProfile } from "@/lib/profile";
 import { isSaved } from "@/lib/saves";
 import { notFound } from "next/navigation";
@@ -22,7 +27,7 @@ export default async function EventDetailPage({
   searchParams,
 }: {
   params: Promise<{ slug: string }>;
-  searchParams: Promise<{ cancelled?: string; c?: string; invite?: string; basket?: string }>;
+  searchParams: Promise<{ cancelled?: string; c?: string; invite?: string; basket?: string; on?: string }>;
 }) {
   const { slug } = await params;
   const query = await searchParams;
@@ -31,8 +36,12 @@ export default async function EventDetailPage({
 
   const user = await getCurrentUser();
   const fees = await getPlatformFees();
-  const saved = user ? await isSaved(user.id, "event", event.id) : false;
+  const [saved, attendance] = await Promise.all([
+    user ? isSaved(user.id, "event", event.id) : Promise.resolve(false),
+    loadAttendancePreview(event.id),
+  ]);
   const profile = user ? await loadMemberProfile(user.id) : null;
+  const consented = user ? await hasMemberConsent(user.id) : false;
   const canView =
     event.status === "approved" ||
     event.status === "cancelled" ||
@@ -42,13 +51,25 @@ export default async function EventDetailPage({
   if (!canView) notFound();
 
   const occurrences = listOccurrences(event.startsAt, event.endsAt, event.repeatEvery, event.repeatUntil);
-  const nextDate = occurrences[0] ?? null;
-  const whenStart = nextDate?.startsAt ?? event.startsAt;
-  const whenEnd = nextDate?.endsAt ?? event.endsAt;
-  const past = !nextDate && Boolean(event.endsAt) && new Date(event.endsAt).getTime() < Date.now();
+  const requested = query.on ? new Date(query.on).getTime() : NaN;
+  const selected =
+    occurrences.find((item) => new Date(item.startsAt).getTime() === requested) ??
+    occurrences[0] ??
+    null;
+  const whenStart = selected?.startsAt ?? event.startsAt;
+  const whenEnd = selected?.endsAt ?? event.endsAt;
+  const soldForDate = selected ? await ticketsSoldForOccurrence(event.id, selected.startsAt) : new Map<string, number>();
+  const publicTickets = event.ticketTypes
+    .filter((ticket) => ticket.listed)
+    .map((ticket) =>
+      event.repeatEvery
+        ? { ...ticket, soldCount: soldForDate.get(ticket.id) ?? 0 }
+        : ticket,
+    );
+  const past = !selected && Boolean(event.endsAt) && new Date(event.endsAt).getTime() < Date.now();
   const soldOut =
-    event.ticketTypes.length > 0 &&
-    event.ticketTypes.every((ticket) => ticket.quantity - ticket.soldCount <= 0);
+    publicTickets.length > 0 &&
+    publicTickets.every((ticket) => ticket.quantity - ticket.soldCount <= 0);
   const address = eventAddressText(event);
   const ticketsReady = event.status === "approved" && event.ticketTypes.length > 0;
   const windowLabel = formatEventWindow(whenStart, whenEnd, event.timezone);
@@ -65,7 +86,9 @@ export default async function EventDetailPage({
           category={event.category || "Adventure & Thrills"}
           title={event.title}
           place={place}
-          priceLabel={formatEventFromPrice(event.fromPriceCents)}
+          priceLabel={
+            event.priceMix === "both" ? "Free & paid options" : formatEventFromPrice(event.fromPriceCents)
+          }
         />
       </section>
 
@@ -76,13 +99,21 @@ export default async function EventDetailPage({
           <strong>{windowLabel}</strong>
           {repeatLabel ? <p className="muted">{repeatLabel}</p> : null}
           {occurrences.length > 1 ? (
-            <ul className="event-repeat-dates">
-              {occurrences.map((occurrence) => (
-                <li key={occurrence.startsAt}>
-                  {formatEventWindow(occurrence.startsAt, occurrence.endsAt, event.timezone)}
-                </li>
-              ))}
-            </ul>
+            <div className="event-date-picker">
+              <p className="eyebrow">Choose a date</p>
+              <ul className="event-repeat-dates">
+                {occurrences.map((occurrence) => (
+                  <li key={occurrence.startsAt}>
+                    <a
+                      href={`/events/${event.slug}?on=${encodeURIComponent(occurrence.startsAt)}#tickets`}
+                      aria-current={occurrence.startsAt === selected?.startsAt ? "true" : undefined}
+                    >
+                      {formatEventWindow(occurrence.startsAt, occurrence.endsAt, event.timezone)}
+                    </a>
+                  </li>
+                ))}
+              </ul>
+            </div>
           ) : null}
         </div>
         <div className="event-live-bar-item">
@@ -111,8 +142,24 @@ export default async function EventDetailPage({
             </span>
           )}
           <SaveForm kind="event" targetId={event.id} saved={saved} next={`/events/${event.slug}`} />
+          <InviteOthers title={event.title} path={`/events/${event.slug}`} />
         </div>
       </div>
+      {attendance ? (
+        <div className="attendance-preview">
+          <div className="attendance-faces" aria-hidden="true">
+            {attendance.initials.map((letter, index) => (
+              <span key={`${letter}-${index}`}>{letter}</span>
+            ))}
+            {attendance.extra > 0 ? <span>+{attendance.extra}</span> : null}
+          </div>
+          <p>
+            <strong>{attendance.going}</strong> going
+            <span> · </span>
+            <strong>{attendance.interested}</strong> interested
+          </p>
+        </div>
+      ) : null}
       </div>
 
       <section className="section shell">
@@ -204,23 +251,27 @@ export default async function EventDetailPage({
               <p className="notice">Sold out.</p>
             ) : event.status !== "approved" ? (
               <p className="notice">Tickets unlock once the event is approved.</p>
-            ) : event.ticketTypes.length === 0 ? (
+            ) : publicTickets.length === 0 ? (
               <p className="muted">Coming soon.</p>
             ) : (
               <TicketCheckoutForm
                 eventSlug={event.slug}
-                tickets={event.ticketTypes}
+                tickets={publicTickets}
                 paidMember={user?.plan === "paid"}
                 loggedIn={Boolean(user)}
                 hasPhone={Boolean(profile?.phone.trim())}
                 fees={fees}
                 inviteToken={query.invite ?? ""}
                 initialBasket={query.basket}
+                occurrenceStartsAt={selected?.startsAt ?? ""}
+                occurrenceEndsAt={selected?.endsAt ?? ""}
+                needsConsent={!consented}
               />
             )}
           </aside>
         </div>
       </section>
+      {user && user.role !== "admin" && user.role !== "editor" ? <UsageBeacon kind="view_event" /> : null}
       <EventViewBeacon
         eventId={event.id}
         campaignSlug={query.c}

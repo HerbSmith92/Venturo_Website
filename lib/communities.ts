@@ -232,6 +232,16 @@ export async function isFollowingCommunity(userId: string, communityId: string) 
   return Boolean(data);
 }
 
+export async function listFollowedCommunities(userId: string) {
+  const ids = await listFollowedCommunityIds(userId);
+  if (ids.length === 0) return [];
+  const supabase = await createClient();
+  if (!supabase) return [];
+  const { data, error } = await supabase.from("communities").select(SELECT).in("id", ids).order("title");
+  if (error || !data) return [];
+  return (data as CommunityRow[]).map(mapCommunity);
+}
+
 export async function listFollowedCommunityIds(userId: string) {
   const supabase = await createClient();
   if (!supabase) return [];

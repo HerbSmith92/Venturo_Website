@@ -154,8 +154,17 @@ async function deliverTicketEmail(
   });
   if (!tickets.length) throw new Error("No tickets on this order.");
 
+  const { data: booked } = await service
+    .from("event_orders")
+    .select("occurrence_starts_at, occurrence_ends_at")
+    .eq("id", orderId)
+    .maybeSingle();
   const timezone = event.timezone || "Africa/Johannesburg";
-  const when = formatEventWindow(event.starts_at ?? "", event.ends_at ?? "", timezone);
+  const when = formatEventWindow(
+    booked?.occurrence_starts_at || event.starts_at || "",
+    booked?.occurrence_ends_at || event.ends_at || "",
+    timezone,
+  );
   const place = [event.venue_name, event.city].filter(Boolean).join(" · ");
   const address = eventAddressText({
     venueName: event.venue_name,

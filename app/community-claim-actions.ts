@@ -8,6 +8,7 @@ import { createEventStub } from "@/lib/events";
 import { tidyCellphone } from "@/lib/phone";
 import { portalEventHref } from "@/lib/portal";
 import { createClient } from "@/lib/supabase/server";
+import { CONSENT_REQUIRED, recordMemberConsent } from "@/lib/policy-consent";
 
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 
@@ -27,9 +28,12 @@ export async function registerCommunity(input: {
   instagramUrl: string;
   facebookUrl: string;
   tiktokUrl: string;
+  acceptTerms: boolean;
+  acceptPrivacy: boolean;
 }): Promise<{ id: string } | { error: string }> {
   const user = await getCurrentUser();
   if (!user) return { error: "Sign in to register a community." };
+  if (!input.acceptTerms || !input.acceptPrivacy) return { error: CONSENT_REQUIRED };
   const title = input.title.trim();
   const about = input.about.trim();
   const founderName = input.founderName.trim();
@@ -60,6 +64,7 @@ export async function registerCommunity(input: {
     p_areas: areas,
   });
   if (error || !data) return { error: error?.message ?? "Could not register that community." };
+  await recordMemberConsent(user.id, "community");
 
   revalidatePath("/account/communities");
   revalidatePath("/account/community");

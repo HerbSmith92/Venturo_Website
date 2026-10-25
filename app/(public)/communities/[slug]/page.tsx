@@ -1,10 +1,12 @@
 import { EventCard } from "@/components/EventCard";
 import { FollowForm } from "@/components/FollowForm";
 import { ListingContact, listingContactLinks } from "@/components/ListingContact";
+import { UsageBeacon } from "@/components/UsageBeacon";
 import { getCurrentUser } from "@/lib/auth";
 import { getCommunityBySlug, isFollowingCommunity, listCommunityEventIds } from "@/lib/communities";
 import { listEventsByIds } from "@/lib/events";
 import type { VenturoEvent } from "@/lib/event-types";
+import { isStaff } from "@/lib/roles";
 import { notFound } from "next/navigation";
 
 function organisationWebsite(socialUrl: string | null, websiteUrl: string | null) {
@@ -70,8 +72,12 @@ export default async function CommunityDetailPage({
 
   return (
     <main>
+      {user && !isStaff(user.role) ? <UsageBeacon kind="view_community" /> : null}
       <section className="shell">
-        <div className="event-detail-hero listing-detail-hero">
+        <p className="back-link">
+          <a href="/communities">Back to Communities</a>
+        </p>
+        <div className="event-detail-hero community-detail-hero">
           {community.coverUrl ? (
             <img src={community.coverUrl} alt="" />
           ) : (
@@ -118,20 +124,6 @@ export default async function CommunityDetailPage({
             {community.about || "This group is still writing their story."}
           </p>
 
-          {community.founderName || community.founderEmail ? (
-            <div className="event-venue-card">
-              <p className="eyebrow">Founder</p>
-              <h3>{community.founderName || "The person behind it"}</h3>
-              {community.founderEmail ? (
-                <p>
-                  <a href={`mailto:${community.founderEmail}`}>{community.founderEmail}</a>
-                </p>
-              ) : (
-                <p className="muted">Contact email coming soon.</p>
-              )}
-            </div>
-          ) : null}
-
           <ListingContact links={contactLinks} heading="Get In Touch" />
 
           <div className="community-events">
@@ -164,7 +156,7 @@ export default async function CommunityDetailPage({
 
           <p style={{ marginTop: 28 }}>
             <a className="btn btn-secondary" href="/communities">
-              Back To Communities
+              Back to Communities
             </a>
           </p>
         </article>

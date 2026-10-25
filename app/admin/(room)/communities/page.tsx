@@ -7,7 +7,7 @@ const QUEUES = ["all", "requested", "draft", "archived", "suspended"] as const;
 const QUEUE_TITLE: Record<(typeof QUEUES)[number], string> = {
   all: "All",
   requested: "Requested",
-  draft: "Changes Requested",
+  draft: "Drafts",
   archived: "Archived",
   suspended: "Suspended",
 };
