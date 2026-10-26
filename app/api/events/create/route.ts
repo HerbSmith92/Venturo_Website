@@ -1,11 +1,15 @@
 import { NextResponse } from "next/server";
 import { getCurrentUser } from "@/lib/auth";
+import { canHost, HOST_MEMBERSHIP_REQUIRED } from "@/lib/host-access";
 import { createEventStub } from "@/lib/events";
 
 export async function POST(request: Request) {
   const user = await getCurrentUser();
   if (!user) {
     return NextResponse.json({ error: "Log in first." }, { status: 401 });
+  }
+  if (!canHost(user)) {
+    return NextResponse.json({ error: HOST_MEMBERSHIP_REQUIRED }, { status: 403 });
   }
 
   const body = (await request.json()) as { title?: string; stay?: string };

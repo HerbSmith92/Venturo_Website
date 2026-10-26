@@ -17,7 +17,7 @@ import { StudioSection } from "@/components/events/StudioSection";
 import { EventReviewPreview } from "@/components/events/EventReviewPreview";
 import { TicketTypeCard } from "@/components/events/TicketTypeCard";
 import { HostPayoutForm } from "@/components/portal/HostPayoutForm";
-import { ticketMemberCents, type TicketFeeDraft } from "@/lib/event-fees";
+import { platformTicketDefaults, ticketMemberCents, type TicketFeeDraft } from "@/lib/event-fees";
 import {
   EVENT_AGE_OPTIONS,
   EVENT_ENERGY_SCALES,
@@ -63,17 +63,14 @@ const STEP_DEFS: { id: CreateEventStep; label: string }[] = [
 const IMAGE_ORDER: EventImageKind[] = ["banner", "listing", "story"];
 const INTEREST_SET = new Set<string>(EVENT_INTERESTS);
 
-const emptyTicket = (): TicketDraft => ({
+const emptyTicket = (fees: PlatformFees): TicketDraft => ({
   name: "",
   description: "",
   kind: "",
   priceRands: "",
-  discountKind: "none",
-  discountValue: "",
   membersOnly: false,
   quantity: "100",
-  passFeesToBuyer: false,
-  passCommissionToBuyer: false,
+  ...platformTicketDefaults(fees),
 });
 
 function fromEventTickets(event: VenturoEvent | null): TicketDraft[] {
@@ -182,8 +179,8 @@ export function CreateEventWizard({
 
   useEffect(() => {
     if (step !== "tickets") return;
-    setTickets((prev) => (prev.length ? prev : [emptyTicket()]));
-  }, [step]);
+    setTickets((prev) => (prev.length ? prev : [emptyTicket(fees)]));
+  }, [fees, step]);
 
   function pickEnergy(rank: number) {
     const next = pickEnergyRange(
@@ -202,7 +199,7 @@ export function CreateEventWizard({
   }
 
   function ticketRows() {
-    if (step === "tickets" && tickets.length === 0) return [emptyTicket()];
+    if (step === "tickets" && tickets.length === 0) return [emptyTicket(fees)];
     return tickets;
   }
 
@@ -750,7 +747,7 @@ export function CreateEventWizard({
             <button
               className="btn btn-secondary"
               type="button"
-              onClick={() => setTickets((prev) => [...(prev.length ? prev : ticketRows()), emptyTicket()])}
+              onClick={() => setTickets((prev) => [...(prev.length ? prev : ticketRows()), emptyTicket(fees)])}
             >
               Add
             </button>

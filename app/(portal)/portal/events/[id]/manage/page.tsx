@@ -40,8 +40,7 @@ export default async function PortalManageEventPage({
           event={event}
           isStaff={access === "staff"}
           hasPayout={hasPayout}
-          commissionPct={fees.commissionPct}
-          bookingFeeCents={fees.bookingFeeCents}
+          fees={fees}
           stay="portal"
           focus="manage"
         />

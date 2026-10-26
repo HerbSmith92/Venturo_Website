@@ -29,10 +29,11 @@ import {
   withCurrentOption,
   type EventImageKind,
   type MemberDiscountKind,
+  type PlatformFees,
   type TicketKind,
   type VenturoEvent,
 } from "@/lib/event-types";
-import { ticketMemberCents } from "@/lib/event-fees";
+import { platformTicketDefaults, ticketMemberCents } from "@/lib/event-fees";
 import { companionEventHref } from "@/lib/companion";
 import { PORTAL_SETTINGS_BANK } from "@/lib/portal";
 
@@ -52,17 +53,19 @@ type TicketDraft = {
 
 const STUDIO_IMAGE_ORDER: EventImageKind[] = ["banner", "listing", "story"];
 
-const emptyTicket = (kind: TicketKind = "paid"): TicketDraft => ({
+const emptyTicket = (fees: PlatformFees, kind: TicketKind = "paid"): TicketDraft => ({
   name: kind === "free" ? "Free Ticket" : kind === "donation" ? "Donation" : "Standard Ticket",
   description: "",
   kind,
   priceRands: kind === "free" ? "0.00" : "",
-  discountKind: "none",
-  discountValue: "",
   membersOnly: false,
   quantity: "100",
-  passFeesToBuyer: false,
-  passCommissionToBuyer: false,
+  ...(kind === "paid" ? platformTicketDefaults(fees) : {
+    discountKind: "none" as const,
+    discountValue: "",
+    passFeesToBuyer: false,
+    passCommissionToBuyer: false,
+  }),
 });
 
 function fromEventTickets(event: VenturoEvent): TicketDraft[] {
@@ -103,16 +106,14 @@ async function uploadEventImage(file: File, kind: EventImageKind) {
 export function EventStudio({
   event,
   hasPayout,
-  commissionPct,
-  bookingFeeCents,
+  fees,
   stay,
   focus,
 }: {
   event: VenturoEvent;
   isStaff: boolean;
   hasPayout: boolean;
-  commissionPct: number;
-  bookingFeeCents: number;
+  fees: PlatformFees;
   stay?: "portal";
   focus?: "manage" | "checkout" | "settings" | "full";
 }) {
@@ -678,7 +679,7 @@ export function EventStudio({
                 <TicketTypeCard
                   key={`${ticket.kind}-${index}`}
                   ticket={ticket}
-                  fees={{ commissionPct, bookingFeeCents }}
+                  fees={fees}
                   onChange={(patch) => {
                     const next = [...tickets];
                     next[index] = { ...ticket, ...patch, kind: patch.kind || ticket.kind };
@@ -705,7 +706,7 @@ export function EventStudio({
                       key={kind}
                       type="button"
                       onClick={() => {
-                        setTickets((prev) => [...prev, emptyTicket(kind)]);
+                        setTickets((prev) => [...prev, emptyTicket(fees, kind)]);
                         setAddOpen(false);
                       }}
                     >

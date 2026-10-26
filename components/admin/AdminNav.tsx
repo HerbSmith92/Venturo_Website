@@ -169,6 +169,7 @@ function menu(admin: boolean, name: string): Group[] {
       label: "Settings",
       headings: [
         { id: "analytics", label: "Analytics", href: "/admin/analytics", leaves: [] },
+        { id: "fees", label: "Ticket fees", href: "/admin/fees", leaves: [] },
         { id: "members", label: "Members", href: "/admin/members", leaves: [] },
         { id: "legal", label: "Legal", href: planned("Settings", "Legal"), leaves: [] },
       ],
@@ -204,6 +205,7 @@ function headingMatches(heading: Heading, path: string, here: string) {
   if (heading.id === "community") return path.startsWith("/admin/communities");
   if (heading.id === "guides") return path.startsWith("/admin/guides");
   if (heading.id === "analytics") return path.startsWith("/admin/analytics");
+  if (heading.id === "fees") return path.startsWith("/admin/fees");
   if (heading.id === "members") return path.startsWith("/admin/members");
   if (heading.id === "add-users") return path.startsWith("/admin/staff");
   if (path === "/admin/planned") {

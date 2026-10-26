@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { EventCard } from "@/components/EventCard";
 import { getCurrentUser } from "@/lib/auth";
+import { canHost, hostSubscribeHref } from "@/lib/host-access";
 import { EVENT_CATEGORIES, listPublicEvents } from "@/lib/events";
 import { eventCategoryChipInk, eventCategoryColour } from "@/lib/event-style";
 import { COLORS } from "@/lib/brand";
@@ -69,7 +70,13 @@ export default async function EventsPage({
             <div className="hero-actions">
               <a
                 className="btn btn-secondary"
-                href={user ? PORTAL_EVENTS_NEW : `/login?next=${encodeURIComponent(PORTAL_EVENTS_NEW)}`}
+                href={
+                  !user
+                    ? `/login?next=${encodeURIComponent(PORTAL_EVENTS_NEW)}`
+                    : canHost(user)
+                      ? PORTAL_EVENTS_NEW
+                      : hostSubscribeHref(PORTAL_EVENTS_NEW)
+                }
               >
                 Create An Event
               </a>

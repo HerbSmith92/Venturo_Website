@@ -1,6 +1,5 @@
 import { AnalyticsKeysGuide } from "@/components/admin/AnalyticsKeysGuide";
 import { CatalogEditor } from "@/components/admin/CatalogEditor";
-import { FeeSettingsForm } from "@/components/admin/FeeSettingsForm";
 import { getStaffSession } from "@/lib/auth";
 import { loadCatalogAdmin } from "@/lib/catalog-admin";
 import { getPlatformFees } from "@/lib/events";
@@ -135,12 +134,17 @@ export default async function AdminSettingsPage() {
       <AnalyticsKeysGuide className="plan" />
 
       <article className="plan" style={{ marginTop: 20 }}>
-        <p className="eyebrow">Platform Fees</p>
-        <h2>Event Ticket Take</h2>
-        <FeeSettingsForm
-          commissionPct={fees.commissionPct}
-          bookingFeeCents={fees.bookingFeeCents}
-        />
+        <p className="eyebrow">Platform fees</p>
+        <h2>Ticket fees</h2>
+        <p className="muted">
+          Commission {fees.commissionPct}% · booking fee R {(fees.bookingFeeCents / 100).toFixed(2)} ·
+          member discount {fees.memberDiscountPct}%.
+        </p>
+        <p style={{ marginTop: 12 }}>
+          <a className="btn btn-secondary" href="/admin/fees">
+            Open ticket fees
+          </a>
+        </p>
       </article>
 
       {canManage && (

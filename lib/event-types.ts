@@ -76,6 +76,20 @@ export type VenturoEvent = {
 export type PlatformFees = {
   commissionPct: number;
   bookingFeeCents: number;
+  /** Percent off the standard ticket price for a paid member, when the ticket has no own discount. */
+  memberDiscountPct: number;
+  /** Buyer pays the booking fee at checkout. Otherwise it comes off the host payout. */
+  passBookingToBuyer: boolean;
+  /** Buyer pays the commission at checkout. Otherwise it comes off the host payout. */
+  passCommissionToBuyer: boolean;
+};
+
+export const EMPTY_PLATFORM_FEES: PlatformFees = {
+  commissionPct: 0,
+  bookingFeeCents: 0,
+  memberDiscountPct: 0,
+  passBookingToBuyer: false,
+  passCommissionToBuyer: false,
 };
 
 export const EVENT_INTERESTS = [
@@ -385,9 +399,25 @@ export function remainingTickets(ticket: EventTicketType) {
   return Math.max(0, ticket.quantity - ticket.soldCount);
 }
 
-export function unitPriceCents(ticket: EventTicketType, paidMember: boolean) {
+export function unitPriceCents(
+  ticket: EventTicketType,
+  paidMember: boolean,
+  platformMemberDiscountPct = 0,
+) {
   if (paidMember && ticket.memberPriceCents !== null) return ticket.memberPriceCents;
   if (ticket.membersOnly) return ticket.memberPriceCents ?? ticket.priceCents;
+  if (
+    paidMember &&
+    ticket.memberDiscountKind === "none" &&
+    ticket.kind !== "free" &&
+    ticket.priceCents > 0 &&
+    platformMemberDiscountPct > 0
+  ) {
+    return (
+      memberPriceCentsFromDiscount(ticket.priceCents, "percent", platformMemberDiscountPct) ??
+      ticket.priceCents
+    );
+  }
   return ticket.priceCents;
 }
 

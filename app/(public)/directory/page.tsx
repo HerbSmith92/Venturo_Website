@@ -10,6 +10,7 @@ import {
   VISITOR_COOKIE,
   visitorKeyFromCookie,
 } from "@/lib/search-misses";
+import { loadTrendingDirectory } from "@/lib/trending";
 import { cookies, headers } from "next/headers";
 
 export default async function DirectoryPage({
@@ -31,6 +32,7 @@ export default async function DirectoryPage({
   const listings = await searchDirectory({ ...query, category });
   const revealMember = user?.plan === "paid" || isStaff(user?.role);
   const browsing = category === "all" && !query.q && !query.place && !query.price && !query.lat;
+  const trending = browsing ? await loadTrendingDirectory(10) : { listings: [], seeAllHref: null };
   const featured = listings.filter((listing) => listing.featured).slice(0, 6);
   const hot = [...listings]
     .filter((listing) => !listing.featured && (listing.rating ?? 0) > 0)
@@ -95,6 +97,24 @@ export default async function DirectoryPage({
                 <div className="grid">
                   {hot.map((listing) => (
                     <ListingCard key={listing.id} listing={listing} href={`/directory/${listing.slug}`} showMemberPrice={revealMember} />
+                  ))}
+                </div>
+              </div>
+            ) : null}
+            {trending.listings.length > 0 ? (
+              <div className="discover-row">
+                <div className="section-head">
+                  <h2>Trending now</h2>
+                  {trending.seeAllHref ? <a href={trending.seeAllHref}>See all</a> : null}
+                </div>
+                <div className="grid">
+                  {trending.listings.map((listing) => (
+                    <ListingCard
+                      key={listing.id}
+                      listing={listing}
+                      href={`/directory/${listing.slug}`}
+                      showMemberPrice={revealMember}
+                    />
                   ))}
                 </div>
               </div>

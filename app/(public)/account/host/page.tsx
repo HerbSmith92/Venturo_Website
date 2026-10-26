@@ -1,5 +1,6 @@
 import { BecomeHostForm } from "@/components/profile/BecomeHostForm";
 import { getCurrentUser } from "@/lib/auth";
+import { canHost, hostSubscribeHref } from "@/lib/host-access";
 import { defaultOrganiserProfile, isEventHost, loadOrganiserProfile } from "@/lib/host-profile";
 import { loadMemberProfile, loadProfileCatalog } from "@/lib/profile";
 import { PORTAL_EVENTS } from "@/lib/portal";
@@ -9,6 +10,20 @@ export default async function BecomeHostPage() {
   const user = await getCurrentUser();
   if (!user) redirect("/login?next=/account/host");
   if (await isEventHost(user.id)) redirect(PORTAL_EVENTS);
+  if (!canHost(user)) {
+    return (
+      <>
+        <p className="eyebrow">Event Host</p>
+        <h1>Become an Event Host</h1>
+        <p className="lede">Hosting needs a paid membership. R 19.99 a month, on this same account.</p>
+        <p>
+          <a className="btn btn-primary" href={hostSubscribeHref("/account/host")}>
+            Subscribe to host
+          </a>
+        </p>
+      </>
+    );
+  }
 
   const [profile, catalog, savedHost] = await Promise.all([
     loadMemberProfile(user.id),

@@ -1,5 +1,6 @@
 import { CreateEventWizard } from "@/components/events/CreateEventWizard";
 import { getCurrentUser } from "@/lib/auth";
+import { canHost, hostSubscribeHref } from "@/lib/host-access";
 import { requirePortalEvent } from "@/lib/event-access";
 import { getPlatformFees } from "@/lib/events";
 import {
@@ -23,6 +24,7 @@ export default async function NewEventPage({
 }) {
   const user = await getCurrentUser();
   if (!user) redirect(portalLoginHref(false, PORTAL_EVENTS_NEW));
+  if (!canHost(user)) redirect(hostSubscribeHref(PORTAL_EVENTS_NEW));
 
   const params = await searchParams;
   const step = parseStep(params.step);

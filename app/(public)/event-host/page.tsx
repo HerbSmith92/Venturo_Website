@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { getCurrentUser } from "@/lib/auth";
+import { canHost, hostSubscribeHref } from "@/lib/host-access";
 import { formatCents, getPlatformFees } from "@/lib/events";
 import { PORTAL_HOME, portalLoginHref } from "@/lib/portal";
 
@@ -34,7 +35,7 @@ const STEPS = [
   {
     n: "01",
     title: "Open Event Host",
-    body: "Same Venturo account as the site & app. This space is just for hosting & tickets.",
+    body: "A paid membership, then the same Venturo account as the site & app. This space is just for hosting & tickets.",
   },
   {
     n: "02",
@@ -53,17 +54,15 @@ export default async function EventHostPage() {
 
   const feeBits = [
     fees.commissionPct > 0 ? `${fees.commissionPct}% commission` : null,
-    fees.bookingFeeCents > 0
-      ? `${formatCents(fees.bookingFeeCents)} booking fee`
-      : null,
+    fees.bookingFeeCents > 0 ? `${formatCents(fees.bookingFeeCents)} booking fee` : null,
   ].filter(Boolean);
+  const payer = fees.passBookingToBuyer || fees.passCommissionToBuyer ? "Added for the buyer at checkout" : "Taken from the host payout";
   const feeNote =
     feeBits.length === 0
-      ? "Platform fees are R 0.00 right now—you keep the ticket total."
-      : `From your payout we take ${feeBits.join(" & ")}. Buyers still pay the ticket price.`;
+      ? "Platform fees are R 0.00 right now. You keep the ticket total."
+      : `${payer}: ${feeBits.join(" & ")}.${fees.memberDiscountPct > 0 ? ` Paid members save ${fees.memberDiscountPct}% when a ticket has no discount of its own.` : ""}`;
 
-  const enterHref = PORTAL_HOME;
-  const joinHref = portalLoginHref(true);
+  const hostHref = user && canHost(user) ? PORTAL_HOME : hostSubscribeHref("/account/host");
 
   return (
     <main>
@@ -80,15 +79,15 @@ export default async function EventHostPage() {
             </p>
             <div className="hero-actions">
               {user ? (
-                <a className="btn btn-primary" href={enterHref}>
-                  Open Event Host
+                <a className="btn btn-primary" href={hostHref}>
+                  {canHost(user) ? "Open Event Host" : "Subscribe to host"}
                 </a>
               ) : (
                 <>
-                  <a className="btn btn-primary" href={joinHref}>
+                  <a className="btn btn-primary" href={portalLoginHref(true)}>
                     Join As A Host
                   </a>
-                  <a className="btn btn-secondary" href={enterHref}>
+                  <a className="btn btn-secondary" href={PORTAL_HOME}>
                     Log In To Host
                   </a>
                 </>
@@ -159,15 +158,15 @@ export default async function EventHostPage() {
           </p>
           <div className="hero-actions">
             {user ? (
-              <a className="btn btn-primary" href={enterHref}>
-                Open Event Host
+              <a className="btn btn-primary" href={hostHref}>
+                {canHost(user) ? "Open Event Host" : "Subscribe to host"}
               </a>
             ) : (
               <>
-                <a className="btn btn-primary" href={joinHref}>
+                <a className="btn btn-primary" href={portalLoginHref(true)}>
                   Join As A Host
                 </a>
-                <a className="btn btn-secondary" href={enterHref}>
+                <a className="btn btn-secondary" href={PORTAL_HOME}>
                   Log In To Host
                 </a>
               </>

@@ -1,6 +1,7 @@
 import { HostDetailsForm } from "@/components/portal/HostDetailsForm";
 import { HostPayoutForm } from "@/components/portal/HostPayoutForm";
 import { getCurrentUser } from "@/lib/auth";
+import { canHost, hostSubscribeHref } from "@/lib/host-access";
 import { defaultOrganiserProfile, loadOrganiserProfile } from "@/lib/host-profile";
 import { loadMemberProfile } from "@/lib/profile";
 import {
@@ -19,6 +20,7 @@ export default async function PortalSetupPage({
 }) {
   const user = await getCurrentUser();
   if (!user) redirect(portalLoginHref(true, portalSetupHref("details")));
+  if (!canHost(user)) redirect(hostSubscribeHref(portalSetupHref("details")));
 
   const { step: stepRaw } = await searchParams;
   const profile = await loadMemberProfile(user.id);

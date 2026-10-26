@@ -30,8 +30,7 @@ export default async function PortalCheckoutPage({
           event={event}
           isStaff={access === "staff"}
           hasPayout={hasPayout}
-          commissionPct={fees.commissionPct}
-          bookingFeeCents={fees.bookingFeeCents}
+          fees={fees}
           stay="portal"
           focus="checkout"
         />

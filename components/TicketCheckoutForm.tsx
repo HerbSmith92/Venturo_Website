@@ -85,7 +85,7 @@ export function TicketCheckoutForm({
         .map((ticket) => ({
           ticket,
           quantity: qty[ticket.id] ?? 0,
-          unitCents: unitPriceCents(ticket, priceAsMember),
+          unitCents: unitPriceCents(ticket, priceAsMember, fees.memberDiscountPct),
         }))
         .filter((line) => line.quantity > 0),
     [tickets, qty, priceAsMember],
@@ -452,7 +452,7 @@ export function TicketCheckoutForm({
     <div className="ticket-picker">
       {tickets.map((ticket) => {
         const left = remainingTickets(ticket);
-        const unit = unitPriceCents(ticket, priceAsMember);
+        const unit = unitPriceCents(ticket, priceAsMember, fees.memberDiscountPct);
         const list = ticket.priceCents;
         const quantity = qty[ticket.id] ?? 0;
         const memberLocked = ticket.membersOnly && !paidMember;

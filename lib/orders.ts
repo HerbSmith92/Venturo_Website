@@ -98,7 +98,7 @@ export async function createTicketOrder(input: {
   let subtotal = 0;
   let listSubtotal = 0;
   const resolved = picked.map((line) => {
-    const unit = unitPriceCents(line.ticket, priceAsMember);
+    const unit = unitPriceCents(line.ticket, priceAsMember, fees.memberDiscountPct);
     const lineTotal = unit * line.quantity;
     subtotal += lineTotal;
     listSubtotal += line.ticket.priceCents * line.quantity;
