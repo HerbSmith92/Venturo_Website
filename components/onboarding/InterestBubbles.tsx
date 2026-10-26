@@ -3,14 +3,21 @@
 import { useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { OnboardingSkipStep } from "@/components/onboarding/OnboardingSkip";
+import { VeeTile } from "@/components/onboarding/VeeTile";
 import { saveOnboardingProfile } from "@/lib/onboarding-client";
 import { onboardingHref } from "@/lib/onboarding-shared";
-import { MAX_INTERESTS, MIN_INTERESTS, type MemberProfile, type ProfileCatalog } from "@/lib/profile-shared";
+import { MAX_INTERESTS, type MemberProfile, type ProfileCatalog } from "@/lib/profile-shared";
+import { HUB_ORDER, hubLook } from "@/lib/vee-avatars";
 
-function toggleId(ids: string[], id: string, max: number) {
-  if (ids.includes(id)) return ids.filter((item) => item !== id);
-  if (ids.length >= max) return ids;
-  return [...ids, id];
+function toggleHub(ids: string[], itemIds: string[], max: number) {
+  const on = itemIds.some((id) => ids.includes(id));
+  if (on) return ids.filter((id) => !itemIds.includes(id));
+  const next = [...ids];
+  for (const id of itemIds) {
+    if (next.length >= max) break;
+    if (!next.includes(id)) next.push(id);
+  }
+  return next;
 }
 
 export function InterestBubbles({
@@ -24,7 +31,6 @@ export function InterestBubbles({
 }) {
   const router = useRouter();
   const [interestIds, setInterestIds] = useState(profile.interestIds);
-  const [openKey, setOpenKey] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [pending, setPending] = useState(false);
 
@@ -45,7 +51,12 @@ export function InterestBubbles({
         });
       }
     }
-    return [...groups.values()];
+    const rows = [...groups.values()];
+    return rows.sort((a, b) => {
+      const aIndex = HUB_ORDER.indexOf(a.key);
+      const bIndex = HUB_ORDER.indexOf(b.key);
+      return (aIndex === -1 ? HUB_ORDER.length : aIndex) - (bIndex === -1 ? HUB_ORDER.length : bIndex);
+    });
   }, [catalog.interests]);
 
   const selected = new Set(interestIds);
@@ -69,51 +80,20 @@ export function InterestBubbles({
       <p className="eyebrow">Getting To Know You</p>
       <h1>What Pulls You In</h1>
       <p className="lede muted">
-        Tap a bubble to open it. Pick as many as you like — at least {MIN_INTERESTS} helps Made For
-        You, max {MAX_INTERESTS}. Skip if you want to choose later.
+        Pick every world that fits. Vee comes along for the ride. Skip if you want to choose later.
       </p>
-      <p className="onboarding-pick-count">
-        {interestIds.length} selected
-      </p>
-      <div className="bubble-map">
+      <div className="vee-grid hubs">
         {hubs.map((hub) => {
-          const count = hub.items.filter((item) => selected.has(item.id)).length;
-          const open = openKey === hub.key;
+          const itemIds = hub.items.map((item) => item.id);
+          const on = itemIds.some((id) => selected.has(id));
           return (
-            <div
+            <VeeTile
               key={hub.key}
-              className={`bubble-hub-wrap${open ? " open" : ""}${count > 0 ? " lit" : ""}`}
-              data-kind={hub.key}
-            >
-              <button
-                type="button"
-                className="bubble-hub"
-                aria-expanded={open}
-                onClick={() => setOpenKey(open ? null : hub.key)}
-              >
-                <span className="bubble-hub-title">{hub.title}</span>
-                <span className="bubble-hub-count">
-                  {count > 0 ? `${count} picked` : "Tap to open"}
-                </span>
-              </button>
-              {open && (
-                <div className="bubble-spokes">
-                  {hub.items.map((item) => {
-                    const on = selected.has(item.id);
-                    return (
-                      <button
-                        key={item.id}
-                        type="button"
-                        className={`chip kind kind-${item.kind_key}${on ? " on" : ""}`}
-                        onClick={() => setInterestIds(toggleId(interestIds, item.id, MAX_INTERESTS))}
-                      >
-                        {item.title}
-                      </button>
-                    );
-                  })}
-                </div>
-              )}
-            </div>
+              title={hub.title}
+              look={hubLook(hub.key)}
+              pressed={on}
+              onClick={() => setInterestIds(toggleHub(interestIds, itemIds, MAX_INTERESTS))}
+            />
           );
         })}
       </div>

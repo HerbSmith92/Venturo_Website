@@ -751,6 +751,72 @@ button.chip.on {
   gap: 10px;
 }
 
+.vee-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+  margin: 8px 0 20px;
+  align-items: stretch;
+}
+
+.vee-tile {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 4px;
+  min-height: 168px;
+  height: 100%;
+  margin: 0;
+  padding: 10px 12px 12px;
+  border-radius: 16px;
+  border: 1px solid color-mix(in srgb, var(--snow) 16%, transparent);
+  background: color-mix(in srgb, var(--snow) 6%, transparent);
+  color: var(--snow);
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+.vee-tile img {
+  width: 100%;
+  height: 96px;
+  object-fit: contain;
+  object-position: left center;
+}
+
+.vee-tile span {
+  font-weight: 600;
+  line-height: 1.25;
+}
+
+.vee-tile small {
+  font-size: 12px;
+  font-weight: 200;
+  line-height: 1.3;
+  color: color-mix(in srgb, var(--snow) 78%, transparent);
+}
+
+.vee-tile.on {
+  background: var(--vee-accent);
+  border-color: var(--vee-accent);
+  color: var(--night);
+}
+
+.vee-tile.on[data-ink="snow"] {
+  color: var(--snow);
+}
+
+.vee-tile.on small {
+  color: inherit;
+  opacity: 0.82;
+}
+
+@media (min-width: 800px) {
+  .vee-grid.hubs {
+    grid-template-columns: repeat(5, minmax(0, 1fr));
+  }
+}
+
 .onboarding-skip {
   margin-top: 8px;
 }

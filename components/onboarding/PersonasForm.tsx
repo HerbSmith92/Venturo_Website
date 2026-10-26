@@ -3,9 +3,11 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { OnboardingSkipStep } from "@/components/onboarding/OnboardingSkip";
+import { VeeTile } from "@/components/onboarding/VeeTile";
 import { saveOnboardingProfile } from "@/lib/onboarding-client";
 import { onboardingHref } from "@/lib/onboarding-shared";
 import { MAX_PERSONAS, type MemberProfile, type ProfileCatalog } from "@/lib/profile-shared";
+import { personaLook } from "@/lib/vee-avatars";
 
 function toggleId(ids: string[], id: string, max: number) {
   if (ids.includes(id)) return ids.filter((item) => item !== id);
@@ -48,21 +50,17 @@ export function PersonasForm({
       <p className="lede muted">
         Who are you usually with? Pick every situation that fits. Skip if you’d rather say later.
       </p>
-      <div className="tag-picker persona-picker">
-        {catalog.personas.map((persona) => {
-          const on = personaIds.includes(persona.id);
-          return (
-            <button
-              key={persona.id}
-              type="button"
-              className={`chip chip-persona${on ? " on" : ""}`}
-              onClick={() => setPersonaIds(toggleId(personaIds, persona.id, MAX_PERSONAS))}
-            >
-              <span>{persona.title}</span>
-              {persona.subtitle && <small>{persona.subtitle}</small>}
-            </button>
-          );
-        })}
+      <div className="vee-grid">
+        {catalog.personas.map((persona) => (
+          <VeeTile
+            key={persona.id}
+            title={persona.title}
+            subtitle={persona.subtitle}
+            look={personaLook(persona.title)}
+            pressed={personaIds.includes(persona.id)}
+            onClick={() => setPersonaIds(toggleId(personaIds, persona.id, MAX_PERSONAS))}
+          />
+        ))}
       </div>
       {error && <p className="error">{error}</p>}
       <div className="onboarding-actions">
