@@ -56,11 +56,10 @@ export default async function EventHostPage() {
     fees.commissionPct > 0 ? `${fees.commissionPct}% commission` : null,
     fees.bookingFeeCents > 0 ? `${formatCents(fees.bookingFeeCents)} booking fee` : null,
   ].filter(Boolean);
-  const payer = fees.passBookingToBuyer || fees.passCommissionToBuyer ? "Added for the buyer at checkout" : "Taken from the host payout";
   const feeNote =
     feeBits.length === 0
-      ? "Platform fees are R 0.00 right now. You keep the ticket total."
-      : `${payer}: ${feeBits.join(" & ")}.${fees.memberDiscountPct > 0 ? ` Paid members save ${fees.memberDiscountPct}% when a ticket has no discount of its own.` : ""}`;
+      ? "Platform fees are R 0.00 right now. You keep the ticket total. When a rate is set, you choose who pays it on each event."
+      : `${feeBits.join(" & ")}. You choose on each event whether that comes off your payout or is added at checkout.${fees.memberDiscountPct > 0 ? ` Paid members save ${fees.memberDiscountPct}% when a ticket has no discount of its own.` : ""}`;
 
   const hostHref = user && canHost(user) ? PORTAL_HOME : hostSubscribeHref("/account/host");
 

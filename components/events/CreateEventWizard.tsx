@@ -727,7 +727,10 @@ export function CreateEventWizard({
 
       {step === "tickets" ? (
         <StudioSection title="Tickets">
-          <p className="muted">Choose free or paid for each ticket.</p>
+          <p className="muted">
+            Choose free or paid for each ticket. On a paid ticket, you decide who pays the booking
+            fee and the commission.
+          </p>
           <ul className="studio-tickets">
             {ticketRows().map((ticket, index) => (
               <TicketTypeCard

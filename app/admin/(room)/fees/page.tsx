@@ -13,8 +13,7 @@ export default async function TicketFeesPage() {
       <p className="eyebrow">Settings</p>
       <h1>Ticket fees</h1>
       <p className="muted fee-lede">
-        Set the commission, the booking fee, who pays each one, & the member discount. Checkout uses
-        these rates. Leave a rate at 0 until it is agreed.
+        Set the rates. The host chooses who pays the booking fee and the commission on each event.
       </p>
       {canEdit ? (
         <article className="plan" style={{ marginTop: 28 }}>
@@ -26,8 +25,6 @@ export default async function TicketFeesPage() {
             <li>Commission: {fees.commissionPct}%</li>
             <li>Booking fee: R {(fees.bookingFeeCents / 100).toFixed(2)}</li>
             <li>Member discount: {fees.memberDiscountPct}%</li>
-            <li>Booking fee paid by: {fees.passBookingToBuyer ? "Buyer" : "Host"}</li>
-            <li>Commission paid by: {fees.passCommissionToBuyer ? "Buyer" : "Host"}</li>
           </ul>
           <p className="muted fee-lede">Only an admin can change these rates.</p>
         </article>

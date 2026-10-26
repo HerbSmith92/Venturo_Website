@@ -19,8 +19,6 @@ export async function POST(request: Request) {
     commissionPct?: number;
     bookingFeeRands?: number;
     memberDiscountPct?: number;
-    passBookingToBuyer?: boolean;
-    passCommissionToBuyer?: boolean;
   };
 
   const commissionPct = money(body.commissionPct);
@@ -47,8 +45,6 @@ export async function POST(request: Request) {
       commission_pct: commissionPct,
       booking_fee_cents: Math.round(bookingFeeRands * 100),
       member_discount_pct: memberDiscountPct,
-      pass_booking_to_buyer: Boolean(body.passBookingToBuyer),
-      pass_commission_to_buyer: Boolean(body.passCommissionToBuyer),
       updated_at: new Date().toISOString(),
     })
     .eq("id", 1)

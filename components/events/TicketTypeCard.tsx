@@ -222,50 +222,34 @@ export function TicketTypeCard({
           </div>
 
           <div className="studio-fee-board">
-            <div className="studio-fee-grid" role="group" aria-label="Who covers fees">
-              <span className="studio-fee-spacer" />
-              <span className="studio-fee-head">Host Pays</span>
-              <span className="studio-fee-head">Customer Pays</span>
-
+            <label className="field">
               <span>
-                Ticket Fee
+                Who pays the booking fee
                 {fees.bookingFeeCents ? ` · ${formatCents(fees.bookingFeeCents)}` : ""}
               </span>
-              <label className="studio-fee-check">
-                <input
-                  type="checkbox"
-                  checked={!ticket.passFeesToBuyer}
-                  onChange={() => onChange({ passFeesToBuyer: false })}
-                  aria-label="Host pays ticket fee"
-                />
-              </label>
-              <label className="studio-fee-check">
-                <input
-                  type="checkbox"
-                  checked={ticket.passFeesToBuyer}
-                  onChange={() => onChange({ passFeesToBuyer: true })}
-                  aria-label="Customer pays ticket fee"
-                />
-              </label>
-
-              <span>Commission Fee of {fees.commissionPct}%</span>
-              <label className="studio-fee-check">
-                <input
-                  type="checkbox"
-                  checked={!ticket.passCommissionToBuyer}
-                  onChange={() => onChange({ passCommissionToBuyer: false })}
-                  aria-label="Host pays commission"
-                />
-              </label>
-              <label className="studio-fee-check">
-                <input
-                  type="checkbox"
-                  checked={ticket.passCommissionToBuyer}
-                  onChange={() => onChange({ passCommissionToBuyer: true })}
-                  aria-label="Customer pays commission"
-                />
-              </label>
-            </div>
+              <select
+                value={ticket.passFeesToBuyer ? "buyer" : "host"}
+                onChange={(event) => onChange({ passFeesToBuyer: event.target.value === "buyer" })}
+              >
+                <option value="host">Host, from the payout</option>
+                <option value="buyer">Buyer, at checkout</option>
+              </select>
+            </label>
+            <label className="field">
+              <span>
+                Who pays the commission
+                {fees.commissionPct ? ` · ${fees.commissionPct}%` : ""}
+              </span>
+              <select
+                value={ticket.passCommissionToBuyer ? "buyer" : "host"}
+                onChange={(event) =>
+                  onChange({ passCommissionToBuyer: event.target.value === "buyer" })
+                }
+              >
+                <option value="host">Host, from the payout</option>
+                <option value="buyer">Buyer, at checkout</option>
+              </select>
+            </label>
 
             <label className="field studio-ticket-revenue">
               <span>Potential Revenue</span>

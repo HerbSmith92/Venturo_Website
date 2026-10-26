@@ -673,6 +673,9 @@ export function EventStudio({
 
           {showTickets ? (
           <StudioSection title="Ticket Types">
+            <p className="muted">
+              On a paid ticket, you decide who pays the booking fee and the commission.
+            </p>
             {tickets.length === 0 && <p className="notice">Add ticket types before you go live.</p>}
             <ul className="studio-tickets">
               {tickets.map((ticket, index) => (

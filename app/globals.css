@@ -5899,7 +5899,7 @@ code {
 
 .studio-fee-board {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) minmax(180px, 0.7fr);
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) minmax(180px, 0.7fr);
   gap: 16px 24px;
   align-items: end;
   margin-top: 18px;

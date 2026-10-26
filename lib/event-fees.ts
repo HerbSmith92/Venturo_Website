@@ -22,8 +22,8 @@ export function platformTicketDefaults(fees: PlatformFees) {
   return {
     discountKind: (fees.memberDiscountPct > 0 ? "percent" : "none") as MemberDiscountKind,
     discountValue: fees.memberDiscountPct > 0 ? String(fees.memberDiscountPct) : "",
-    passFeesToBuyer: fees.passBookingToBuyer,
-    passCommissionToBuyer: fees.passCommissionToBuyer,
+    passFeesToBuyer: false,
+    passCommissionToBuyer: false,
   };
 }
 
