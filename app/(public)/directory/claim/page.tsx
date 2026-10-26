@@ -26,21 +26,30 @@ export default async function ClaimListingPage({
     <main className="shell">
       <section className="section">
         <p className="eyebrow">Businesses</p>
-        <h1>Claim Your Listing</h1>
-        <p className="lede muted">
-          This is how the owner takes the listing. You confirm it is your business, then Control Room checks it before you can edit what the public sees.
+        <h1>Claim your listing</h1>
+        <p className="lede">Help more people discover their next adventure with you.</p>
+        <p>
+          Claim your business listing to keep your photos, activity details, opening hours &amp; contact information up to date.
+        </p>
+        <p>
+          Find your business below &amp; submit a claim request. Our team will verify your connection to the business before giving you access to manage its listing.
         </p>
 
         <form className="field" method="get" action="/directory/claim">
-          <span>Search Directory</span>
+          <span>Find your business</span>
           <input
             name="q"
             defaultValue={q}
-            placeholder="e.g. Adventure Golf, Honeydew"
+            placeholder="Search by business name"
+            aria-label="Search by business name"
           />
         </form>
 
-        {done ? <p className="notice">Claim sent. Control Room will review the evidence.</p> : null}
+        {done ? (
+          <p className="notice">
+            Claim request sent. Our team will verify your connection to the business.
+          </p>
+        ) : null}
         {error ? <p className="error">{error}</p> : null}
         {!user && (
           <p className="notice">
@@ -82,7 +91,7 @@ export default async function ClaimListingPage({
         </div>
 
         <p className="muted" style={{ marginTop: 24 }}>
-          Claim requests land in Control Room. A live listing still needs staff to publish it.
+          Once your claim is approved, you can manage your listing. Changes are reviewed before they appear on Venturo.
         </p>
       </section>
     </main>
