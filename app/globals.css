@@ -1757,8 +1757,8 @@ a.cr-nav-label.active:hover {
 .cr-nav.is-collapsed .cr-section:focus-within > .cr-subnav,
 .cr-nav.is-collapsed .cr-section.is-fly > .cr-subnav {
   display: grid;
-  min-width: 232px;
-  max-width: 280px;
+  min-width: 280px;
+  max-width: 340px;
   max-height: min(70vh, 520px);
   margin: 0;
   padding: 8px;
@@ -2558,7 +2558,7 @@ fieldset.field {
   top: 0;
   left: 0;
   z-index: 30;
-  width: 260px;
+  width: 340px;
   height: 100vh;
   padding: 10px 10px 8px;
   background: color-mix(in srgb, var(--currant) 55%, var(--night));
@@ -2709,7 +2709,7 @@ fieldset.field {
 }
 
 .cr-main {
-  margin-left: 260px;
+  margin-left: 340px;
   padding: 32px 28px 64px;
 }
 
