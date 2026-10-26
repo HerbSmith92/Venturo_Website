@@ -6580,6 +6580,61 @@ label.check {
   width: 100%;
 }
 
+.cr-paper .fee-lede,
+.cr-paper .fee-settings .muted {
+  color: var(--snow);
+}
+
+.cr-paper .fee-settings .field span {
+  color: var(--snow);
+  font-weight: 600;
+}
+
+.cr-paper .fee-settings .fee-rates {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+.cr-paper .fee-settings .field input,
+.cr-paper .fee-settings .field select {
+  background: #fff;
+  color: var(--night);
+  color-scheme: light;
+}
+
+.cr-paper .fee-settings .field .money-input {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 48px;
+  padding: 0 14px;
+  background: #fff;
+  border: 1.5px solid color-mix(in srgb, var(--night) 18%, transparent);
+  border-radius: 10px;
+}
+
+.cr-paper .fee-settings .field .money-input span {
+  color: var(--night);
+  font-size: 1rem;
+  font-weight: 600;
+  letter-spacing: 0;
+  text-transform: none;
+}
+
+.cr-paper .fee-settings .field .money-input input {
+  min-height: 46px;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: var(--night);
+  color-scheme: light;
+}
+
+@media (max-width: 800px) {
+  .cr-paper .fee-settings .fee-rates {
+    grid-template-columns: 1fr;
+  }
+}
+
 .ticket-editor {
   display: grid;
   gap: 12px;

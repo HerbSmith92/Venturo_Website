@@ -69,8 +69,8 @@ export function FeeSettingsForm({ fees }: { fees: PlatformFees }) {
   }
 
   return (
-    <form className="stack-list" onSubmit={onSubmit}>
-      <div className="field-row">
+    <form className="stack-list fee-settings" onSubmit={onSubmit}>
+      <div className="field-row fee-rates">
         <label className="field">
           <span>Commission %</span>
           <input inputMode="decimal" value={pct} onChange={(event) => setPct(event.target.value)} />

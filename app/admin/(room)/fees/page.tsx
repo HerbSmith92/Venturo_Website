@@ -12,7 +12,7 @@ export default async function TicketFeesPage() {
     <section className="cr-paper">
       <p className="eyebrow">Settings</p>
       <h1>Ticket fees</h1>
-      <p className="muted">
+      <p className="muted fee-lede">
         Set the commission, the booking fee, who pays each one, & the member discount. Checkout uses
         these rates. Leave a rate at 0 until it is agreed.
       </p>
@@ -29,7 +29,7 @@ export default async function TicketFeesPage() {
             <li>Booking fee paid by: {fees.passBookingToBuyer ? "Buyer" : "Host"}</li>
             <li>Commission paid by: {fees.passCommissionToBuyer ? "Buyer" : "Host"}</li>
           </ul>
-          <p className="muted">Only an admin can change these rates.</p>
+          <p className="muted fee-lede">Only an admin can change these rates.</p>
         </article>
       )}
     </section>
