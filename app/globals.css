@@ -1381,29 +1381,79 @@ a.chip.active {
   color: var(--night);
 }
 
-.auth-method-google {
-  background: var(--snow);
-  color: var(--night);
-  border-color: transparent;
-  grid-template-columns: 36px minmax(0, 1fr);
-  gap: 12px;
-  min-height: 72px;
-  padding: 14px 16px;
+.auth-method-google,
+.auth-method-apple {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 10px;
+  min-height: 40px;
+  height: 40px;
+  padding: 0 12px;
+  border-radius: 4px;
+  text-align: center;
 }
 
-.auth-method-google .auth-method-mark {
-  width: 36px;
-  height: 36px;
+.auth-method-google:hover:not(:disabled),
+.auth-method-apple:hover:not(:disabled) {
+  transform: none;
+}
+
+.auth-method-google {
+  background: #fff;
+  color: #1f1f1f;
+  border: 1px solid #747775;
+  font-weight: 500;
+  font-size: 14px;
+  letter-spacing: 0.01em;
+}
+
+.auth-method-google:hover:not(:disabled) {
+  background: #f8f9fa;
+  border-color: #747775;
+}
+
+.auth-method-apple {
+  background: #000;
+  color: #fff;
+  border: 1px solid #000;
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  font-weight: 500;
+  font-size: 15px;
+  letter-spacing: -0.01em;
+}
+
+.auth-method-apple:hover:not(:disabled) {
+  background: #1a1a1a;
+  border-color: #1a1a1a;
+}
+
+.auth-method-google .auth-method-mark,
+.auth-method-apple .auth-method-mark {
+  width: 18px;
+  height: 18px;
   background: transparent;
+  border-radius: 0;
+  color: inherit;
+}
+
+.auth-method-google .auth-method-mark svg,
+.auth-method-apple .auth-method-mark svg {
+  width: 18px;
+  height: 18px;
+}
+
+.auth-method-google .auth-method-copy,
+.auth-method-apple .auth-method-copy {
+  display: block;
 }
 
 .auth-method-google .auth-method-copy strong,
-.auth-method-google .auth-method-copy span {
-  color: var(--night);
-}
-
-.auth-method-google .auth-method-copy span {
-  opacity: 0.72;
+.auth-method-apple .auth-method-copy strong {
+  font-size: inherit;
+  font-weight: inherit;
+  letter-spacing: inherit;
+  color: inherit;
 }
 
 .auth-method-copy {

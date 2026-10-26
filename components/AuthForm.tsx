@@ -1,11 +1,18 @@
 "use client";
 
 import { useMemo, useState } from "react";
+import { Roboto } from "next/font/google";
 import { AuthProviderIcon } from "@/components/AuthProviderIcon";
 import { portalLoginHref, portalSignupNext } from "@/lib/portal";
 import { createClient } from "@/lib/supabase/client";
 import { PolicyConsent } from "@/components/PolicyConsent";
 import { CONSENT_REQUIRED } from "@/lib/policy-consent";
+
+const robotoMedium = Roboto({
+  weight: "500",
+  subsets: ["latin"],
+  display: "swap",
+});
 
 type Step = "methods" | "email" | "code";
 type OAuthProvider = "google" | "apple" | "facebook";
@@ -16,11 +23,18 @@ const METHODS: {
   hint: string;
 }[] = [
   { id: "email", label: "Email", hint: "One-time code to your inbox" },
-  { id: "google", label: "Google", hint: "Continue with your Google account" },
-  { id: "apple", label: "Apple", hint: "Continue with Apple" },
+  { id: "google", label: "Google", hint: "" },
+  { id: "apple", label: "Apple", hint: "" },
   // Facebook paused until Meta Developer account is unblocked.
   // { id: "facebook", label: "Facebook", hint: "Continue with Facebook" },
 ];
+
+function brandedLabel(id: "google" | "apple", mode: "login" | "signup") {
+  if (id === "google") {
+    return mode === "login" ? "Sign in with Google" : "Sign up with Google";
+  }
+  return mode === "login" ? "Sign in with Apple" : "Sign up with Apple";
+}
 
 export function AuthForm({
   mode,
@@ -328,11 +342,17 @@ export function AuthForm({
             {METHODS.filter((method) => method.id !== "email").map((method) => {
               const provider = method.id as OAuthProvider;
               const busy = oauthPending === provider;
+              const label =
+                provider === "google" || provider === "apple"
+                  ? brandedLabel(provider, mode)
+                  : method.label;
               return (
                 <button
                   key={method.id}
                   type="button"
-                  className={`auth-method auth-method-${method.id}`}
+                  className={`auth-method auth-method-${method.id}${
+                    provider === "google" ? ` ${robotoMedium.className}` : ""
+                  }`}
                   disabled={!configured || Boolean(oauthPending)}
                   onClick={() => pickMethod(provider)}
                 >
@@ -340,8 +360,7 @@ export function AuthForm({
                     <AuthProviderIcon provider={provider} />
                   </span>
                   <span className="auth-method-copy">
-                    <strong>{busy ? "Redirecting…" : method.label}</strong>
-                    <span>{method.hint}</span>
+                    <strong>{busy ? "Redirecting…" : label}</strong>
                   </span>
                 </button>
               );
@@ -387,11 +406,17 @@ export function AuthForm({
       <div className="auth-methods">
         {METHODS.map((method) => {
           const busy = method.id !== "email" && oauthPending === method.id;
+          const label =
+            method.id === "google" || method.id === "apple"
+              ? brandedLabel(method.id, mode)
+              : method.label;
           return (
             <button
               key={method.id}
               type="button"
-              className={`auth-method auth-method-${method.id}`}
+              className={`auth-method auth-method-${method.id}${
+                method.id === "google" ? ` ${robotoMedium.className}` : ""
+              }`}
               disabled={!configured || Boolean(oauthPending)}
               onClick={() => pickMethod(method.id)}
             >
@@ -399,8 +424,8 @@ export function AuthForm({
                 <AuthProviderIcon provider={method.id} />
               </span>
               <span className="auth-method-copy">
-                <strong>{busy ? "Redirecting…" : method.label}</strong>
-                <span>{method.hint}</span>
+                <strong>{busy ? "Redirecting…" : label}</strong>
+                {method.hint ? <span>{method.hint}</span> : null}
               </span>
             </button>
           );
