@@ -760,8 +760,9 @@ button.chip.on {
 }
 
 a.chip {
-  background: color-mix(in srgb, var(--snow) 88%, transparent);
-  color: var(--snow);
+  background: var(--snow);
+  color: var(--night);
+  font-weight: 600;
 }
 
 a.chip.active {
