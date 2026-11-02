@@ -57,13 +57,14 @@ export default async function GuideDetailPage({
 
   const user = await getCurrentUser();
   const paid = user?.plan === "paid";
-  const guideId = listingGuide?.id ?? eventGuide!.id;
-  const title = listingGuide?.title ?? eventGuide!.title;
-  const intro = listingGuide?.intro ?? eventGuide!.intro;
+  const guide = listingGuide ?? eventGuide!;
+  const guideId = guide.id;
+  const title = guide.title;
+  const intro = guide.intro;
   const body = listingGuide?.body ?? eventGuide?.body ?? null;
   const author = listingGuide?.author ?? eventGuide?.author ?? null;
   const shape = listingGuide?.shape ?? eventGuide?.shape ?? "roundup";
-  const nextPath = `/guides/${listingGuide?.slug ?? eventGuide!.slug}`;
+  const nextPath = `/guides/${guide.slug}`;
 
   const [saved, eventIds, otherGuides, listing, moreByAuthor] = await Promise.all([
     user && listingGuide ? isSaved(user.id, "guide", guideId) : Promise.resolve(false),
