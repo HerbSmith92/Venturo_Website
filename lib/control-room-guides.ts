@@ -62,6 +62,7 @@ export type GuideEditorRecord = {
   story: SpotlightSection[];
   photos: SpotlightPhoto[];
   cover: SpotlightCover;
+  carousel_draft: unknown;
   updated_at: string | null;
 };
 
@@ -182,6 +183,13 @@ function coverFromGuideItems(
 
 function mapListingPreview(row: ListingRow): GuideListingPreview {
   const kind = primaryKind(row.listing_activity_kinds);
+  const images = [...(row.listing_media ?? [])]
+    .filter((item) => !item.is_pending && item.public_url)
+    .sort((a, b) => {
+      if (a.is_cover !== b.is_cover) return a.is_cover ? -1 : 1;
+      return (a.sort_order ?? 0) - (b.sort_order ?? 0);
+    })
+    .map((item) => item.public_url as string);
   return {
     id: row.id,
     name: row.name,
@@ -194,7 +202,8 @@ function mapListingPreview(row: ListingRow): GuideListingPreview {
     short_description: row.short_description,
     price_from: row.price_from,
     status: row.status,
-    image: coverFromMedia(row.listing_media),
+    image: images[0] ?? coverFromMedia(row.listing_media),
+    images,
     indoor_outdoor: asIndoorOutdoor(row.indoor_outdoor),
     booking_required: Boolean(row.booking_required),
     activity_kind_key: kind.key,
@@ -295,7 +304,7 @@ export async function loadGuideEditor(id: string): Promise<GuideEditorRecord | n
     .select(
       `
       id, title, slug, intro, body, shape, author_id, status, publish_at, expire_at, scale_id, created_by,
-      listing_id, story, photos, cover, updated_at,
+      listing_id, story, photos, cover, carousel_draft, updated_at,
       curated_guide_interests ( interest_id ),
       curated_guide_activity_kinds ( activity_kind_id ),
       curated_guide_personas ( persona_id ),
@@ -354,6 +363,7 @@ export async function loadGuideEditor(id: string): Promise<GuideEditorRecord | n
     story?: unknown;
     photos?: unknown;
     cover?: unknown;
+    carousel_draft?: unknown;
     updated_at?: string | null;
     curated_guide_interests?: { interest_id: string }[];
     curated_guide_activity_kinds?: { activity_kind_id: string }[];
@@ -395,6 +405,7 @@ export async function loadGuideEditor(id: string): Promise<GuideEditorRecord | n
     story: parseSpotlightStory(row.story),
     photos: parseSpotlightPhotos(row.photos),
     cover: parseSpotlightCover(row.cover) ?? emptySpotlightCover(),
+    carousel_draft: row.carousel_draft ?? null,
     updated_at: row.updated_at ?? null,
   };
 }

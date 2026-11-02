@@ -348,6 +348,7 @@ export type GuideListingPreview = {
   price_from: number | string | null;
   status: string;
   image: string | null;
+  images?: string[];
   indoor_outdoor: "indoor" | "outdoor" | "both" | null;
   booking_required: boolean;
   activity_kind_key: string | null;

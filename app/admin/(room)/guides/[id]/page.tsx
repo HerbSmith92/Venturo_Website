@@ -5,6 +5,7 @@ import { loadGuideEditor, loadGuidePlaces, loadSpotlightListingDetails } from "@
 import { loadGuideAuthors, linkedAuthorIdForUser } from "@/lib/control-room-authors";
 import { loadEditorCatalog } from "@/lib/control-room";
 import { listAdminEvents } from "@/lib/events";
+import { mapEventSource } from "@/lib/guide-carousel";
 import { listGuideEventIds } from "@/lib/guides";
 import { isAdmin } from "@/lib/roles";
 
@@ -59,6 +60,7 @@ export default async function GuideEditPage({
       notice={notice}
       error={error}
       events={events.map((event) => ({ id: event.id, title: event.title }))}
+      carouselEvents={events.filter((event) => linked.has(event.id)).map(mapEventSource)}
       linkedEventIds={[...linked]}
       places={places}
       authors={authors}

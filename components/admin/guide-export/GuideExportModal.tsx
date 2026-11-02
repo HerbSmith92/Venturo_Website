@@ -1,9 +1,10 @@
 "use client";
 
 import { useEffect, useMemo, useRef, useState, type Ref } from "react";
-import { toPng } from "html-to-image";
+import { toBlob } from "html-to-image";
 import JSZip from "jszip";
 import { GuideExportActivityCard } from "@/components/admin/guide-export/GuideExportActivityCard";
+import { GuideExportAuthorCard } from "@/components/admin/guide-export/GuideExportAuthorCard";
 import { GuideExportIntroCard } from "@/components/admin/guide-export/GuideExportIntroCard";
 import {
   IG_POST_HEIGHT,
@@ -12,6 +13,7 @@ import {
   exportFileSlug,
   type GuideExportSlide,
 } from "@/components/admin/guide-export/types";
+import type { GuideAuthor } from "@/lib/guide-authors";
 import type { GuideDraftItem } from "@/lib/guide-shared";
 
 function downloadBlob(blob: Blob, filename: string) {
@@ -19,31 +21,76 @@ function downloadBlob(blob: Blob, filename: string) {
   const link = document.createElement("a");
   link.href = url;
   link.download = filename;
+  link.rel = "noopener";
+  document.body.appendChild(link);
   link.click();
-  URL.revokeObjectURL(url);
+  link.remove();
+  window.setTimeout(() => URL.revokeObjectURL(url), 4000);
 }
 
-function dataUrlToBlob(dataUrl: string) {
-  const [header, data] = dataUrl.split(",");
-  const mime = /data:(.*?);/.exec(header)?.[1] ?? "image/png";
-  const binary = atob(data);
-  const bytes = new Uint8Array(binary.length);
-  for (let i = 0; i < binary.length; i += 1) bytes[i] = binary.charCodeAt(i);
-  return new Blob([bytes], { type: mime });
+function blobToDataUrl(blob: Blob) {
+  return new Promise<string>((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => resolve(String(reader.result));
+    reader.onerror = () => reject(reader.error);
+    reader.readAsDataURL(blob);
+  });
 }
+
+function waitForImage(img: HTMLImageElement) {
+  if (img.complete && img.naturalWidth > 0) return Promise.resolve();
+  return new Promise<void>((resolve) => {
+    const done = () => resolve();
+    img.addEventListener("load", done, { once: true });
+    img.addEventListener("error", done, { once: true });
+  });
+}
+
+async function inlineImages(node: HTMLElement) {
+  const images = Array.from(node.querySelectorAll("img"));
+  await Promise.all(
+    images.map(async (img) => {
+      const src = img.currentSrc || img.getAttribute("src") || "";
+      if (!src || src.startsWith("data:")) return;
+      const response = await fetch(src, { credentials: "same-origin", cache: "force-cache" });
+      if (!response.ok) return;
+      const blob = await response.blob();
+      if (!blob.type.startsWith("image/")) return;
+      img.src = await blobToDataUrl(blob);
+      await waitForImage(img);
+    }),
+  );
+}
+
+const CAPTURE_STYLE = {
+  transform: "none",
+  left: "0",
+  top: "0",
+  opacity: "1",
+  position: "relative",
+  width: `${IG_POST_WIDTH}px`,
+  height: `${IG_POST_HEIGHT}px`,
+};
 
 async function captureFrame(node: HTMLElement) {
-  return toPng(node, {
-    cacheBust: true,
+  if (document.fonts?.ready) await document.fonts.ready;
+  await inlineImages(node);
+  const photo = node.querySelector<HTMLImageElement>(".cr-ig-bg img");
+  if (photo && photo.naturalWidth === 0) {
+    throw new Error("Photo did not load");
+  }
+  const blob = await toBlob(node, {
+    cacheBust: false,
     pixelRatio: 1,
+    skipAutoScale: true,
+    canvasWidth: IG_POST_WIDTH,
+    canvasHeight: IG_POST_HEIGHT,
     width: IG_POST_WIDTH,
     height: IG_POST_HEIGHT,
-    style: {
-      transform: "none",
-      width: `${IG_POST_WIDTH}px`,
-      height: `${IG_POST_HEIGHT}px`,
-    },
+    style: CAPTURE_STYLE,
   });
+  if (!blob) throw new Error("Empty export");
+  return blob;
 }
 
 export function GuideExportModal({
@@ -51,33 +98,58 @@ export function GuideExportModal({
   title,
   intro,
   items,
+  author,
   onClose,
 }: {
   open: boolean;
   title: string;
   intro: string;
   items: GuideDraftItem[];
+  author?: GuideAuthor | null;
   onClose: () => void;
 }) {
   const slides = useMemo(
-    () => buildGuideExportSlides({ title, intro, items }),
-    [title, intro, items],
+    () => buildGuideExportSlides({ title, intro, items, author }),
+    [title, intro, items, author],
   );
   const [index, setIndex] = useState(0);
   const [busy, setBusy] = useState<"one" | "all" | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [readyFile, setReadyFile] = useState<{ name: string; url: string } | null>(null);
   const previewRef = useRef<HTMLDivElement | null>(null);
   const bankRefs = useRef<(HTMLDivElement | null)[]>([]);
   const stageRef = useRef<HTMLDivElement | null>(null);
   const [scale, setScale] = useState(0.32);
+
+  function rememberFile(blob: Blob, filename: string) {
+    setReadyFile((current) => {
+      if (current) URL.revokeObjectURL(current.url);
+      return { name: filename, url: URL.createObjectURL(blob) };
+    });
+    downloadBlob(blob, filename);
+  }
 
   useEffect(() => {
     if (!open) return;
     setIndex(0);
     setError(null);
     setBusy(null);
+    setReadyFile((current) => {
+      if (current) URL.revokeObjectURL(current.url);
+      return null;
+    });
     bankRefs.current = [];
-  }, [open, title, intro, items]);
+  }, [open, title, intro, items, author]);
+
+  useEffect(
+    () => () => {
+      setReadyFile((current) => {
+        if (current) URL.revokeObjectURL(current.url);
+        return null;
+      });
+    },
+    [],
+  );
 
   useEffect(() => {
     if (!open) return;
@@ -115,17 +187,28 @@ export function GuideExportModal({
   const slide = slides[index] ?? slides[0];
   const slug = exportFileSlug(title);
   const label =
-    slide.kind === "intro" ? "Intro Card" : `Spot ${slide.index} · ${slide.name}`;
+    slide.kind === "intro"
+      ? "Intro Card"
+      : slide.kind === "author"
+        ? `Author · ${slide.name}`
+        : `Spot ${slide.index} · ${slide.name}`;
 
   async function downloadCurrent() {
-    const node = bankRefs.current[index] ?? previewRef.current;
-    if (!node) return;
+    const node =
+      bankRefs.current[index] ??
+      previewRef.current ??
+      document.querySelector<HTMLElement>(".cr-ig-stage .cr-ig-frame");
+    if (!node) {
+      setError("Could not find that slide to export.");
+      return;
+    }
     setBusy("one");
     setError(null);
     try {
-      const dataUrl = await captureFrame(node);
-      downloadBlob(dataUrlToBlob(dataUrl), `${slug}-${String(index + 1).padStart(2, "0")}.png`);
-    } catch {
+      const blob = await captureFrame(node);
+      rememberFile(blob, `${slug}-${String(index + 1).padStart(2, "0")}.png`);
+    } catch (err) {
+      console.error(err);
       setError("Could not export that slide. Try again, or check the listing image.");
     } finally {
       setBusy(null);
@@ -136,18 +219,18 @@ export function GuideExportModal({
     setBusy("all");
     setError(null);
     try {
-      // Wait a frame so the offscreen bank is painted.
       await new Promise((resolve) => requestAnimationFrame(() => resolve(null)));
       const zip = new JSZip();
       for (let i = 0; i < slides.length; i += 1) {
         const node = bankRefs.current[i];
         if (!node) throw new Error("Missing frame");
-        const dataUrl = await captureFrame(node);
-        zip.file(`${slug}-${String(i + 1).padStart(2, "0")}.png`, dataUrlToBlob(dataUrl));
+        const blob = await captureFrame(node);
+        zip.file(`${slug}-${String(i + 1).padStart(2, "0")}.png`, blob);
       }
       const blob = await zip.generateAsync({ type: "blob" });
-      downloadBlob(blob, `${slug}-instagram.zip`);
-    } catch {
+      rememberFile(blob, `${slug}-instagram.zip`);
+    } catch (err) {
+      console.error(err);
       setError("Could not export the full carousel. Try downloading one slide at a time.");
     } finally {
       setBusy(null);
@@ -229,7 +312,7 @@ export function GuideExportModal({
             disabled={busy !== null}
             onClick={downloadCurrent}
           >
-            {busy === "one" ? "Downloading…" : "Download This Slide"}
+            {busy === "one" ? "Preparing…" : "Download This Slide"}
           </button>
           <button
             type="button"
@@ -239,6 +322,11 @@ export function GuideExportModal({
           >
             {busy === "all" ? "Zipping…" : "Download All"}
           </button>
+          {readyFile ? (
+            <a className="btn btn-secondary" href={readyFile.url} download={readyFile.name}>
+              Save {readyFile.name}
+            </a>
+          ) : null}
         </div>
       </div>
 
@@ -266,6 +354,9 @@ function SlideFrame({
 }) {
   if (slide.kind === "intro") {
     return <GuideExportIntroCard slide={slide} frameRef={frameRef} />;
+  }
+  if (slide.kind === "author") {
+    return <GuideExportAuthorCard slide={slide} frameRef={frameRef} />;
   }
   return <GuideExportActivityCard slide={slide} frameRef={frameRef} />;
 }

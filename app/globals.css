@@ -9867,8 +9867,9 @@ button.listing-cost-toggle {
 
 .cr-ig-capture-bank {
   position: fixed;
-  left: -12000px;
+  left: -4000px;
   top: 0;
+  z-index: 0;
   width: 1080px;
   pointer-events: none;
   opacity: 1;
@@ -10077,6 +10078,874 @@ button.listing-cost-toggle {
   font-weight: 600;
   letter-spacing: 0.04em;
   color: var(--night);
+}
+
+.cr-ig-author {
+  background: var(--night);
+  color: var(--snow);
+}
+
+.cr-ig-author-sky {
+  position: absolute;
+  inset: 0 0 470px 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 36px 56px 0;
+}
+
+.cr-ig-author-topo {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  opacity: 0.07;
+  pointer-events: none;
+}
+
+.cr-ig-author-head {
+  position: relative;
+  z-index: 1;
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 24px;
+}
+
+.cr-ig-author-kicker {
+  margin: 0;
+  font-size: 22px;
+  font-weight: 600;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: var(--canary);
+}
+
+.cr-ig-author-wordmark {
+  height: 36px;
+  width: auto;
+  display: block;
+}
+
+.cr-ig-author-portrait-wrap {
+  position: relative;
+  z-index: 1;
+  width: 420px;
+  height: 420px;
+  margin: 12px 0 8px;
+  display: grid;
+  place-items: center;
+}
+
+.cr-ig-author-portrait {
+  width: 360px;
+  height: 360px;
+  border-radius: 50%;
+  overflow: hidden;
+  background: color-mix(in srgb, var(--snow) 12%, var(--night));
+  border: 8px solid var(--snow);
+}
+
+.cr-ig-author-portrait img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+
+.cr-ig-author-initials {
+  display: grid;
+  place-items: center;
+  width: 100%;
+  height: 100%;
+  font-family: "Social Gothic Rough", "Arial Black", sans-serif;
+  font-size: 96px;
+  letter-spacing: 0.04em;
+  color: var(--snow);
+}
+
+.cr-ig-author-arc {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: 420px;
+  height: 420px;
+  transform: translate(-50%, -50%);
+  pointer-events: none;
+  z-index: 2;
+}
+
+.cr-ig-author-name {
+  position: relative;
+  z-index: 1;
+  margin: 0;
+  max-width: 920px;
+  font-family: "Social Gothic Rough", "Arial Black", sans-serif;
+  font-weight: 400;
+  font-size: 72px;
+  line-height: 0.92;
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
+  text-align: center;
+  color: var(--snow);
+}
+
+.cr-ig-author-tagline {
+  position: relative;
+  z-index: 1;
+  margin: 16px 0 0;
+  max-width: 860px;
+  font-size: 28px;
+  font-weight: 600;
+  text-align: center;
+  color: var(--canary);
+}
+
+.cr-ig-author-band {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  height: 470px;
+  z-index: 3;
+  color: var(--snow);
+  background: var(--snow);
+  display: flex;
+  flex-direction: column;
+}
+
+.cr-ig-author-band .cr-ig-wave {
+  color: var(--snow);
+}
+
+.cr-ig-author-gold-wave {
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: -60px;
+  width: 100%;
+  height: 120px;
+  z-index: 2;
+  pointer-events: none;
+}
+
+.cr-ig-author-band-inner {
+  position: relative;
+  z-index: 1;
+  flex: 1;
+  min-height: 0;
+  padding: 8px 72px 40px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  gap: 14px;
+}
+
+.cr-ig-author-curated {
+  margin: 8px 0 0;
+  font-size: 18px;
+  font-weight: 600;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: color-mix(in srgb, var(--night) 55%, transparent);
+}
+
+.cr-ig-author-pitch {
+  margin: 0;
+  max-width: 860px;
+  font-size: 36px;
+  line-height: 1.2;
+  font-weight: 600;
+  color: var(--night);
+  display: -webkit-box;
+  -webkit-line-clamp: 3;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+.cr-ig-author-handle {
+  margin: 8px 0 0;
+  display: inline-flex;
+  align-items: center;
+  gap: 14px;
+  font-size: 36px;
+  font-weight: 600;
+  color: var(--night);
+}
+
+.cr-ig-author-ig-mark {
+  width: 40px;
+  height: 40px;
+  flex: 0 0 auto;
+}
+
+.cr-ig-author-follow {
+  margin: 0;
+  font-size: 22px;
+  font-weight: 400;
+  color: color-mix(in srgb, var(--night) 70%, transparent);
+}
+
+.cr-ig-author-save {
+  margin: 18px 0 0;
+  padding-top: 18px;
+  width: min(520px, 100%);
+  border-top: 2px solid color-mix(in srgb, var(--canary) 70%, var(--snow));
+  font-size: 20px;
+  font-style: italic;
+  color: color-mix(in srgb, var(--night) 62%, transparent);
+}
+
+.cr-ig-author-discover {
+  margin: 0;
+  font-size: 22px;
+  font-weight: 400;
+  color: var(--night);
+}
+
+.cr-ig-author-discover strong {
+  font-weight: 600;
+}
+
+.ig-cover,
+.ig-rec,
+.ig-author {
+  background: var(--night);
+  color: var(--snow);
+}
+
+.ig-cover-head,
+.ig-rec-head,
+.ig-author-head {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  z-index: 4;
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 24px;
+  padding: 36px 56px 0;
+  height: 240px;
+  pointer-events: none;
+}
+
+.ig-cover-head,
+.ig-rec-head {
+  background: linear-gradient(
+    to bottom,
+    rgb(42, 45, 53) 0%,
+    rgba(42, 45, 53, 0.82) 28%,
+    rgba(42, 45, 53, 0.42) 58%,
+    rgba(42, 45, 53, 0) 100%
+  );
+}
+
+.ig-author-head {
+  height: auto;
+  padding-bottom: 0;
+  background: none;
+}
+
+.ig-author.has-cover .ig-author-head {
+  height: 240px;
+  background: linear-gradient(
+    to bottom,
+    rgb(42, 45, 53) 0%,
+    rgba(42, 45, 53, 0.72) 40%,
+    rgba(42, 45, 53, 0) 100%
+  );
+}
+
+.ig-cover-head img,
+.ig-rec-head img,
+.ig-author-head img {
+  height: 72px;
+  width: auto;
+}
+
+.ig-cover-head p,
+.ig-author-head p,
+.ig-rec-head p {
+  margin: 0;
+  font-family: Nunito, "Nunito Extra Light", system-ui, sans-serif;
+  font-size: 22px;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--snow);
+  white-space: nowrap;
+}
+
+.ig-cover-photos {
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  display: grid;
+  overflow: hidden;
+  background: var(--night);
+}
+
+.ig-cover-photos.is-hero {
+  grid-template-columns: 1fr;
+}
+
+.ig-cover-photos.is-collage {
+  grid-template-columns: 1fr 1fr 1fr;
+  gap: 8px;
+}
+
+.ig-cover-photo {
+  min-width: 0;
+  min-height: 0;
+  overflow: hidden;
+}
+
+.ig-cover-photos img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+
+.ig-cover-band,
+.ig-rec-band,
+.ig-author-band {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 3;
+}
+
+.ig-cover-band {
+  color: var(--canary);
+  background: var(--canary);
+}
+
+.ig-cover-band .cr-ig-wave {
+  color: var(--canary);
+}
+
+.ig-cover-copy,
+.ig-rec-copy,
+.ig-author-copy {
+  padding: 8px 56px 48px;
+  box-sizing: border-box;
+}
+
+.ig-cover-copy h2,
+.ig-author-copy h3 {
+  margin: 0 0 18px;
+  font-family: "Social Gothic Rough", "Arial Black", sans-serif;
+  font-size: 100px;
+  line-height: 0.9;
+  letter-spacing: 0.01em;
+  text-transform: uppercase;
+  color: var(--night);
+  overflow: hidden;
+  max-height: 280px;
+  width: 100%;
+  white-space: pre-line;
+}
+
+.ig-cover-geo,
+.ig-cover-support,
+.ig-cover-swipe {
+  margin: 0 0 12px;
+  color: var(--night);
+  font-family: Nunito, "Nunito Extra Light", system-ui, sans-serif;
+}
+
+.ig-cover-geo {
+  font-size: 36px;
+  font-weight: 700;
+}
+
+.ig-cover-support {
+  font-size: 34px;
+  line-height: 1.25;
+  max-width: 18ch;
+}
+
+.ig-cover-swipe {
+  margin-top: 28px;
+  font-size: 28px;
+}
+
+.ig-rec-head {
+  height: 240px;
+  display: grid;
+  grid-template-columns: 140px minmax(0, 1fr) auto;
+  align-items: start;
+  justify-content: unset;
+}
+
+.ig-rec-head h2 {
+  margin: 0;
+  min-width: 0;
+  font-family: "Social Gothic Rough", "Arial Black", sans-serif;
+  font-size: 52px;
+  line-height: 0.95;
+  text-transform: uppercase;
+  color: var(--snow);
+  overflow: hidden;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  white-space: normal;
+  text-shadow: 0 2px 16px rgba(42, 45, 53, 0.55);
+}
+
+.ig-rec-head p {
+  font-size: 26px;
+  letter-spacing: 0.08em;
+  opacity: 0.9;
+  text-shadow: 0 2px 12px rgba(42, 45, 53, 0.55);
+}
+
+.ig-rec-photo {
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  overflow: hidden;
+}
+
+.ig-rec-photo img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+
+.ig-rec-band {
+  color: var(--cr-ig-accent, var(--canary));
+  background: var(--cr-ig-accent, var(--canary));
+}
+
+.ig-rec-cat,
+.ig-rec-when {
+  margin: 0 0 8px;
+  font-family: Nunito, "Nunito Extra Light", system-ui, sans-serif;
+  font-size: 26px;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--night);
+}
+
+.ig-rec-when {
+  font-weight: 800;
+  letter-spacing: 0.08em;
+}
+
+.ig-rec-desc {
+  margin: 0 0 16px;
+  font-size: 36px;
+  line-height: 1.22;
+  color: var(--night);
+  overflow: hidden;
+  max-height: 176px;
+}
+
+.ig-rec-meta,
+.ig-rec-tip,
+.ig-rec-foot {
+  margin: 0 0 8px;
+  font-size: 28px;
+  line-height: 1.2;
+  color: var(--night);
+}
+
+.ig-rec-foot {
+  margin-top: 18px;
+  font-size: 24px;
+  opacity: 0.8;
+}
+
+.ig-rec[data-ink="snow"] .ig-rec-cat,
+.ig-rec[data-ink="snow"] .ig-rec-when,
+.ig-rec[data-ink="snow"] .ig-rec-desc,
+.ig-rec[data-ink="snow"] .ig-rec-meta,
+.ig-rec[data-ink="snow"] .ig-rec-tip,
+.ig-rec[data-ink="snow"] .ig-rec-foot {
+  color: var(--snow);
+}
+
+.ig-author-sky {
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 248px 56px 0;
+  background: var(--night);
+}
+
+.ig-author-cover {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  z-index: 0;
+}
+
+.ig-author.has-cover .ig-author-sky::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  background: linear-gradient(
+    to bottom,
+    rgba(42, 45, 53, 0.72) 0%,
+    rgba(42, 45, 53, 0.2) 28%,
+    rgba(42, 45, 53, 0.18) 58%,
+    rgba(42, 45, 53, 0.55) 100%
+  );
+  pointer-events: none;
+}
+
+.ig-author-identity {
+  position: relative;
+  z-index: 2;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  width: 100%;
+}
+
+.ig-author-portrait {
+  width: 391px;
+  height: 391px;
+  border-radius: 50%;
+  overflow: hidden;
+  border: 8px solid var(--canary);
+  display: grid;
+  place-items: center;
+  background: #1c1e24;
+  margin: 12px auto 28px;
+}
+
+.ig-author-portrait img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.ig-author-portrait span {
+  font-family: "Social Gothic Rough", "Arial Black", sans-serif;
+  font-size: 72px;
+  color: var(--snow);
+}
+
+.ig-author-sky h2 {
+  margin: 0 0 16px;
+  max-width: 100%;
+  font-family: "Social Gothic Rough", "Arial Black", sans-serif;
+  font-size: 56px;
+  line-height: 0.95;
+  text-transform: uppercase;
+  overflow-wrap: anywhere;
+  text-align: center;
+  text-shadow: 0 2px 16px rgba(42, 45, 53, 0.55);
+}
+
+.ig-author-bio {
+  margin: 0 auto;
+  max-width: 22ch;
+  font-size: 32px;
+  line-height: 1.25;
+  color: var(--snow);
+  text-align: center;
+  text-shadow: 0 2px 12px rgba(42, 45, 53, 0.5);
+}
+
+.ig-author-band {
+  color: var(--canary);
+  background: var(--canary);
+}
+
+.ig-author-band .cr-ig-wave {
+  color: var(--canary);
+}
+
+.ig-author-copy {
+  text-align: left;
+}
+
+.ig-author-copy h3 {
+  font-size: 64px;
+  max-width: none;
+  width: 100%;
+  line-height: 1.08;
+  margin-bottom: 22px;
+}
+
+.ig-author-primary,
+.ig-author-support,
+.ig-author-foot {
+  margin: 0 0 12px;
+  color: var(--night);
+  font-family: Nunito, "Nunito Extra Light", system-ui, sans-serif;
+  max-width: none;
+}
+
+.ig-author-primary {
+  font-size: 34px;
+}
+
+.ig-author-support {
+  font-size: 28px;
+}
+
+.ig-author-foot {
+  margin-top: 24px;
+  font-size: 24px;
+  opacity: 0.8;
+}
+
+.ig-author.is-compact .ig-author-portrait {
+  display: none;
+}
+
+.ig-author.is-compact .ig-author-sky {
+  padding-top: 180px;
+}
+
+.carousel-desk {
+  position: fixed;
+  inset: 0;
+  z-index: 200;
+  display: grid;
+  grid-template-rows: 64px minmax(0, 1fr);
+  background: var(--night);
+  color: var(--snow);
+}
+
+.carousel-desk-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 0 16px;
+  border-bottom: 1px solid rgba(235, 235, 243, 0.12);
+}
+
+.carousel-desk-bar h1 {
+  margin: 0;
+  font-size: 1rem;
+  font-family: "Social Gothic Rough", "Arial Black", sans-serif;
+}
+
+.carousel-desk-bar-actions {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+
+.carousel-desk-body {
+  display: grid;
+  grid-template-columns: 168px minmax(0, 1fr) 340px;
+  min-height: 0;
+}
+
+.carousel-thumbs {
+  overflow: auto;
+  padding: 12px;
+  border-right: 1px solid rgba(235, 235, 243, 0.12);
+}
+
+.carousel-thumb {
+  width: 100%;
+  margin: 0 0 10px;
+  padding: 0;
+  border: 2px solid transparent;
+  background: #1c1e24;
+  color: inherit;
+  cursor: grab;
+  border-radius: 8px;
+  overflow: hidden;
+}
+
+.carousel-thumb.is-on {
+  border-color: var(--canary);
+}
+
+.carousel-thumb-label {
+  display: block;
+  padding: 6px 8px;
+  font-size: 11px;
+  text-align: left;
+}
+
+.carousel-thumb .cr-ig-frame {
+  transform: scale(0.13);
+  transform-origin: top left;
+  pointer-events: none;
+}
+
+.carousel-thumb-scale {
+  height: 175px;
+  overflow: hidden;
+}
+
+.carousel-stage {
+  min-width: 0;
+  display: grid;
+  place-items: center;
+  padding: 24px;
+  background: #1c1e24;
+}
+
+.carousel-stage-scale {
+  width: min(100%, 432px);
+  height: 540px;
+  overflow: hidden;
+}
+
+.carousel-stage-scale .cr-ig-frame {
+  transform: scale(0.4);
+  transform-origin: top left;
+}
+
+.carousel-inspector,
+.carousel-issues {
+  overflow: auto;
+  padding: 16px;
+  background: var(--night);
+  border-left: 1px solid rgba(235, 235, 243, 0.12);
+}
+
+.carousel-inspector h2,
+.carousel-issues h2 {
+  margin: 0 0 12px;
+  font-size: 1rem;
+}
+
+.carousel-inspector label {
+  display: grid;
+  gap: 4px;
+  margin-bottom: 12px;
+  font-size: 13px;
+}
+
+.carousel-inspector input,
+.carousel-inspector textarea,
+.carousel-inspector select {
+  width: 100%;
+  border-radius: 8px;
+  border: 1px solid rgba(235, 235, 243, 0.2);
+  background: #1c1e24;
+  color: var(--snow);
+  padding: 8px 10px;
+}
+
+.carousel-inspector textarea {
+  min-height: 88px;
+  resize: vertical;
+}
+
+.carousel-photos {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 6px;
+  margin-bottom: 12px;
+}
+
+.carousel-photos button {
+  padding: 0;
+  border: 2px solid transparent;
+  background: none;
+}
+
+.carousel-photos button.is-on {
+  border-color: var(--canary);
+}
+
+.carousel-photos img {
+  width: 100%;
+  height: 64px;
+  object-fit: cover;
+  display: block;
+}
+
+.carousel-issues button {
+  display: block;
+  width: 100%;
+  text-align: left;
+  margin: 0;
+  padding: 8px;
+  border: 0;
+  border-radius: 8px;
+  background: transparent;
+  color: var(--snow);
+}
+
+.carousel-issue {
+  margin: 0 0 8px;
+  border-radius: 8px;
+  background: #3a2a2a;
+}
+
+.carousel-issue.is-warn {
+  background: #3a3420;
+}
+
+.carousel-issue small {
+  display: block;
+  margin-top: 4px;
+  opacity: 0.75;
+}
+
+.carousel-dates {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+  margin-bottom: 12px;
+}
+
+.carousel-slot {
+  margin: 0 0 16px;
+  padding-bottom: 12px;
+  border-bottom: 1px solid rgba(235, 235, 243, 0.12);
+}
+
+.carousel-preview-strip {
+  display: flex;
+  gap: 12px;
+  overflow: auto;
+  padding: 16px;
+}
+
+.carousel-preview-strip .cr-ig-frame {
+  transform: scale(0.22);
+  transform-origin: top left;
+  pointer-events: none;
+}
+
+.carousel-preview-card {
+  width: 238px;
+  height: 297px;
+  overflow: hidden;
+  flex: 0 0 auto;
+}
+
+.carousel-save {
+  font-size: 12px;
+  opacity: 0.7;
+}
+
+.carousel-custom {
+  font-size: 11px;
+  opacity: 0.7;
+}
+
+.carousel-desk.is-preview .carousel-desk-body {
+  grid-template-columns: minmax(0, 1fr);
 }
 
 @media (max-width: 720px) {

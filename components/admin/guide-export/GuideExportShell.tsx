@@ -1,4 +1,5 @@
 import type { ReactNode, Ref } from "react";
+import { exportPhotoSrc } from "@/lib/export-image";
 
 export function GuideExportWave() {
   return (
@@ -72,7 +73,7 @@ export function GuideExportShell({
       style={{ ["--cr-ig-accent" as string]: accent }}
     >
       <div className="cr-ig-bg">
-        <img src={image} alt="" crossOrigin="anonymous" />
+        <img src={exportPhotoSrc(image)} alt="" decoding="sync" loading="eager" />
       </div>
 
       <header className="cr-ig-head">

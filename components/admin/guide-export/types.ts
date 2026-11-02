@@ -1,3 +1,4 @@
+import { authorSocialHref, type GuideAuthor } from "@/lib/guide-authors";
 import type { GuideDraftItem } from "@/lib/guide-shared";
 
 export const IG_POST_WIDTH = 1080;
@@ -58,6 +59,15 @@ export type GuideExportSlide =
       image: string;
       accent: string;
       ink: "night" | "snow";
+    }
+  | {
+      kind: "author";
+      name: string;
+      tagline: string;
+      pitch: string;
+      photo: string;
+      handle: string;
+      firstName: string;
     };
 
 function friendlyCity(value: string) {
@@ -106,10 +116,23 @@ function formatExportPrice(value: number | string | null | undefined) {
   return `From R ${Math.round(n)}`;
 }
 
+function firstNameFromDisplay(name: string) {
+  return name.trim().split(/\s+/)[0] || name;
+}
+
+export function exportInstagramHandle(raw: string | null | undefined) {
+  const href = authorSocialHref(raw, "instagram");
+  if (!href) return "";
+  const match = href.match(/instagram\.com\/([^/?#]+)/i);
+  const handle = (match?.[1] ?? "").replace(/^@/, "");
+  return handle ? `@${handle}` : "";
+}
+
 export function buildGuideExportSlides(input: {
   title: string;
   intro: string;
   items: GuideDraftItem[];
+  author?: GuideAuthor | null;
 }): GuideExportSlide[] {
   const title = input.title.trim() || "Untitled Guide";
   const items = input.items;
@@ -143,6 +166,24 @@ export function buildGuideExportSlides(input: {
       ink: inkForAccent(accent),
     });
   });
+
+  const author = input.author;
+  const authorName = author?.display_name.trim() ?? "";
+  if (author && authorName) {
+    const tagline = (author.tagline ?? "").trim();
+    const bio = (author.bio ?? "").trim();
+    slides.push({
+      kind: "author",
+      name: authorName,
+      tagline: tagline || "Local explorer",
+      pitch:
+        truncateCopy(bio || tagline, 92) ||
+        "A local explorer picking spots worth getting out of the house for.",
+      photo: (author.photo_url || author.cover_url || "").trim(),
+      handle: exportInstagramHandle(author.instagram_url),
+      firstName: firstNameFromDisplay(authorName),
+    });
+  }
 
   return slides;
 }

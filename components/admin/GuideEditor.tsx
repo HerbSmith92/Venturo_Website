@@ -4,7 +4,7 @@ import { useEffect, useMemo, useRef, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { saveGuideEvents } from "@/app/admin/content-actions";
 import { applyGuideAction, duplicateCuratedGuide, saveCuratedGuide } from "@/app/admin/guide-actions";
-import { GuideExportModal } from "@/components/admin/guide-export/GuideExportModal";
+import { CarouselWorkspace } from "@/components/admin/carousel/CarouselWorkspace";
 import { SpotlightCarouselModal } from "@/components/admin/SpotlightCarouselModal";
 import { StoryBuilder } from "@/components/admin/StoryBuilder";
 import { SpotlightArticle } from "@/components/SpotlightArticle";
@@ -88,6 +88,7 @@ export function GuideEditor({
   notice,
   error,
   events,
+  carouselEvents = [],
   linkedEventIds,
   places,
   authors = [],
@@ -100,6 +101,7 @@ export function GuideEditor({
   notice?: string;
   error?: string;
   events: { id: string; title: string }[];
+  carouselEvents?: import("@/lib/guide-carousel").CarouselEventSource[];
   linkedEventIds: string[];
   places: GuidePlace[];
   authors?: GuideAuthor[];
@@ -1407,18 +1409,23 @@ export function GuideEditor({
           <h2>Instagram carousel</h2>
           <p>Turn this guide into social slides.</p>
           <button type="button" className="btn btn-secondary" onClick={() => setExportOpen(true)}>
-            Create carousel
+            Create Instagram carousel
           </button>
         </section>
       </aside>
       </div>
 
-      <GuideExportModal
+      <CarouselWorkspace
         open={exportOpen && draft.shape !== "spotlight"}
+        onClose={() => setExportOpen(false)}
+        guideId={guide.id}
         title={draft.title}
         intro={draft.intro}
         items={draft.items}
-        onClose={() => setExportOpen(false)}
+        author={credited}
+        place={places.find((row) => row.id === placeId)?.name ?? "Joburg & nearby"}
+        savedDraft={guide.carousel_draft}
+        events={carouselEvents}
       />
       <SpotlightCarouselModal
         open={exportOpen && draft.shape === "spotlight"}
