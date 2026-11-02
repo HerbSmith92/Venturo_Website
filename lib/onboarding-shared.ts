@@ -92,6 +92,9 @@ export function memberPostAuthPath(input: {
   paid: boolean;
   requestedNext: string;
 }) {
+  if (input.requestedNext.startsWith("/authors/join/")) {
+    return input.requestedNext;
+  }
   if (isPortalPath(input.requestedNext)) {
     return input.requestedNext.startsWith("/portal/login")
       ? "/portal"

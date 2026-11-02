@@ -4,7 +4,7 @@ import { createListing } from "@/app/admin/actions";
 import { createCommunity } from "@/app/admin/content-actions";
 import { MenuChevron, MenuIcon, clearMenuFlyout, iconFor, pinMenuFlyout } from "@/components/menu/MenuIcon";
 import type { StaffSession } from "@/lib/auth";
-import { isAdmin } from "@/lib/roles";
+import { isAdmin, isStaff } from "@/lib/roles";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { useEffect, useState } from "react";
 
@@ -45,6 +45,42 @@ function rowLeaves(group: string): Leaf[] {
     label,
     href: planned(group, label),
   }));
+}
+
+function writerMenu(name: string, authorId: string): Group[] {
+  return [
+    {
+      id: "content",
+      label: "Content",
+      headings: [
+        {
+          id: "guides",
+          label: "Guides",
+          href: "/admin/guides",
+          leaves: [
+            { id: "all", label: "All", href: "/admin/guides" },
+            { id: "draft", label: "Drafts", href: "/admin/guides?status=draft" },
+            { id: "published", label: "Published", href: "/admin/guides?status=published" },
+            { id: "profile", label: "Your profile", href: `/admin/authors/${authorId}` },
+          ],
+        },
+      ],
+    },
+    {
+      id: "user",
+      label: "User",
+      headings: [
+        { id: "account", label: name || "Account", href: "/account", leaves: [] },
+        { id: "sign-out", label: "Log Out", action: "sign-out" as const, leaves: [] },
+      ],
+    },
+    {
+      id: "public-site",
+      label: "Public Site",
+      labelHref: "/",
+      headings: [],
+    },
+  ];
 }
 
 function menu(admin: boolean, name: string): Group[] {
@@ -111,6 +147,7 @@ function menu(admin: boolean, name: string): Group[] {
             { id: "draft", label: "Drafts", href: "/admin/guides?status=draft" },
             { id: "published", label: "Published", href: "/admin/guides?status=published" },
             { id: "archived", label: "Archived", href: "/admin/guides?status=archived" },
+            { id: "authors", label: "Authors", href: "/admin/authors" },
           ],
         },
       ],
@@ -203,7 +240,9 @@ function headingMatches(heading: Heading, path: string, here: string) {
   if (heading.id === "directory") return path.startsWith("/admin/listings");
   if (heading.id === "content-events") return path.startsWith("/admin/events");
   if (heading.id === "community") return path.startsWith("/admin/communities");
-  if (heading.id === "guides") return path.startsWith("/admin/guides");
+  if (heading.id === "guides") {
+    return path.startsWith("/admin/guides") || path.startsWith("/admin/event-guides") || path.startsWith("/admin/authors");
+  }
   if (heading.id === "analytics") return path.startsWith("/admin/analytics");
   if (heading.id === "fees") return path.startsWith("/admin/fees");
   if (heading.id === "members") return path.startsWith("/admin/members");
@@ -215,12 +254,21 @@ function headingMatches(heading: Heading, path: string, here: string) {
   return false;
 }
 
-export function AdminNav({ user }: { user: StaffSession }) {
+export function AdminNav({
+  user,
+  linkedAuthorId,
+}: {
+  user: StaffSession;
+  linkedAuthorId?: string | null;
+}) {
   const path = usePathname();
   const params = useSearchParams();
   const router = useRouter();
   const admin = isAdmin(user.role);
-  const groups = menu(admin, user.firstName);
+  const writerOnly = !isStaff(user.role) && Boolean(linkedAuthorId);
+  const groups = writerOnly && linkedAuthorId
+    ? writerMenu(user.firstName, linkedAuthorId)
+    : menu(admin, user.firstName);
   const [collapsed, setCollapsed] = useState(false);
   const [open, setOpen] = useState<Record<string, boolean>>({});
 
@@ -406,5 +454,6 @@ function leafActive(path: string, params: { get(name: string): string | null }) 
   if (path === "/admin/events") return `/admin/events?status=${status || "review"}`;
   if (path === "/admin/communities") return status && status !== "all" ? `/admin/communities?status=${status}` : "/admin/communities";
   if (path === "/admin/guides") return status ? `/admin/guides?status=${status}` : "/admin/guides";
+  if (path === "/admin/authors") return "/admin/authors";
   return path;
 }

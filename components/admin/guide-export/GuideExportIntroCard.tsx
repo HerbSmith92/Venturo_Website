@@ -1,12 +1,12 @@
 import type { Ref } from "react";
 import {
   GuideExportChip,
+  GuideExportCta,
   GuideExportShell,
-  titleSizeFor,
 } from "@/components/admin/guide-export/GuideExportShell";
 import type { GuideExportSlide } from "@/components/admin/guide-export/types";
 
-const INTRO_ACCENT = "#F3BF4A"; // Cheerful Canary
+const INTRO_ACCENT = "#F3BF4A";
 
 export function GuideExportIntroCard({
   slide,
@@ -15,38 +15,29 @@ export function GuideExportIntroCard({
   slide: Extract<GuideExportSlide, { kind: "intro" }>;
   frameRef?: Ref<HTMLDivElement>;
 }) {
-  const rawTagline =
+  const lede =
     slide.intro ||
     (slide.spotCount > 0
       ? `${slide.spotCount} hand-picked spot${slide.spotCount === 1 ? "" : "s"} from the Venturo directory.`
       : "Hand-picked spots from the Venturo directory.");
-  const tagline =
-    rawTagline.length > 110 ? `${rawTagline.slice(0, 107).trimEnd()}…` : rawTagline;
-
-  const spotLabel = slide.spotCount === 1 ? "1 SPOT" : `${slide.spotCount} SPOTS`;
 
   return (
     <GuideExportShell
       frameRef={frameRef}
       accent={INTRO_ACCENT}
+      ink="night"
       image={slide.cover}
       title={slide.title}
-      tagline={tagline}
-      titleSize={titleSizeFor(slide.title)}
       band={
         <>
+          <p className="cr-ig-lede">{lede}</p>
           <div className="cr-ig-chips">
-            <div className="cr-ig-chip-col">
-              <GuideExportChip primary={spotLabel} secondary="Hand-picked" />
-              <GuideExportChip primary="FREE TO BROWSE" />
-            </div>
             <GuideExportChip
-              tall
-              primary="VENTURO GUIDE"
-              secondary={["From the directory", "Worth getting out for"]}
+              primary={slide.spotCount === 1 ? "1 spot" : `${slide.spotCount} spots`}
             />
+            <GuideExportChip primary="Hand-picked" />
           </div>
-          <p className="cr-ig-footer">venturo.co.za</p>
+          <GuideExportCta />
         </>
       }
     />

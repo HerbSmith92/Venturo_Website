@@ -1,4 +1,6 @@
 import { createClient } from "@/lib/supabase/server";
+import { liveEventGuides } from "@/lib/event-guides";
+import { authorFromEmbed, type GuideAuthor, type GuideAuthorPublic } from "@/lib/guide-authors";
 import {
   CATEGORIES,
   categoryColour,
@@ -6,6 +8,16 @@ import {
   formatFromPrice,
   type CategoryId,
 } from "@/lib/listings";
+import {
+  coverPhoto,
+  emptySpotlightCover,
+  parseSpotlightCover,
+  parseSpotlightPhotos,
+  parseSpotlightStory,
+  type SpotlightCover,
+  type SpotlightPhoto,
+  type SpotlightSection,
+} from "@/lib/spotlight";
 
 const FALLBACK_IMAGE = "/brand/images/climbing.jpg";
 const CATEGORY_IDS = new Set(CATEGORIES.map((item) => item.id));
@@ -17,6 +29,12 @@ export type GuideCardData = {
   intro: string | null;
   cover: string;
   itemCount: number;
+  about?: "activities" | "events";
+  shape?: "roundup" | "spotlight";
+  authorName?: string | null;
+  authorId?: string | null;
+  authorSlug?: string | null;
+  publishAt?: string | null;
 };
 
 export type GuideRecommendation = {
@@ -37,7 +55,16 @@ export type PublicGuide = {
   title: string;
   slug: string;
   intro: string | null;
+  body: string | null;
+  shape: "roundup" | "spotlight";
+  author: GuideAuthorPublic | null;
   items: GuideRecommendation[];
+  listingId: string | null;
+  story: SpotlightSection[];
+  photos: SpotlightPhoto[];
+  cover: SpotlightCover;
+  publishedAt: string | null;
+  updatedAt: string | null;
 };
 
 type MediaRow = {
@@ -73,9 +100,18 @@ type GuideRow = {
   title: string;
   slug: string;
   intro: string | null;
+  body?: string | null;
+  shape?: "roundup" | "spotlight" | null;
   status?: string;
   publish_at?: string | null;
   expire_at?: string | null;
+  listing_id?: string | null;
+  story?: unknown;
+  photos?: unknown;
+  cover?: unknown;
+  published_snapshot?: Record<string, unknown> | null;
+  updated_at?: string | null;
+  guide_authors?: GuideAuthor | GuideAuthor[] | null;
   curated_guide_items?: {
     sort_order: number | null;
     editorial_note: string | null;
@@ -156,14 +192,7 @@ function sortedItems(row: GuideRow) {
     .filter((item): item is GuideRecommendation => Boolean(item));
 }
 
-const GUIDE_SELECT = `
-  id,
-  title,
-  slug,
-  intro,
-  status,
-  publish_at,
-  expire_at,
+const GUIDE_ITEMS_SELECT = `
   curated_guide_items (
     sort_order,
     editorial_note,
@@ -182,6 +211,17 @@ const GUIDE_SELECT = `
       price_options ( standard_price, member_price, is_active )
     )
   )
+`;
+
+const GUIDE_SELECT = `
+  id, title, slug, intro, body, shape, status, publish_at, expire_at, listing_id, story, photos, cover, published_snapshot, updated_at,
+  guide_authors ( id, display_name, slug, tagline, bio, photo_url, photo_storage_key, cover_url, cover_storage_key, instagram_url, tiktok_url, facebook_url, website_url, user_id ),
+  ${GUIDE_ITEMS_SELECT}
+`;
+
+const GUIDE_SELECT_LEGACY = `
+  id, title, slug, intro, status, publish_at, expire_at,
+  ${GUIDE_ITEMS_SELECT}
 `;
 
 function isCurrentlyLive(row: {
@@ -209,51 +249,113 @@ export async function liveGuides(limit?: number): Promise<GuideCardData[]> {
 
   if (limit) query = query.limit(Math.max(limit, 8));
 
-  const { data, error } = await query;
+  let { data, error } = await query;
+  if (error) {
+    let fallback = supabase
+      .from("curated_guides")
+      .select(GUIDE_SELECT_LEGACY)
+      .eq("status", "published")
+      .order("publish_at", { ascending: false, nullsFirst: false })
+      .order("updated_at", { ascending: false });
+    if (limit) fallback = fallback.limit(Math.max(limit, 8));
+    const retry = await fallback;
+    data = retry.data as typeof data;
+    error = retry.error;
+  }
   if (error || !data) return [];
 
-  const cards = (data as GuideRow[])
-    .filter(isCurrentlyLive)
-    .map((row) => {
-      const items = sortedItems(row);
-      if (items.length === 0) return null;
-      return {
+  const cards: GuideCardData[] = (data as GuideRow[]).flatMap((row) => {
+    if (!isCurrentlyLive(row)) return [];
+    const items = sortedItems(row);
+    if (items.length === 0) return [];
+    const author = authorFromEmbed(row.guide_authors);
+    const snapshot = row.published_snapshot;
+    const photos = parseSpotlightPhotos(snapshot?.photos ?? row.photos);
+    const cover = parseSpotlightCover(snapshot?.cover ?? row.cover);
+    const spotlightCover = coverPhoto(photos, cover)?.url;
+    return [
+      {
         id: row.id,
-        title: row.title,
+        title: (typeof snapshot?.title === "string" ? snapshot.title : row.title),
         slug: row.slug,
-        intro: row.intro,
-        cover: items[0]?.image ?? FALLBACK_IMAGE,
+        intro: (typeof snapshot?.intro === "string" ? snapshot.intro : row.intro),
+        cover: spotlightCover ?? items[0]?.image ?? FALLBACK_IMAGE,
         itemCount: items.length,
-      } satisfies GuideCardData;
-    })
-    .filter((row): row is GuideCardData => Boolean(row));
+        about: "activities",
+        shape: row.shape === "spotlight" ? "spotlight" : "roundup",
+        authorName: author?.name ?? null,
+        authorId: author?.id ?? null,
+        authorSlug: author?.slug ?? null,
+        publishAt: row.publish_at ?? null,
+      },
+    ];
+  });
 
-  return typeof limit === "number" ? cards.slice(0, limit) : cards;
+  const events = await liveEventGuides(typeof limit === "number" ? Math.max(limit, 8) : 48);
+  const merged: GuideCardData[] = [...cards, ...events].sort((a, b) => {
+    const aTime = a.publishAt ? Date.parse(a.publishAt) : 0;
+    const bTime = b.publishAt ? Date.parse(b.publishAt) : 0;
+    return bTime - aTime;
+  });
+
+  return typeof limit === "number" ? merged.slice(0, limit) : merged;
+}
+
+export async function liveGuidesByAuthor(authorId: string): Promise<GuideCardData[]> {
+  if (!authorId) return [];
+  return (await liveGuides()).filter((guide) => guide.authorId === authorId);
 }
 
 export async function getPublicGuideBySlug(slug: string): Promise<PublicGuide | null> {
   const supabase = await createClient();
   if (!supabase || !slug) return null;
 
-  const { data, error } = await supabase
+  let { data, error } = await supabase
     .from("curated_guides")
     .select(GUIDE_SELECT)
     .eq("slug", slug)
     .eq("status", "published")
     .maybeSingle();
+  if (error) {
+    const retry = await supabase
+      .from("curated_guides")
+      .select(GUIDE_SELECT_LEGACY)
+      .eq("slug", slug)
+      .eq("status", "published")
+      .maybeSingle();
+    data = retry.data as typeof data;
+    error = retry.error;
+  }
 
   if (error || !data) return null;
   const row = data as GuideRow;
   if (!isCurrentlyLive(row)) return null;
   const items = sortedItems(row);
   if (items.length === 0) return null;
+  const snapshot = row.published_snapshot;
+  const title = typeof snapshot?.title === "string" ? snapshot.title : row.title;
+  const intro = typeof snapshot?.intro === "string" ? snapshot.intro : row.intro;
+  const story = parseSpotlightStory(snapshot?.story ?? row.story);
+  const photos = parseSpotlightPhotos(snapshot?.photos ?? row.photos);
+  const cover = parseSpotlightCover(snapshot?.cover ?? row.cover) ?? emptySpotlightCover();
+  const listingId =
+    (typeof snapshot?.listing_id === "string" ? snapshot.listing_id : null) ?? row.listing_id ?? items[0]?.listingId ?? null;
 
   return {
     id: row.id,
-    title: row.title,
+    title,
     slug: row.slug,
-    intro: row.intro,
+    intro,
+    body: row.body ?? null,
+    shape: row.shape === "spotlight" ? "spotlight" : "roundup",
+    author: authorFromEmbed(row.guide_authors),
     items,
+    listingId,
+    story,
+    photos,
+    cover,
+    publishedAt: row.publish_at ?? row.updated_at ?? null,
+    updatedAt: row.updated_at ?? null,
   };
 }
 

@@ -40,6 +40,18 @@ export function formatRand(value: number | string | null | undefined) {
   return `R ${n.toFixed(2)}`;
 }
 
+export function formatBoardDay(iso: string | null | undefined) {
+  if (!iso) return "—";
+  const date = new Date(iso);
+  if (Number.isNaN(date.getTime())) return "—";
+  return new Intl.DateTimeFormat("en-ZA", {
+    timeZone: "Africa/Johannesburg",
+    day: "numeric",
+    month: "short",
+    year: "numeric",
+  }).format(date);
+}
+
 export function formatClock(iso: string | null | undefined) {
   if (!iso) return "—";
   const date = new Date(iso);

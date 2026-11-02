@@ -1,7 +1,13 @@
-export const GUIDE_STATUSES = ["draft", "published", "archived"] as const;
+export const GUIDE_STATUSES = ["draft", "review", "changes", "published", "archived"] as const;
 export type GuideStatus = (typeof GUIDE_STATUSES)[number];
 
-export const GUIDE_ACTIONS = ["publish", "unpublish", "archive"] as const;
+export const GUIDE_SHAPES = ["roundup", "spotlight"] as const;
+export type GuideShape = (typeof GUIDE_SHAPES)[number];
+
+export const GUIDE_ABOUT = ["activities", "events"] as const;
+export type GuideAbout = (typeof GUIDE_ABOUT)[number];
+
+export const GUIDE_ACTIONS = ["publish", "unpublish", "archive", "submit", "request_changes"] as const;
 export type GuideAction = (typeof GUIDE_ACTIONS)[number];
 
 export const SUGGESTED_GUIDE_TITLES = [
@@ -45,6 +51,55 @@ export function parseUnderPriceTitle(title: string) {
   return { amount, placeName: match[2]?.trim() || null };
 }
 
+export type GuideAudienceMatch = {
+  kindIds?: string[];
+  kindInterestIds?: string[];
+  personaIds?: string[];
+  scaleId?: string | null;
+  interestIds?: string[];
+};
+
+export function guideHasAudience(audience: GuideAudienceMatch) {
+  return Boolean(
+    (audience.kindIds ?? []).some(Boolean) ||
+      (audience.personaIds ?? []).some(Boolean) ||
+      (audience.interestIds ?? []).some(Boolean) ||
+      audience.scaleId?.trim(),
+  );
+}
+
+export function guideFillSummary(
+  shown: number,
+  total: number,
+  amount: number | null,
+  placeName: string | null,
+  audience: string | null = null,
+) {
+  const rounded = amount != null ? Math.round(amount) : null;
+  const where = [
+    rounded != null ? `under R${rounded}` : "",
+    placeName ? `in and around ${placeName}` : "",
+    audience ? `for ${audience}` : "",
+  ]
+    .filter(Boolean)
+    .join(" ");
+  const scoped = where || "matching those choices";
+  if (total === 0) return `No live listings ${scoped}.`;
+  const noun = total === 1 ? "live listing" : "live listings";
+  if (shown < total) {
+    const order = placeName ? "nearest first" : rounded != null ? "lowest price first" : "best match first";
+    const near = [
+      rounded != null ? `under R${rounded}` : "",
+      placeName ? `within ${GUIDE_NEAR_KM} km of ${placeName}` : "",
+      audience ? `for ${audience}` : "",
+    ]
+      .filter(Boolean)
+      .join(" ");
+    return `Showing ${shown} of ${total} ${noun} ${near || scoped}, ${order}.`;
+  }
+  return `${total} ${noun} ${scoped}.`;
+}
+
 export function pricedGuideSummary(
   shown: number,
   total: number,
@@ -52,30 +107,8 @@ export function pricedGuideSummary(
   placeName: string | null,
   audience: string | null = null,
 ) {
-  const rounded = Math.round(amount);
-  const where = placeName
-    ? `under R${rounded} in and around ${placeName}`
-    : `under R${rounded}`;
-  const scoped = audience ? `${where} for ${audience}` : where;
-  if (total === 0) return `No live listings ${scoped}.`;
-  const noun = total === 1 ? "live listing" : "live listings";
-  if (shown < total) {
-    const order = placeName ? "nearest first" : "lowest price first";
-    const near = placeName
-      ? `under R${rounded} within ${GUIDE_NEAR_KM} km of ${placeName}`
-      : `under R${rounded}`;
-    const limited = audience ? `${near} for ${audience}` : near;
-    return `Showing ${shown} of ${total} ${noun} ${limited}, ${order}.`;
-  }
-  return `${total} ${noun} ${scoped}.`;
+  return guideFillSummary(shown, total, amount, placeName, audience);
 }
-
-export type GuideAudienceMatch = {
-  kindIds?: string[];
-  personaIds?: string[];
-  scaleId?: string | null;
-  interestIds?: string[];
-};
 
 /** A listing must fit every audience group that is turned on. Inside a group, any tag is enough. */
 export function listingMatchesGuideAudience(
@@ -91,10 +124,17 @@ export function listingMatchesGuideAudience(
   const hasAny = (ids: string[], have: string[] | null | undefined) =>
     ids.some((id) => (have ?? []).includes(id));
   const kinds = wanted(audience.kindIds);
+  const kindInterests = wanted(audience.kindInterestIds);
   const personas = wanted(audience.personaIds);
   const interests = wanted(audience.interestIds);
   const scale = audience.scaleId?.trim() ?? "";
-  if (kinds.length && !hasAny(kinds, listing.kind_ids)) return false;
+  if (
+    kinds.length &&
+    !hasAny(kinds, listing.kind_ids) &&
+    !(kindInterests.length && hasAny(kindInterests, listing.interest_ids))
+  ) {
+    return false;
+  }
   if (personas.length && !hasAny(personas, listing.persona_ids)) return false;
   if (interests.length && !hasAny(interests, listing.interest_ids)) return false;
   if (scale && !(listing.scale_ids ?? []).includes(scale)) return false;
@@ -148,6 +188,60 @@ export function guideFromPrice(
   return Math.min(...amounts);
 }
 
+export function pickGuideFillListings<
+  T extends {
+    name: string;
+    price_from: number | string | null;
+    latitude?: number | string | null;
+    longitude?: number | string | null;
+  },
+>(
+  rows: T[],
+  input: {
+    maxPrice?: number | null;
+    lat?: number | null;
+    lng?: number | null;
+    radiusKm?: number;
+    limit?: number;
+  },
+) {
+  const maxPrice =
+    input.maxPrice != null && Number.isFinite(input.maxPrice) && input.maxPrice > 0
+      ? input.maxPrice
+      : null;
+  const limit = input.limit ?? GUIDE_FILL_LIMIT;
+  const hasPlace = input.lat != null && input.lng != null;
+  const radius = input.radiusKm ?? GUIDE_NEAR_KM;
+  const matches = rows.flatMap((row) => {
+    const raw = row.price_from;
+    const price =
+      raw == null || raw === ""
+        ? null
+        : typeof raw === "number"
+          ? raw
+          : Number(raw);
+    const hasPrice = price != null && Number.isFinite(price) && price >= 0;
+    if (maxPrice != null && (!hasPrice || (price as number) > maxPrice)) return [];
+    const lat = row.latitude == null || row.latitude === "" ? null : Number(row.latitude);
+    const lng = row.longitude == null || row.longitude === "" ? null : Number(row.longitude);
+    const km =
+      hasPlace && lat != null && lng != null && Number.isFinite(lat) && Number.isFinite(lng)
+        ? distanceKm(input.lat as number, input.lng as number, lat, lng)
+        : null;
+    if (hasPlace && (km == null || km > radius)) return [];
+    return [{ row, price: hasPrice ? (price as number) : Number.POSITIVE_INFINITY, km: km ?? Number.POSITIVE_INFINITY }];
+  });
+  matches.sort((a, b) => {
+    if (hasPlace && a.km !== b.km) return a.km - b.km;
+    if (a.price !== b.price) return a.price - b.price;
+    return a.row.name.localeCompare(b.row.name);
+  });
+  return {
+    total: matches.length,
+    matches: matches.slice(0, limit).map((item) => item.row),
+  };
+}
+
 export function pickPricedGuideListings<
   T extends {
     name: string;
@@ -165,32 +259,7 @@ export function pickPricedGuideListings<
     limit?: number;
   },
 ) {
-  const maxPrice = input.maxPrice;
-  const limit = input.limit ?? GUIDE_FILL_LIMIT;
-  const hasPlace = input.lat != null && input.lng != null;
-  const radius = input.radiusKm ?? GUIDE_NEAR_KM;
-  const priced = rows.flatMap((row) => {
-    if (row.price_from == null || row.price_from === "") return [];
-    const price = typeof row.price_from === "number" ? row.price_from : Number(row.price_from);
-    if (!Number.isFinite(price) || price < 0 || price > maxPrice) return [];
-    const lat = row.latitude == null || row.latitude === "" ? null : Number(row.latitude);
-    const lng = row.longitude == null || row.longitude === "" ? null : Number(row.longitude);
-    const km =
-      hasPlace && lat != null && lng != null && Number.isFinite(lat) && Number.isFinite(lng)
-        ? distanceKm(input.lat as number, input.lng as number, lat, lng)
-        : null;
-    if (hasPlace && (km == null || km > radius)) return [];
-    return [{ row, price, km: km ?? Number.POSITIVE_INFINITY }];
-  });
-  priced.sort((a, b) => {
-    if (hasPlace && a.km !== b.km) return a.km - b.km;
-    if (a.price !== b.price) return a.price - b.price;
-    return a.row.name.localeCompare(b.row.name);
-  });
-  return {
-    total: priced.length,
-    matches: priced.slice(0, limit).map((item) => item.row),
-  };
+  return pickGuideFillListings(rows, input);
 }
 
 export function isGuideStatus(value: string): value is GuideStatus {
@@ -201,9 +270,23 @@ export function isGuideAction(value: string): value is GuideAction {
   return GUIDE_ACTIONS.includes(value as GuideAction);
 }
 
+export function isGuideShape(value: string): value is GuideShape {
+  return GUIDE_SHAPES.includes(value as GuideShape);
+}
+
+export function guideShapeLabel(shape: string) {
+  return shape === "spotlight" ? "Spotlight" : "Round-up";
+}
+
+export function guideAboutLabel(about: string) {
+  return about === "events" ? "Events" : "Activities";
+}
+
 export function guideStatusLabel(status: string) {
   if (status === "published") return "Published";
   if (status === "archived") return "Archived";
+  if (status === "review") return "Awaiting review";
+  if (status === "changes") return "Changes requested";
   return "Draft";
 }
 
@@ -280,6 +363,9 @@ export type GuideDraftItem = {
 export type GuideDraft = {
   title: string;
   intro: string;
+  body: string;
+  shape: GuideShape;
+  author_id: string;
   publish_at: string;
   expire_at: string;
   kind_ids: string[];

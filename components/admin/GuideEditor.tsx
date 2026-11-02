@@ -3,17 +3,22 @@
 import { useEffect, useMemo, useRef, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { saveGuideEvents } from "@/app/admin/content-actions";
-import { saveCuratedGuide } from "@/app/admin/guide-actions";
-import { GuideActions } from "@/components/admin/GuideActions";
+import { applyGuideAction, duplicateCuratedGuide, saveCuratedGuide } from "@/app/admin/guide-actions";
 import { GuideExportModal } from "@/components/admin/guide-export/GuideExportModal";
+import { SpotlightCarouselModal } from "@/components/admin/SpotlightCarouselModal";
+import { StoryBuilder } from "@/components/admin/StoryBuilder";
+import { SpotlightArticle } from "@/components/SpotlightArticle";
 import { formatRand } from "@/lib/control-room-shared";
-import type { GuideEditorRecord } from "@/lib/control-room-guides";
+import type { GuideEditorRecord, SpotlightListingDetails } from "@/lib/control-room-guides";
+import type { GuideAuthor } from "@/lib/guide-authors";
+import { mapGuideAuthor } from "@/lib/guide-authors";
 import {
   SUGGESTED_GUIDE_TITLES,
   UNDER_PRICE_TITLE,
+  guideFillSummary,
+  guideHasAudience,
   guideStatusLabel,
   parseUnderPriceTitle,
-  pricedGuideSummary,
   toZaLocalInput,
   underPriceTitle,
   type GuideDraft,
@@ -26,26 +31,27 @@ import {
   interestKeywordsFromIds,
   type EditorCatalog,
 } from "@/lib/listing-draft";
+import { createClient } from "@/lib/supabase/client";
+import {
+  emptySpotlightCover,
+  mergeListingPhotos,
+  newSpotlightId,
+  type SpotlightPhoto,
+  type SpotlightSection,
+  type SpotlightVisitInfo,
+} from "@/lib/spotlight";
 
 const FALLBACK_IMAGE = "/brand/images/climbing.jpg";
 
 const GUIDE_STEPS = [
-  { key: "list", label: "The List" },
+  { key: "list", label: "Guide details" },
   { key: "audience", label: "Audience" },
-  { key: "window", label: "Window" },
-  { key: "spots", label: "Recommendations" },
-  { key: "events", label: "Linked Events" },
+  { key: "spots", label: "Activities" },
+  { key: "story", label: "Story" },
+  { key: "events", label: "Linked events" },
 ] as const;
 
 type GuideStepKey = (typeof GUIDE_STEPS)[number]["key"];
-
-function windowSummary(publish: string, expire: string) {
-  const short = (value: string) => value.replace("T", " ").slice(0, 16);
-  if (publish && expire) return `${short(publish)} – ${short(expire)}`;
-  if (publish) return `From ${short(publish)}`;
-  if (expire) return `Until ${short(expire)}`;
-  return "Evergreen";
-}
 
 function toggleId(ids: string[], id: string) {
   return ids.includes(id) ? ids.filter((item) => item !== id) : [...ids, id];
@@ -84,6 +90,10 @@ export function GuideEditor({
   events,
   linkedEventIds,
   places,
+  authors = [],
+  canPublish = true,
+  lockAuthor = false,
+  listing = null,
 }: {
   guide: GuideEditorRecord;
   catalog: EditorCatalog;
@@ -92,10 +102,15 @@ export function GuideEditor({
   events: { id: string; title: string }[];
   linkedEventIds: string[];
   places: GuidePlace[];
+  authors?: GuideAuthor[];
+  canPublish?: boolean;
+  lockAuthor?: boolean;
+  listing?: SpotlightListingDetails | null;
 }) {
   const router = useRouter();
   const [pending, startTransition] = useTransition();
   const dragId = useRef<string | null>(null);
+  const photoRef = useRef<HTMLInputElement>(null);
   const [saveError, setSaveError] = useState<string | null>(null);
   const [saveNotice, setSaveNotice] = useState<string | null>(null);
   const [listingQuery, setListingQuery] = useState("");
@@ -118,7 +133,6 @@ export function GuideEditor({
   const fillSkip = useRef(true);
   const placesRef = useRef(places);
   placesRef.current = places;
-  const [notesOpen, setNotesOpen] = useState<Record<string, boolean>>({});
   const [exportOpen, setExportOpen] = useState(false);
   const [activeStep, setActiveStep] = useState<GuideStepKey>("list");
   const [interestKeywords, setInterestKeywords] = useState(() =>
@@ -126,18 +140,29 @@ export function GuideEditor({
   );
   const [openSteps, setOpenSteps] = useState<Record<GuideStepKey, boolean>>({
     list: true,
-    audience:
-      guide.kind_ids.length > 0 ||
-      guide.persona_ids.length > 0 ||
-      Boolean(guide.scale_id) ||
-      guide.interest_ids.length > 0,
-    window: Boolean(guide.publish_at || guide.expire_at),
+    audience: true,
     spots: true,
+    story: guide.shape === "spotlight",
     events: linkedEventIds.length > 0,
   });
+  const [story, setStory] = useState(guide.story);
+  const [photos, setPhotos] = useState(guide.photos);
+  const [cover, setCover] = useState(guide.cover.photoId ? guide.cover : emptySpotlightCover());
+  const [activity, setActivity] = useState(listing);
+  const [menuOpen, setMenuOpen] = useState(false);
+  const [previewOpen, setPreviewOpen] = useState(false);
+  const [shapeWarn, setShapeWarn] = useState<"roundup" | "spotlight" | null>(null);
+  const [photoPending, setPhotoPending] = useState(false);
+  const [storySave, setStorySave] = useState<"idle" | "saving" | "saved" | "failed">("idle");
+  const [storySaveError, setStorySaveError] = useState<string | null>(null);
+  const [evergreen, setEvergreen] = useState(!guide.expire_at);
+  const [publishNow, setPublishNow] = useState(!guide.publish_at);
   const [draft, setDraft] = useState<GuideDraft>(() => ({
     title: guide.title === "Untitled Guide" ? "" : guide.title,
     intro: guide.intro ?? "",
+    body: guide.body ?? "",
+    shape: guide.shape === "spotlight" ? "spotlight" : "roundup",
+    author_id: guide.author_id ?? "",
     publish_at: toZaLocalInput(guide.publish_at),
     expire_at: toZaLocalInput(guide.expire_at),
     kind_ids: guide.kind_ids,
@@ -146,6 +171,12 @@ export function GuideEditor({
     interest_ids: guide.interest_ids,
     items: guide.items,
   }));
+
+  useEffect(() => {
+    if (!listing) return;
+    setActivity(listing);
+    setPhotos((current) => mergeListingPhotos(current, listing.media));
+  }, [listing]);
 
   const pickerSelectedInterests = useMemo(
     () => catalog.interests.filter((item) => pickerInterestIds.includes(item.id)),
@@ -160,19 +191,10 @@ export function GuideEditor({
       .slice(0, 12);
   }, [catalog.interests, pickerInterestQuery]);
 
-  function stepOpen(key: GuideStepKey) {
-    return openSteps[key];
-  }
-
   function jump(key: GuideStepKey) {
     setActiveStep(key);
     setOpenSteps((current) => ({ ...current, [key]: true }));
     document.getElementById(`step-${key}`)?.scrollIntoView({ behavior: "smooth", block: "start" });
-  }
-
-  function toggleStep(key: GuideStepKey) {
-    setActiveStep(key);
-    setOpenSteps((current) => ({ ...current, [key]: !current[key] }));
   }
 
   const audienceKey = [
@@ -229,18 +251,26 @@ export function GuideEditor({
       fillSkip.current = false;
       return;
     }
-    if (!priceOn) return;
     const place = placesRef.current.find((item) => item.id === placeId) ?? null;
-    const amount = Math.round(priceAmount);
-    if (!Number.isFinite(amount) || amount <= 0) return;
+    const amount = priceOn ? Math.round(priceAmount) : null;
+    const hasAmount = amount != null && Number.isFinite(amount) && amount > 0;
+    const audience = draftRef.current;
+    const hasAudience = guideHasAudience({
+      kindIds: audience.kind_ids,
+      personaIds: audience.persona_ids,
+      scaleId: audience.scale_id,
+      interestIds: audience.interest_ids,
+    });
+    if (!hasAmount && !place && !hasAudience) return;
+    if (priceOn && !hasAmount) return;
     const scrollToList = !audienceOnly;
 
     let cancelled = false;
     const handle = window.setTimeout(async () => {
       setFilling(true);
       try {
-        const audience = draftRef.current;
-        const params = new URLSearchParams({ maxPrice: String(amount) });
+        const params = new URLSearchParams({ fill: "1" });
+        if (hasAmount) params.set("maxPrice", String(amount));
         if (place) {
           params.set("lat", String(place.lat));
           params.set("lng", String(place.lng));
@@ -266,16 +296,29 @@ export function GuideEditor({
           const notes = new Map(current.items.map((item) => [item.listing_id, item.editorial_note]));
           return {
             ...current,
-            title: underPriceTitle(amount, place?.name ?? null),
-            items: listings.map((listing) => ({
-              listing_id: listing.id,
-              editorial_note: notes.get(listing.id) ?? "",
-              listing,
-            })),
+            title:
+              hasAmount && amount != null
+                ? underPriceTitle(amount, place?.name ?? null)
+                : current.title,
+            items: (draftRef.current.shape === "spotlight" ? listings.slice(0, 1) : listings).map(
+              (listing) => ({
+                listing_id: listing.id,
+                editorial_note: notes.get(listing.id) ?? "",
+                listing,
+              }),
+            ),
           };
         });
         const labels = audienceLabelsFor(audience, catalogRef.current);
-        setMatchNote(pricedGuideSummary(listings.length, total, amount, place?.name ?? null, joinLabels(labels) || null));
+        setMatchNote(
+          guideFillSummary(
+            listings.length,
+            total,
+            hasAmount ? amount : null,
+            place?.name ?? null,
+            joinLabels(labels) || null,
+          ),
+        );
         setOpenSteps((current) => ({ ...current, spots: true }));
         setSaveNotice(null);
         if (scrollToList) {
@@ -307,7 +350,7 @@ export function GuideEditor({
   }
 
   function addListing(listing: GuideListingPreview) {
-    if (draft.items.some((item) => item.listing_id === listing.id)) return;
+    if (draft.items.some((item) => item.listing_id === listing.id) && pickerFor === "new") return;
     if (pickerFor && pickerFor !== "new") {
       patch({
         items: draft.items.map((item) =>
@@ -315,6 +358,10 @@ export function GuideEditor({
             ? { listing_id: listing.id, editorial_note: item.editorial_note, listing }
             : item,
         ),
+      });
+    } else if (draft.shape === "spotlight") {
+      patch({
+        items: [{ listing_id: listing.id, editorial_note: "", listing }],
       });
     } else {
       patch({
@@ -326,6 +373,87 @@ export function GuideEditor({
     }
     setPickerFor(null);
     setListingQuery("");
+    const listingImage = listing.image;
+    if (listingImage) {
+      setPhotos((current) => {
+        if (current.some((photo) => photo.url === listingImage)) return current;
+        const photo = uploadedPhoto(listingImage, "listing");
+        setCover((prev) => (prev.photoId ? prev : { ...prev, photoId: photo.id }));
+        return [...current, photo];
+      });
+    }
+    if (draft.shape === "spotlight") void linkSpotlightListing(listing.id);
+  }
+
+  function uploadedPhoto(url: string, source: SpotlightPhoto["source"] = "upload"): SpotlightPhoto {
+    return {
+      id: newSpotlightId(),
+      source,
+      listingMediaId: null,
+      url,
+      alt: "",
+      caption: "",
+      credit: "",
+      cover: false,
+      gallery: source === "upload",
+      instagram: false,
+      focusX: 50,
+      focusY: 50,
+    };
+  }
+
+  async function onUploadPhotos(files: FileList | null) {
+    const list = [...(files ?? [])];
+    if (!list.length) return;
+    setPhotoPending(true);
+    setSaveError(null);
+    const supabase = createClient();
+    if (!supabase) {
+      setSaveError("Could not reach photo storage.");
+      setPhotoPending(false);
+      return;
+    }
+    const added: SpotlightPhoto[] = [];
+    for (const file of list) {
+      const allowed = file.type.startsWith("image/") || /\.(jpe?g|png|webp|gif)$/i.test(file.name);
+      if (!allowed || /heic|heif/i.test(file.type) || /\.heic$/i.test(file.name)) {
+        setSaveError(`${file.name}: use a JPEG, PNG, WebP, or GIF.`);
+        continue;
+      }
+      if (file.size > 10 * 1024 * 1024) {
+        setSaveError(`${file.name}: keep it under 10 MB.`);
+        continue;
+      }
+      const key = `${guide.id}/${newSpotlightId()}-${file.name.replace(/\s+/g, "-")}`;
+      const { error: uploadError } = await supabase.storage.from("guide-spotlight").upload(key, file, {
+        cacheControl: "3600",
+        contentType: file.type.startsWith("image/") ? file.type : "image/jpeg",
+        upsert: false,
+      });
+      if (uploadError) {
+        setSaveError(`${file.name}: ${uploadError.message}`);
+        continue;
+      }
+      const { data } = supabase.storage.from("guide-spotlight").getPublicUrl(key);
+      added.push(uploadedPhoto(data.publicUrl));
+    }
+    if (added.length) {
+      setPhotos((current) => {
+        setCover((prev) => (prev.photoId ? prev : { ...prev, photoId: added[0].id }));
+        return [...current, ...added];
+      });
+    }
+    setPhotoPending(false);
+    if (photoRef.current) photoRef.current.value = "";
+  }
+
+  function removePhoto(id: string) {
+    setPhotos((current) => current.filter((photo) => photo.id !== id));
+    setCover((current) => {
+      if (current.photoId !== id) return current;
+      const next = photos.find((photo) => photo.id !== id);
+      return { ...current, photoId: next?.id ?? null };
+    });
   }
 
   function removeItem(listingId: string) {
@@ -355,9 +483,13 @@ export function GuideEditor({
     startTransition(async () => {
       const result = await saveCuratedGuide(guide.id, {
         title: draft.title,
+        slug: guide.slug,
         intro: draft.intro,
-        publish_at: draft.publish_at,
-        expire_at: draft.expire_at,
+        body: draft.body,
+        shape: draft.shape,
+        author_id: draft.author_id,
+        publish_at: publishNow ? "" : draft.publish_at,
+        expire_at: evergreen ? "" : draft.expire_at,
         kind_ids: draft.kind_ids,
         persona_ids: draft.persona_ids,
         scale_id: draft.scale_id,
@@ -366,22 +498,132 @@ export function GuideEditor({
           listing_id: item.listing_id,
           editorial_note: item.editorial_note,
         })),
+        listing_id: draft.shape === "spotlight" ? draft.items[0]?.listing_id ?? "" : "",
+        story,
+        photos,
+        cover,
       });
       if (!result.ok) {
         setSaveError(result.error);
         return;
       }
-      setSaveNotice("Guide saved.");
+      setSaveNotice("Saved just now");
       router.refresh();
     });
   }
+
+  async function persistStory(nextStory: SpotlightSection[]) {
+    setStorySave("saving");
+    setStorySaveError(null);
+    const result = await saveCuratedGuide(guide.id, {
+      title: draft.title.trim() || "Untitled Guide",
+      slug: guide.slug,
+      intro: draft.intro,
+      body: draft.body,
+      shape: draft.shape,
+      author_id: draft.author_id,
+      publish_at: publishNow ? "" : draft.publish_at,
+      expire_at: evergreen ? "" : draft.expire_at,
+      kind_ids: draft.kind_ids,
+      persona_ids: draft.persona_ids,
+      scale_id: draft.scale_id,
+      interest_ids: draft.interest_ids,
+      items: draft.items.map((item) => ({
+        listing_id: item.listing_id,
+        editorial_note: item.editorial_note,
+      })),
+      listing_id: draft.shape === "spotlight" ? draft.items[0]?.listing_id ?? "" : "",
+      story: nextStory,
+      photos,
+      cover,
+    });
+    if (!result.ok) {
+      setStorySave("failed");
+      setStorySaveError(result.error);
+      return false;
+    }
+    setStorySave("saved");
+    return true;
+  }
+
+  function requestShape(next: "roundup" | "spotlight") {
+    if (next === draft.shape) return;
+    const hasStory = story.length > 0;
+    const extraItems = draft.items.length > 1;
+    if (next === "spotlight" && extraItems) {
+      setShapeWarn("spotlight");
+      return;
+    }
+    if (next === "roundup" && hasStory) {
+      setShapeWarn("roundup");
+      return;
+    }
+    applyShape(next);
+  }
+
+  function applyShape(next: "roundup" | "spotlight") {
+    patch({
+      shape: next,
+      items: next === "spotlight" ? draft.items.slice(0, 1) : draft.items,
+    });
+    setShapeWarn(null);
+    if (next === "spotlight") jump("story");
+    else jump("spots");
+  }
+
+  async function linkSpotlightListing(id: string) {
+    const res = await fetch(`/api/admin/guides/listings?id=${encodeURIComponent(id)}`);
+    const body = (await res.json()) as { listing?: SpotlightListingDetails | null };
+    const next = body.listing ?? null;
+    setActivity(next);
+    if (next) {
+      setPhotos((current) => {
+        const merged = mergeListingPhotos(current, next.media);
+        setCover((prev) => {
+          if (prev.photoId) return prev;
+          return { ...prev, photoId: merged[0]?.id ?? null };
+        });
+        return merged;
+      });
+    }
+  }
+
+  const visit: SpotlightVisitInfo | null = activity
+    ? {
+        name: activity.name,
+        slug: activity.slug,
+        area: activity.area,
+        fromPrice: activity.fromPrice == null || activity.fromPrice === "" ? null : Number(activity.fromPrice),
+        bookingUrl: activity.bookingUrl,
+        websiteUrl: activity.websiteUrl,
+        phone: activity.phone,
+        bookingRequired: activity.bookingRequired,
+        indoorOutdoor: activity.indoorOutdoor,
+        hours: activity.hours,
+      }
+    : null;
+  const credited = authors.find((row) => row.id === draft.author_id) ?? null;
+  const coverReady = Boolean(cover.photoId || draft.items[0]?.listing?.image);
+  const checks = [
+    { id: "title", ok: Boolean(draft.title.trim()), label: "Title", href: "step-list" },
+    { id: "author", ok: Boolean(draft.author_id), label: "Author assigned", href: "field-author" },
+    {
+      id: "activities",
+      ok: draft.items.length > 0,
+      label: draft.shape === "spotlight" ? "Activity linked" : "Activities linked",
+      href: "step-spots",
+    },
+    { id: "cover", ok: coverReady, label: "Cover image", href: "field-cover" },
+  ];
 
   const isNew = guide.title === "Untitled Guide" && guide.items.length === 0;
   const heading = draft.title.trim() || "Untitled Guide";
   const audienceSummary = joinLabels(audienceLabelsFor(draft, catalog)) || "None yet";
 
+  const visibleSteps = GUIDE_STEPS.filter((step) => (step.key === "story" ? draft.shape === "spotlight" : true));
+
   return (
-    <div className="cr-editor-page">
+    <div className="cr-editor-page guide-desk">
       <aside className="cr-edit-nav" aria-label="Edit guide">
         <a className="cr-edit-spine" href="/admin/guides">
           <span className="cr-edit-spine-mark" aria-hidden="true" />
@@ -391,12 +633,10 @@ export function GuideEditor({
           <a className="cr-edit-brand" href="/admin/guides" aria-label="Guides">
             <img src="/brand/logos/venturo-horizontal-simple-light.svg" alt="Venturo" />
           </a>
-          <p className="cr-edit-title">Guides</p>
+          <p className="cr-edit-title">Guide editor</p>
           <p className="cr-edit-current">{isNew ? "New Guide" : "Edit Guide"}</p>
-          <p className="cr-edit-group">Content</p>
-          <p className="cr-edit-section">Guides</p>
           <nav className="cr-edit-steps">
-            {GUIDE_STEPS.map((step) => (
+            {visibleSteps.map((step) => (
               <button
                 key={step.key}
                 type="button"
@@ -404,69 +644,168 @@ export function GuideEditor({
                 aria-current={activeStep === step.key ? "true" : undefined}
                 onClick={() => jump(step.key)}
               >
-                {step.label}
+                {step.key === "spots" && draft.shape === "spotlight" ? "Activity" : step.label}
               </button>
             ))}
           </nav>
-          <div className="cr-edit-actions">
-            <button className="btn cr-save" type="button" onClick={onSave} disabled={pending}>
-              {pending ? "Saving…" : "Save Guide"}
-            </button>
-            <GuideActions
-              guideId={guide.id}
-              status={guide.status}
-              onExportInstagram={() => setExportOpen(true)}
-            />
-          </div>
-          <div className={guide.status === "published" ? "cr-edit-status is-live" : "cr-edit-status"}>
-            <p>Guide Status</p>
-            <p>{guideStatusLabel(guide.status)}</p>
-          </div>
         </div>
       </aside>
 
       <div className="cr-editor-stage">
-      <header className="cr-editor-head">
-        <div>
-          <p className="cr-editor-kicker">Guides</p>
+      <header className="guide-desk-bar">
+        <div className="guide-desk-bar-title">
+          <a href="/admin/guides">All guides</a>
           <h1>{heading}</h1>
+          <span className="guide-desk-status">{guideStatusLabel(guide.status)}</span>
+          <span className="muted">{pending ? "Saving…" : saveNotice || "Draft"}</span>
+        </div>
+        <div className="guide-desk-bar-actions">
+          <button className="btn btn-secondary" type="button" onClick={() => setPreviewOpen(true)}>
+            Preview
+          </button>
+          <button className="btn btn-secondary" type="button" onClick={onSave} disabled={pending}>
+            Save draft
+          </button>
+          {canPublish ? (
+            <form action={applyGuideAction}>
+              <input type="hidden" name="id" value={guide.id} />
+              <input type="hidden" name="action" value={guide.status === "published" ? "unpublish" : "publish"} />
+              <button className="btn btn-primary" type="submit">
+                {guide.status === "published" ? "Unpublish" : publishNow ? "Publish guide" : "Schedule"}
+              </button>
+            </form>
+          ) : (
+            <form action={applyGuideAction}>
+              <input type="hidden" name="id" value={guide.id} />
+              <input type="hidden" name="action" value="submit" />
+              <button className="btn btn-primary" type="submit">
+                Submit for review
+              </button>
+            </form>
+          )}
+          <details className="guide-desk-menu" open={menuOpen} onToggle={(event) => setMenuOpen(event.currentTarget.open)}>
+            <summary aria-label="More actions">⋯</summary>
+            <div>
+              {canPublish && guide.status !== "archived" ? (
+                <form action={applyGuideAction}>
+                  <input type="hidden" name="id" value={guide.id} />
+                  <input type="hidden" name="action" value="archive" />
+                  <button type="submit">Archive</button>
+                </form>
+              ) : null}
+              <form action={duplicateCuratedGuide}>
+                <input type="hidden" name="id" value={guide.id} />
+                <button type="submit">Duplicate</button>
+              </form>
+            </div>
+          </details>
         </div>
       </header>
 
       {(error || saveError) && <p className="error">{error || saveError}</p>}
-      {(notice || saveNotice) && <p className="notice">{notice || saveNotice}</p>}
+      {(notice || saveNotice) && saveNotice !== "Saved just now" ? <p className="notice">{notice}</p> : null}
 
-      <GuideExportModal
-        open={exportOpen}
-        title={draft.title}
-        intro={draft.intro}
-        items={draft.items}
-        onClose={() => setExportOpen(false)}
-      />
-
-      <div className="cr-editor is-single">
-      <div className="cr-paper cr-guide-editor">
-        <section className={stepOpen("list") ? "cr-step is-open" : "cr-step"} id="step-list">
-          <h2>
-            <button
-              type="button"
-              className="cr-step-toggle"
-              aria-expanded={stepOpen("list")}
-              onClick={() => toggleStep("list")}
-            >
-              <em>The List</em>
-              {!stepOpen("list") ? <small className="cr-guide-step-summary">{heading}</small> : null}
-              <i className="cr-step-caret" aria-hidden="true" />
-            </button>
-          </h2>
-          <label className="field">
-            <span>Guide Title</span>
+      <div className="guide-desk-work">
+      <div className="guide-desk-main">
+        <section className="guide-desk-card" id="step-list">
+          <header className="guide-desk-card-head">
+            <h2><span>01</span> Guide details</h2>
+            <div className="guide-desk-type" role="group" aria-label="Guide type">
+              <button
+                type="button"
+                className={draft.shape === "roundup" ? "is-on" : undefined}
+                onClick={() => requestShape("roundup")}
+              >
+                Collection
+              </button>
+              <button
+                type="button"
+                className={draft.shape === "spotlight" ? "is-on" : undefined}
+                onClick={() => requestShape("spotlight")}
+              >
+                Spotlight
+              </button>
+            </div>
+          </header>
+          <label className="field" id="field-title">
+            <span>Guide title</span>
             <input
               value={draft.title}
               onChange={(e) => patch({ title: e.target.value })}
               placeholder="Top Things to Do This Weekend"
             />
           </label>
+          <div className="field-row">
+            <label className="field" id="field-author">
+              <span>Author</span>
+              <select
+                value={draft.author_id}
+                disabled={lockAuthor}
+                onChange={(event) => patch({ author_id: event.target.value })}
+              >
+                <option value="">Select author</option>
+                {authors.map((author) => (
+                  <option key={author.id} value={author.id}>
+                    {author.display_name}
+                    {author.tagline ? ` — ${author.tagline}` : ""}
+                  </option>
+                ))}
+              </select>
+            </label>
+            <div className="field" id="field-cover">
+              <span>Cover photo</span>
+              <div className="guide-desk-cover">
+                {photos.find((photo) => photo.id === cover.photoId)?.url || draft.items[0]?.listing?.image ? (
+                  <img
+                    src={photos.find((photo) => photo.id === cover.photoId)?.url ?? draft.items[0]?.listing?.image ?? FALLBACK_IMAGE}
+                    alt=""
+                  />
+                ) : (
+                  <span className="muted">No cover yet</span>
+                )}
+                <div>
+                  <input
+                    ref={photoRef}
+                    type="file"
+                    accept="image/jpeg,image/png,image/webp,image/gif"
+                    multiple
+                    hidden
+                    onChange={(event) => void onUploadPhotos(event.target.files)}
+                  />
+                  <button
+                    className="btn btn-secondary"
+                    type="button"
+                    disabled={photoPending}
+                    onClick={() => photoRef.current?.click()}
+                  >
+                    {photoPending ? "Uploading…" : "Add photos"}
+                  </button>
+                  <p className="muted">Extra photos stay with the guide. Click one to make it the cover.</p>
+                </div>
+              </div>
+            </div>
+          </div>
+          {photos.length > 0 ? (
+            <ul className="guide-desk-photos">
+              {photos.map((photo) => (
+                <li key={photo.id} className={cover.photoId === photo.id ? "is-cover" : undefined}>
+                  <button type="button" onClick={() => setCover((current) => ({ ...current, photoId: photo.id }))}>
+                    <img src={photo.url} alt="" />
+                    <span>
+                      {cover.photoId === photo.id ? "Cover" : photo.source === "upload" ? "Extra" : "Listing"}
+                    </span>
+                  </button>
+                  {photo.source === "upload" ? (
+                    <button className="cr-text-remove" type="button" onClick={() => removePhoto(photo.id)}>
+                      Remove
+                    </button>
+                  ) : null}
+                </li>
+              ))}
+            </ul>
+          ) : (
+            <p className="muted">Link an activity or add photos to choose a cover.</p>
+          )}
           <button
             className="cr-text-remove"
             type="button"
@@ -495,8 +834,8 @@ export function GuideEditor({
                       return;
                     }
                     setPriceOn(false);
-                    setMatchNote("");
                     patch({ title });
+                    setFillKey((current) => current + 1);
                   }}
                 >
                   {title}
@@ -504,59 +843,59 @@ export function GuideEditor({
               ))}
             </div>
           ) : null}
-          {priceOn ? (
-            <>
-              <p className="muted cr-step-help">
-                Change the amount, the place, or the audience and the matching businesses replace
-                Recommendations. A listing has to fit every audience group you turn on. Only prices
-                ticked Include in From are counted. Unticked prices stay out. Notes on listings that
-                stay are kept.
-              </p>
-              <div className="field-row">
-                <label className="field">
-                  <span>At most (R)</span>
-                  <input
-                    type="number"
-                    min={1}
-                    step={50}
-                    value={amountText}
-                    aria-label="Maximum price in rand"
-                    onChange={(event) => setAmountText(event.target.value)}
-                    onBlur={() => {
-                      const amount = Math.round(Number(amountText));
-                      if (!Number.isFinite(amount) || amount <= 0) return;
+          <p className="muted cr-step-help">
+            Change the amount, the place, or the audience and the matching businesses replace
+            Recommendations. A listing has to fit every audience group you turn on. Only prices
+            ticked Include in From are counted when an amount is set. Notes on listings that stay
+            are kept.
+          </p>
+          <div className="field-row">
+            {priceOn ? (
+              <label className="field">
+                <span>At most (R)</span>
+                <input
+                  type="number"
+                  min={1}
+                  step={50}
+                  value={amountText}
+                  aria-label="Maximum price in rand"
+                  onChange={(event) => setAmountText(event.target.value)}
+                  onBlur={() => {
+                    const amount = Math.round(Number(amountText));
+                    if (!Number.isFinite(amount) || amount <= 0) return;
+                    setAmountText(String(amount));
+                    setPriceAmount(amount);
+                    setFillKey((current) => current + 1);
+                  }}
+                />
+              </label>
+            ) : null}
+            <label className="field">
+              <span>In and around</span>
+              <select
+                value={placeId}
+                aria-label="Place"
+                onChange={(event) => {
+                  if (priceOn) {
+                    const amount = Math.round(Number(amountText));
+                    if (Number.isFinite(amount) && amount > 0) {
                       setAmountText(String(amount));
                       setPriceAmount(amount);
-                      setFillKey((current) => current + 1);
-                    }}
-                  />
-                </label>
-                <label className="field">
-                  <span>In and around</span>
-                  <select
-                    value={placeId}
-                    aria-label="Place"
-                    onChange={(event) => {
-                      const amount = Math.round(Number(amountText));
-                      if (Number.isFinite(amount) && amount > 0) {
-                        setAmountText(String(amount));
-                        setPriceAmount(amount);
-                      }
-                      setPlaceId(event.target.value);
-                    }}
-                  >
-                    <option value="">Anywhere</option>
-                    {places.map((place) => (
-                      <option key={place.id} value={place.id}>
-                        {place.name}
-                      </option>
-                    ))}
-                  </select>
-                </label>
-              </div>
-              <p className="muted">{filling ? "Finding listings…" : matchNote}</p>
-            </>
-          ) : null}
+                    }
+                  }
+                  setPlaceId(event.target.value);
+                }}
+              >
+                <option value="">Anywhere</option>
+                {places.map((place) => (
+                  <option key={place.id} value={place.id}>
+                    {place.name}
+                  </option>
+                ))}
+              </select>
+            </label>
+          </div>
+          <p className="muted">{filling ? "Finding listings…" : matchNote}</p>
           <label className="field" style={{ marginTop: 18 }}>
             <span>Short Intro (optional)</span>
             <textarea
@@ -566,27 +905,28 @@ export function GuideEditor({
               placeholder="The weekend is calling. Here are five kid-friendly adventures worth getting out of the house for."
             />
           </label>
+          {draft.shape === "spotlight" ? (
+            <label className="field" style={{ marginTop: 18 }}>
+              <span>The Write-up</span>
+              <textarea
+                rows={8}
+                value={draft.body}
+                onChange={(e) => patch({ body: e.target.value })}
+                placeholder="Why this one is worth the drive. Keep it specific."
+              />
+            </label>
+          ) : null}
         </section>
 
-        <section className={stepOpen("audience") ? "cr-step is-open" : "cr-step"} id="step-audience">
-          <h2>
-            <button
-              type="button"
-              className="cr-step-toggle"
-              aria-expanded={stepOpen("audience")}
-              onClick={() => toggleStep("audience")}
-            >
-              <em>Audience</em>
-              {!stepOpen("audience") ? (
-                <small className="cr-guide-step-summary">{audienceSummary}</small>
-              ) : null}
-              <i className="cr-step-caret" aria-hidden="true" />
-            </button>
-          </h2>
-          <div className="cr-audience-well">
-            <div className="cr-audience-group">
-              <p className="cr-about-label">Interests</p>
-              <div className="cr-chip-grid">
+        <section className="guide-desk-card" id="step-audience">
+          <header className="guide-desk-card-head">
+            <h2><span>02</span> Audience</h2>
+            <p className="muted">{audienceSummary === "None yet" ? "Choose who this guide is for." : audienceSummary}</p>
+          </header>
+          <div className="guide-desk-audience">
+            <div>
+              <p className="cr-about-label">Interests · Select multiple</p>
+              <div className="guide-desk-chips">
                 {INTEREST_CHIPS.map((item) => {
                   const kind = catalog.kinds.find((row) => row.key === item.key);
                   if (!kind) return null;
@@ -595,146 +935,103 @@ export function GuideEditor({
                     <button
                       key={kind.id}
                       type="button"
-                      className={active ? "cr-tag active" : "cr-tag"}
+                      className={active ? "is-on" : undefined}
                       aria-pressed={active}
                       onClick={() => patch({ kind_ids: toggleId(draft.kind_ids, kind.id) })}
                     >
+                      {active ? <i aria-hidden="true">✓</i> : null}
                       {item.label}
                     </button>
                   );
                 })}
               </div>
             </div>
-            <div className="cr-audience-group">
-              <p className="cr-about-label">How you go out</p>
-              <div className="cr-chip-grid">
+            <div>
+              <p className="cr-about-label">Who is going? · Select multiple</p>
+              <div className="guide-desk-chips">
                 {catalog.personas.map((persona) => {
                   const active = draft.persona_ids.includes(persona.id);
                   return (
                     <button
                       key={persona.id}
                       type="button"
-                      className={active ? "cr-tag active" : "cr-tag"}
+                      className={active ? "is-on" : undefined}
                       aria-pressed={active}
                       onClick={() => patch({ persona_ids: toggleId(draft.persona_ids, persona.id) })}
                     >
+                      {active ? <i aria-hidden="true">✓</i> : null}
                       {persona.title}
                     </button>
                   );
                 })}
               </div>
             </div>
-            <div className="cr-audience-group">
-              <p className="cr-about-label">Your Interests</p>
-              <label className="field cr-quiet">
-                <span className="sr-only">Your Interests</span>
-                <input
-                  value={interestKeywords}
-                  onChange={(event) => {
-                    const value = event.target.value;
-                    setInterestKeywords(value);
-                    patch({ interest_ids: interestIdsFromKeywords(value, catalog.interests) });
-                  }}
-                  placeholder='Keywords (Separate with ",")'
-                  aria-label="Your Interests"
-                />
-              </label>
-            </div>
-            <div className="cr-audience-group">
-              <p className="cr-about-label">Adventure Level</p>
-              <div className="cr-chip-grid">
+            <div>
+              <p className="cr-about-label">Adventure level · Select one</p>
+              <div className="guide-desk-chips" role="radiogroup" aria-label="Adventure level">
                 {catalog.scales.map((scale) => {
                   const active = draft.scale_id === scale.id;
                   return (
                     <button
                       key={scale.id}
                       type="button"
-                      className={active ? "cr-tag active" : "cr-tag"}
+                      role="radio"
+                      aria-checked={active}
+                      className={active ? "is-on" : undefined}
                       title={scale.subtitle}
-                      aria-pressed={active}
                       onClick={() => patch({ scale_id: active ? "" : scale.id })}
                     >
+                      {active ? <i aria-hidden="true">✓</i> : null}
                       {scale.title}
                     </button>
                   );
                 })}
               </div>
             </div>
-          </div>
-          {priceOn ? (
-            <p className="muted">{filling ? "Finding listings…" : matchNote || "Turn a choice on to narrow Recommendations."}</p>
-          ) : (
-            <p className="muted">Choose Under R Adventures to fill Recommendations from these choices.</p>
-          )}
-        </section>
-
-        <section className={stepOpen("window") ? "cr-step is-open" : "cr-step"} id="step-window">
-          <h2>
-            <button
-              type="button"
-              className="cr-step-toggle"
-              aria-expanded={stepOpen("window")}
-              onClick={() => toggleStep("window")}
-            >
-              <em>Window</em>
-              {!stepOpen("window") ? (
-                <small className="cr-guide-step-summary">
-                  {windowSummary(draft.publish_at, draft.expire_at)}
-                </small>
-              ) : null}
-              <i className="cr-step-caret" aria-hidden="true" />
-            </button>
-          </h2>
-          <p className="muted cr-step-help">
-            Times are Africa/Johannesburg. Leave both empty for an evergreen list.
-          </p>
-          <div className="field-row">
-            <label className="field">
-              <span>Publish</span>
+            <label className="field cr-quiet">
+              <span>Keywords (optional)</span>
               <input
-                type="datetime-local"
-                value={draft.publish_at}
-                onChange={(e) => patch({ publish_at: e.target.value })}
-              />
-            </label>
-            <label className="field">
-              <span>Expire</span>
-              <input
-                type="datetime-local"
-                value={draft.expire_at}
-                onChange={(e) => patch({ expire_at: e.target.value })}
+                value={interestKeywords}
+                onChange={(event) => {
+                  const value = event.target.value;
+                  setInterestKeywords(value);
+                  patch({ interest_ids: interestIdsFromKeywords(value, catalog.interests) });
+                }}
+                placeholder="weekend, joburg"
               />
             </label>
           </div>
+          <p className="muted">{filling ? "Finding listings…" : matchNote}</p>
         </section>
 
-        <section className={stepOpen("spots") ? "cr-step is-open" : "cr-step"} id="step-spots">
-          <h2>
-            <button
-              type="button"
-              className="cr-step-toggle"
-              aria-expanded={stepOpen("spots")}
-              onClick={() => toggleStep("spots")}
-            >
-              <em>Recommendations</em>
-              {!stepOpen("spots") ? (
-                <small className="cr-guide-step-summary">
-                  {draft.items.length === 0
-                    ? "None yet"
-                    : draft.items.length === 1
-                      ? "1 listing"
-                      : `${draft.items.length} listings`}
-                </small>
-              ) : null}
-              <i className="cr-step-caret" aria-hidden="true" />
-            </button>
-          </h2>
+        <section className="guide-desk-card" id="step-spots">
+          <header className="guide-desk-card-head">
+            <h2>
+              <span>03</span> {draft.shape === "spotlight" ? "Activity" : "Activities"}
+            </h2>
+            {draft.shape === "roundup" ? (
+              <button
+                className="btn btn-secondary"
+                type="button"
+                onClick={() => {
+                  setFilterOpen(false);
+                  setSearching(true);
+                  setPickerFor(pickerFor === "new" ? null : "new");
+                  setListingQuery("");
+                }}
+              >
+                {pickerFor === "new" ? "Close search" : "+ Add activity"}
+              </button>
+            ) : null}
+          </header>
           <p className="muted cr-step-help">
-            Drag the handle to reorder. Name, place, price & hours come from the listing.
+            Directory details stay linked. Add your own editorial notes.
           </p>
           <div className="cr-guide-items">
             {draft.items.length === 0 && (
-              <p className="muted">No recommendations yet. Add a live listing below.</p>
+              <p className="muted">
+                No recommendations yet. Choose a place or audience, or add a live listing below.
+              </p>
             )}
             {draft.items.map((item, index) => (
               <article
@@ -776,35 +1073,26 @@ export function GuideEditor({
                       ? ` · From ${formatRand(item.listing.price_from)}`
                       : ""}
                   </p>
-                  {notesOpen[item.listing_id] || item.editorial_note.trim() ? (
-                    <label className="field">
-                      <span>Editorial Note (optional)</span>
-                      <textarea
-                        rows={2}
-                        value={item.editorial_note}
-                        onChange={(e) =>
-                          patch({
-                            items: draft.items.map((row) =>
-                              row.listing_id === item.listing_id
-                                ? { ...row, editorial_note: e.target.value }
-                                : row,
-                            ),
-                          })
-                        }
-                        placeholder="Worth it for the sunset views."
-                      />
-                    </label>
-                  ) : (
-                    <button
-                      className="cr-text-remove"
-                      type="button"
-                      onClick={() =>
-                        setNotesOpen((current) => ({ ...current, [item.listing_id]: true }))
+                  <p className="muted">
+                    {item.listing?.status === "approved" ? "Live · Linked directory listing" : "Listing missing"}
+                  </p>
+                  <label className="field">
+                    <span>Guide note</span>
+                    <textarea
+                      rows={2}
+                      value={item.editorial_note}
+                      onChange={(e) =>
+                        patch({
+                          items: draft.items.map((row) =>
+                            row.listing_id === item.listing_id
+                              ? { ...row, editorial_note: e.target.value }
+                              : row,
+                          ),
+                        })
                       }
-                    >
-                      Add a note
-                    </button>
-                  )}
+                      placeholder="For the friend who always takes the scenic route."
+                    />
+                  </label>
                   <div className="cr-guide-item-tools">
                     <button
                       type="button"
@@ -841,18 +1129,18 @@ export function GuideEditor({
           </div>
 
           <div className="cr-guide-picker">
-            <button
-              className="cr-outline-btn"
-              type="button"
-              onClick={() => {
-                setFilterOpen(false);
-                setSearching(true);
-                setPickerFor(pickerFor === "new" ? null : "new");
-                setListingQuery("");
-              }}
-            >
-              {pickerFor === "new" ? "Close search" : "Add recommendation"}
-            </button>
+            {draft.shape === "spotlight" && draft.items.length === 0 ? (
+              <button
+                className="btn btn-secondary"
+                type="button"
+                onClick={() => {
+                  setPickerFor("new");
+                  setListingQuery("");
+                }}
+              >
+                Link activity
+              </button>
+            ) : null}
             {pickerFor && (
               <div className="cr-guide-search">
                 <label className="field">
@@ -948,31 +1236,31 @@ export function GuideEditor({
           </div>
         </section>
 
+        {draft.shape === "spotlight" ? (
+          <StoryBuilder
+            story={story}
+            photos={photos}
+            cover={cover}
+            guideId={guide.id}
+            authorName={credited?.display_name}
+            saveState={storySave}
+            saveError={storySaveError}
+            onStoryChange={setStory}
+            onPhotosChange={setPhotos}
+            onPersist={persistStory}
+            onPreviewFull={() => setPreviewOpen(true)}
+          />
+        ) : null}
+
         <form
           action={saveGuideEvents}
-          className={stepOpen("events") ? "cr-step is-open" : "cr-step"}
+          className="guide-desk-card"
           id="step-events"
         >
-          <h2>
-            <button
-              type="button"
-              className="cr-step-toggle"
-              aria-expanded={stepOpen("events")}
-              onClick={() => toggleStep("events")}
-            >
-              <em>Linked Events</em>
-              {!stepOpen("events") ? (
-                <small className="cr-guide-step-summary">
-                  {linkedEventIds.length === 0
-                    ? "None yet"
-                    : linkedEventIds.length === 1
-                      ? "1 event"
-                      : `${linkedEventIds.length} events`}
-                </small>
-              ) : null}
-              <i className="cr-step-caret" aria-hidden="true" />
-            </button>
-          </h2>
+          <header className="guide-desk-card-head">
+            <h2><span>04</span> Linked events</h2>
+            <p className="muted">{linkedEventIds.length} events</p>
+          </header>
           <p className="muted cr-step-help">
             Activities stay in the list above. Tick the events this guide should open in the app.
           </p>
@@ -992,13 +1280,159 @@ export function GuideEditor({
             ))}
           </div>
           {events.length > 0 ? (
-            <button className="cr-outline-btn" type="submit">
-              Save Event Links
+            <button className="btn btn-secondary" type="submit">
+              Save event links
             </button>
           ) : null}
         </form>
       </div>
+
+      <aside className="guide-desk-rail">
+        <section className="guide-desk-card" id="step-window">
+          <h2>Publishing</h2>
+          <p className="cr-about-label">Availability</p>
+          <label className="guide-desk-radio">
+            <input type="radio" name="availability" checked={evergreen} onChange={() => setEvergreen(true)} />
+            <span>
+              <strong>Evergreen</strong>
+              Keep this guide available until archived.
+            </span>
+          </label>
+          <label className="guide-desk-radio">
+            <input type="radio" name="availability" checked={!evergreen} onChange={() => setEvergreen(false)} />
+            <span>
+              <strong>Date-specific</strong>
+              Set a publish &amp; expiry date.
+            </span>
+          </label>
+          {!evergreen ? (
+            <label className="field">
+              <span>Expire at (SA time)</span>
+              <input type="datetime-local" value={draft.expire_at} onChange={(e) => patch({ expire_at: e.target.value })} />
+            </label>
+          ) : null}
+          <p className="cr-about-label">Publish</p>
+          <label className="guide-desk-radio">
+            <input type="radio" name="publish-when" checked={publishNow} onChange={() => setPublishNow(true)} />
+            <span>
+              <strong>Now</strong>
+              Publish this guide immediately.
+            </span>
+          </label>
+          <label className="guide-desk-radio">
+            <input type="radio" name="publish-when" checked={!publishNow} onChange={() => setPublishNow(false)} />
+            <span>
+              <strong>Schedule</strong>
+              Choose a future date and time.
+            </span>
+          </label>
+          {!publishNow ? (
+            <label className="field">
+              <span>Publish at (SA time)</span>
+              <input type="datetime-local" value={draft.publish_at} onChange={(e) => patch({ publish_at: e.target.value })} />
+            </label>
+          ) : null}
+        </section>
+
+        <section className="guide-desk-card">
+          <h2>Ready to publish</h2>
+          <ul className="guide-desk-checks">
+            {checks.map((check) => (
+              <li key={check.id}>
+                <button type="button" className={check.ok ? "is-ok" : "is-warn"} onClick={() => document.getElementById(check.href)?.scrollIntoView({ behavior: "smooth", block: "start" })}>
+                  {check.ok ? "✓" : "!"} {check.label}
+                  {check.ok ? "" : " needs attention"}
+                </button>
+              </li>
+            ))}
+          </ul>
+        </section>
+
+        <section className="guide-desk-ig">
+          <h2>Instagram carousel</h2>
+          <p>Turn this guide into social slides.</p>
+          <button type="button" className="btn btn-secondary" onClick={() => setExportOpen(true)}>
+            Create carousel
+          </button>
+        </section>
+      </aside>
       </div>
+
+      <GuideExportModal
+        open={exportOpen && draft.shape !== "spotlight"}
+        title={draft.title}
+        intro={draft.intro}
+        items={draft.items}
+        onClose={() => setExportOpen(false)}
+      />
+      <SpotlightCarouselModal
+        open={exportOpen && draft.shape === "spotlight"}
+        onClose={() => setExportOpen(false)}
+        title={draft.title}
+        intro={draft.intro}
+        story={story}
+        photos={photos}
+        cover={cover}
+        listing={visit}
+        author={credited}
+      />
+      {previewOpen ? (
+        <div className="spotlight-preview-modal">
+          <button type="button" className="spotlight-lightbox-backdrop" aria-label="Close preview" onClick={() => setPreviewOpen(false)} />
+          <div className="spotlight-preview-frame">
+            <header>
+              <strong>Preview</strong>
+              <button type="button" onClick={() => setPreviewOpen(false)}>
+                Close
+              </button>
+            </header>
+            {draft.shape === "spotlight" ? (
+              <SpotlightArticle
+                title={draft.title}
+                intro={draft.intro}
+                slug={guide.slug}
+                cover={cover}
+                photos={photos}
+                story={story}
+                listing={visit}
+                author={credited ? mapGuideAuthor(credited) : null}
+              />
+            ) : (
+              <div className="guide-desk-preview-list">
+                <h1>{draft.title || "Untitled Guide"}</h1>
+                {draft.intro ? <p>{draft.intro}</p> : null}
+                {draft.items.map((item) => (
+                  <article key={item.listing_id}>
+                    <strong>{item.listing?.name}</strong>
+                    <p>{item.editorial_note}</p>
+                  </article>
+                ))}
+              </div>
+            )}
+          </div>
+        </div>
+      ) : null}
+      {shapeWarn ? (
+        <div className="spotlight-preview-modal">
+          <button type="button" className="spotlight-lightbox-backdrop" aria-label="Cancel" onClick={() => setShapeWarn(null)} />
+          <div className="guide-desk-warn">
+            <h2>Switch guide type?</h2>
+            {shapeWarn === "spotlight" ? (
+              <p>A Spotlight keeps one activity. Extra activities will be removed from this guide. Story &amp; gallery stay empty until you add them.</p>
+            ) : (
+              <p>A Collection can list several activities. Story blocks will stay saved, but they will not appear on the Collection page.</p>
+            )}
+            <div className="cr-actions">
+              <button type="button" className="btn btn-secondary" onClick={() => setShapeWarn(null)}>
+                Keep current type
+              </button>
+              <button type="button" className="btn btn-primary" onClick={() => applyShape(shapeWarn)}>
+                Switch to {shapeWarn === "spotlight" ? "Spotlight" : "Collection"}
+              </button>
+            </div>
+          </div>
+        </div>
+      ) : null}
       </div>
     </div>
   );

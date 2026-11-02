@@ -10,6 +10,7 @@ const SITE_LINKS: { href: string; label: string; icon: MenuIconName }[] = [
   { href: "/events", label: "Events", icon: "calendar" },
   { href: "/communities", label: "Communities", icon: "flag" },
   { href: "/guides", label: "Guides", icon: "book" },
+  { href: "/authors", label: "Authors", icon: "user" },
   { href: "/admin", label: "Admin", icon: "settings" },
 ];
 

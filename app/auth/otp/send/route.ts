@@ -43,10 +43,14 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "Enter a valid email." }, { status: 400 });
   }
 
+  const authorJoin = String(form.get("intent") ?? "") === "author";
   if (mode === "signup" && !firstName) {
-    return NextResponse.json({ error: "First name is required." }, { status: 400 });
+    return NextResponse.json(
+      { error: authorJoin ? "Username is required." : "First name is required." },
+      { status: 400 },
+    );
   }
-  if (mode === "signup" && !tidyCellphone(String(form.get("phone") ?? ""))) {
+  if (mode === "signup" && !authorJoin && !tidyCellphone(String(form.get("phone") ?? ""))) {
     return NextResponse.json({ error: "Add a cellphone number." }, { status: 400 });
   }
   if (mode === "signup" && !formHasConsent(form)) {

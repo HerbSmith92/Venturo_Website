@@ -8,14 +8,16 @@ export function GuideActions({
   guideId,
   status,
   onExportInstagram,
+  canPublish = true,
 }: {
   guideId: string;
   status: GuideStatus;
   onExportInstagram?: () => void;
+  canPublish?: boolean;
 }) {
   return (
     <div className="cr-actions">
-      {status !== "published" && (
+      {canPublish && status !== "published" && (
         <form action={applyGuideAction}>
           <input type="hidden" name="id" value={guideId} />
           <input type="hidden" name="action" value="publish" />
@@ -24,7 +26,7 @@ export function GuideActions({
           </button>
         </form>
       )}
-      {status === "published" && (
+      {canPublish && status === "published" && (
         <form action={applyGuideAction}>
           <input type="hidden" name="id" value={guideId} />
           <input type="hidden" name="action" value="unpublish" />
@@ -33,7 +35,7 @@ export function GuideActions({
           </button>
         </form>
       )}
-      {status !== "archived" && (
+      {canPublish && status !== "archived" && (
         <form action={applyGuideAction}>
           <input type="hidden" name="id" value={guideId} />
           <input type="hidden" name="action" value="archive" />

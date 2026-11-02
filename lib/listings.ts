@@ -646,3 +646,16 @@ export async function getPublicListingBySlug(
     prices,
   };
 }
+
+export async function getPublicListingById(id: string) {
+  const supabase = await createClient();
+  if (!supabase || !id) return null;
+  const { data, error } = await supabase
+    .from("directory_listings")
+    .select("slug")
+    .eq("id", id)
+    .eq("status", "approved")
+    .maybeSingle();
+  if (error || !data?.slug) return null;
+  return getPublicListingBySlug(data.slug as string);
+}

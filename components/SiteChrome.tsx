@@ -44,6 +44,7 @@ export function SiteFooter() {
           <a href="/events">Events</a>
           <a href="/communities">Communities</a>
           <a href="/guides">Guides</a>
+          <a href="/authors">Authors</a>
         </nav>
         <nav aria-label="Get involved">
           <strong>Get involved</strong>

@@ -1,4 +1,5 @@
 import { redirect } from "next/navigation";
+import { linkedAuthorIdForUser } from "@/lib/control-room-authors";
 import { isMemberAccessSubscribed, type Plan } from "@/lib/member-access";
 import { isStaff, roleFromClaims, type AppRole } from "@/lib/roles";
 import { createClient } from "@/lib/supabase/server";
@@ -90,4 +91,15 @@ export async function requireStaff() {
   if (!session) redirect("/admin/login");
   if (!isStaff(session.role)) redirect("/admin/denied");
   return session;
+}
+
+export async function requireGuideWriter() {
+  const session = await getStaffSession();
+  if (!session) redirect("/login?next=/admin/guides");
+  if (isStaff(session.role)) {
+    return { ...session, linkedAuthorId: await linkedAuthorIdForUser(session.id) };
+  }
+  const linkedAuthorId = await linkedAuthorIdForUser(session.id);
+  if (!linkedAuthorId) redirect("/admin/denied");
+  return { ...session, linkedAuthorId };
 }

@@ -12,17 +12,20 @@ export default async function GuidesIndexPage() {
             <p className="eyebrow">Lists Worth Keeping</p>
             <h1>Guides</h1>
             <p className="lede muted">
-              Hand-picked spots from the directory — weekends, rainy days, &
-              everything in between.
+              Hand-picked activities &amp; events — weekends, rainy days, cheap dates, &amp; the
+              occasional deep dive on one place worth the drive.
             </p>
           </div>
+          <a className="btn btn-secondary" href="/authors">
+            Authors
+          </a>
         </div>
         {guides.length === 0 ? (
           <p className="notice">No live guides right now. The directory is still open.</p>
         ) : (
           <div className="guide-grid">
             {guides.map((guide) => (
-              <GuideCard key={guide.id} guide={guide} />
+              <GuideCard key={`${guide.about ?? "activities"}-${guide.id}`} guide={guide} />
             ))}
           </div>
         )}

@@ -3,35 +3,21 @@ import type { GuideDraftItem } from "@/lib/guide-shared";
 export const IG_POST_WIDTH = 1080;
 export const IG_POST_HEIGHT = 1350;
 
-/** Keep labels/colours local so this module stays client-safe (no server imports). */
-const CATEGORY_LABELS: Record<string, string> = {
-  adventure: "Adventure",
-  thrills: "Thrills",
-  family: "Family",
-  romance: "Romance",
-  team: "Team",
-  nightlife: "Nightlife",
-  workshop: "Workshop",
-  markets: "Markets",
-  digital: "Digital",
-  "third-party": "Third Party",
-};
-
 /** Design-system activity colours — band accent follows the listing’s activity kind. */
 const CATEGORY_COLOURS: Record<string, string> = {
-  adventure: "#45A67F", // Jungle Jade
-  thrills: "#FF9E6B", // Outrageous Orange
-  family: "#DC729E", // Blissful Blush
-  romance: "#D54732", // Passionate Pomegranate
-  team: "#F3BF4A", // Cheerful Canary
-  nightlife: "#5E589E", // Velvet Vibes
-  workshop: "#FF2EFF", // Brainpower Pink
-  markets: "#971A21", // Maroon Madness
-  digital: "#7CC3E9", // Digital Sapphire
-  "third-party": "#14001A", // Black Currant
+  adventure: "#45A67F",
+  thrills: "#FF9E6B",
+  family: "#DC729E",
+  romance: "#D54732",
+  team: "#F3BF4A",
+  nightlife: "#5E589E",
+  workshop: "#FF2EFF",
+  markets: "#971A21",
+  digital: "#7CC3E9",
+  "third-party": "#14001A",
 };
 
-const FALLBACK_ACCENT = "#45A67F"; // Jungle Jade
+const FALLBACK_ACCENT = "#45A67F";
 
 export const FALLBACK_EXPORT_IMAGE = "/brand/images/climbing.jpg";
 
@@ -40,12 +26,17 @@ function accentForActivityKind(key: string | null | undefined) {
   return CATEGORY_COLOURS[key] ?? FALLBACK_ACCENT;
 }
 
-export type ExportFact = {
-  icon: string;
-  label: string;
-  /** Longer copy (e.g. full street address) — allow wrap, slightly smaller type. */
-  wrap?: boolean;
-};
+function inkForAccent(accent: string): "night" | "snow" {
+  switch (accent.toUpperCase()) {
+    case "#D54732":
+    case "#5E589E":
+    case "#971A21":
+    case "#14001A":
+      return "snow";
+    default:
+      return "night";
+  }
+}
 
 export type GuideExportSlide =
   | {
@@ -61,29 +52,25 @@ export type GuideExportSlide =
       spotCount: number;
       name: string;
       description: string;
-      tip: string | null;
-      facts: ExportFact[];
+      category: string;
+      area: string;
+      price: string;
       image: string;
       accent: string;
+      ink: "night" | "snow";
     };
+
+function friendlyCity(value: string) {
+  if (/^johannesburg$/i.test(value.trim())) return "Joburg";
+  return value.trim();
+}
 
 export function areaFromListing(item: GuideDraftItem) {
   const listing = item.listing;
   if (!listing) return "South Africa";
-  return [listing.suburb, listing.city].filter(Boolean).join(", ") || "South Africa";
-}
-
-/** Strip trailing SA postal codes so place lines stay clean. */
-function cleanPlace(value: string) {
-  return value.replace(/,?\s*\d{4}\s*$/, "").replace(/,$/, "").trim();
-}
-
-/** Shorter hero titles for long directory names (e.g. “CityROCK … - Indoor Climbing Gym”). */
-export function shortExportName(name: string) {
-  const trimmed = name.trim();
-  if (trimmed.length <= 28) return trimmed;
-  const head = trimmed.split(/\s+[–—-]\s+/)[0]?.trim() ?? trimmed;
-  return head.length >= 8 ? head : trimmed;
+  const suburb = (listing.suburb ?? "").trim();
+  const city = friendlyCity(listing.city ?? "");
+  return [suburb, city].filter(Boolean).join(", ") || "South Africa";
 }
 
 function truncateCopy(value: string, max: number) {
@@ -95,7 +82,7 @@ function truncateCopy(value: string, max: number) {
   return `${text.slice(0, max - 1).trimEnd()}…`;
 }
 
-/** Prefer a short experience pitch over a full directory blurb. */
+/** Prefer a short experience pitch over a full directory blurb. Two lines on the card. */
 function experienceDescription(item: GuideDraftItem) {
   const raw = (item.listing?.short_description ?? "")
     .trim()
@@ -109,143 +96,14 @@ function experienceDescription(item: GuideDraftItem) {
     : raw;
   const firstSentence = candidate.split(/(?<=[.!?])\s+/)[0] ?? candidate;
 
-  // Keep to roughly one or two lines on the card.
-  return truncateCopy(firstSentence, 96);
+  return truncateCopy(firstSentence, 92);
 }
 
 function formatExportPrice(value: number | string | null | undefined) {
-  if (value === null || value === undefined || value === "") return null;
+  if (value === null || value === undefined || value === "") return "See directory";
   const n = typeof value === "number" ? value : Number(value);
-  if (!Number.isFinite(n)) return null;
-  return `FROM R${Math.round(n)}`;
-}
-
-function indoorOutdoorLabel(value: string | null | undefined) {
-  if (value === "indoor") return "INDOOR";
-  if (value === "outdoor") return "OUTDOOR";
-  if (value === "both") return "INDOOR & OUTDOOR";
-  return null;
-}
-
-function activityEmoji(key: string | null) {
-  switch (key) {
-    case "adventure":
-      return "🧗";
-    case "thrills":
-      return "⚡";
-    case "family":
-      return "👨‍👩‍👧";
-    case "romance":
-      return "💛";
-    case "team":
-      return "🤝";
-    case "nightlife":
-      return "🌙";
-    case "workshop":
-      return "🛠️";
-    case "markets":
-      return "🛍️";
-    case "digital":
-      return "💻";
-    default:
-      return "✨";
-  }
-}
-
-function indoorOutdoorEmoji(value: string | null) {
-  if (value === "indoor") return "🏠";
-  if (value === "outdoor") return "🌳";
-  if (value === "both") return "🌤️";
-  return "📍";
-}
-
-function tidyAddressPart(value: string | null | undefined) {
-  return (value ?? "").trim().replace(/,+$/g, "").trim();
-}
-
-function splitPlaceAndPostal(value: string) {
-  const match = value.match(/^(.*?),?\s*(\d{4})$/);
-  if (!match) return { place: value, postal: "" };
-  return {
-    place: tidyAddressPart(match[1] ?? ""),
-    postal: match[2] ?? "",
-  };
-}
-
-function formatFullAddress(listing: GuideDraftItem["listing"]) {
-  if (!listing) return "South Africa";
-
-  const street1 = tidyAddressPart(listing.street_address_1);
-  const street2 = tidyAddressPart(listing.street_address_2);
-  const suburbRaw = tidyAddressPart(listing.suburb);
-  const cityRaw = tidyAddressPart(listing.city);
-  let postal = tidyAddressPart(listing.postal_code);
-
-  const suburbSplit = splitPlaceAndPostal(suburbRaw);
-  const citySplit = splitPlaceAndPostal(cityRaw);
-  const suburb = suburbSplit.place;
-  const city = citySplit.place;
-  if (!postal) postal = citySplit.postal || suburbSplit.postal;
-
-  const parts: string[] = [];
-  const pushUnique = (value: string) => {
-    if (!value) return;
-    if (parts.some((part) => part.toLowerCase() === value.toLowerCase())) return;
-    parts.push(value);
-  };
-
-  // Street address (line 1 + line 2), suburb, city, postal code — skip blanks/dupes.
-  pushUnique(street1);
-  pushUnique(street2);
-  pushUnique(suburb);
-  pushUnique(city);
-  pushUnique(postal);
-
-  return parts.length ? parts.join(", ") : "South Africa";
-}
-
-export function buildActivityFacts(item: GuideDraftItem): ExportFact[] {
-  const listing = item.listing;
-  const facts: ExportFact[] = [];
-
-  facts.push({
-    icon: "📍",
-    label: formatFullAddress(listing),
-    wrap: true,
-  });
-
-  const price = formatExportPrice(listing?.price_from ?? null);
-  facts.push({ icon: "💰", label: price ?? "SEE DIRECTORY" });
-
-  const kindKey = listing?.activity_kind_key ?? null;
-  const kindTitle =
-    listing?.activity_kind_title?.trim() ||
-    (kindKey ? CATEGORY_LABELS[kindKey] ?? null : null);
-  if (kindTitle) {
-    facts.push({
-      icon: activityEmoji(kindKey),
-      label: kindTitle.toUpperCase(),
-    });
-  }
-
-  const setting = indoorOutdoorLabel(listing?.indoor_outdoor ?? null);
-  if (setting) {
-    facts.push({
-      icon: indoorOutdoorEmoji(listing?.indoor_outdoor ?? null),
-      label: setting,
-    });
-  }
-
-  if (listing?.booking_required) {
-    facts.push({ icon: "📅", label: "BOOKING REQUIRED" });
-  }
-
-  if (kindKey === "family") {
-    facts.push({ icon: "👟", label: "FAMILY FRIENDLY" });
-  }
-
-  // Keep the glanceable grid tight — four facts max.
-  return facts.slice(0, 4);
+  if (!Number.isFinite(n)) return "See directory";
+  return `From R ${Math.round(n)}`;
 }
 
 export function buildGuideExportSlides(input: {
@@ -262,7 +120,7 @@ export function buildGuideExportSlides(input: {
     {
       kind: "intro",
       title,
-      intro: input.intro.trim(),
+      intro: truncateCopy(input.intro.trim(), 92),
       cover,
       spotCount: items.length,
     },
@@ -270,20 +128,19 @@ export function buildGuideExportSlides(input: {
 
   items.forEach((item, index) => {
     const listing = item.listing;
-    const tip = item.editorial_note.trim()
-      ? truncateCopy(item.editorial_note, 110)
-      : null;
-
+    const accent = accentForActivityKind(listing?.activity_kind_key);
     slides.push({
       kind: "activity",
       index: index + 1,
       spotCount: items.length,
-      name: shortExportName(listing?.name ?? "Listing missing"),
+      name: (listing?.name ?? "Listing missing").trim(),
       description: experienceDescription(item),
-      tip,
-      facts: buildActivityFacts(item),
+      category: (listing?.activity_kind_title ?? "").trim(),
+      area: areaFromListing(item),
+      price: formatExportPrice(listing?.price_from ?? null),
       image: listing?.image ?? FALLBACK_EXPORT_IMAGE,
-      accent: accentForActivityKind(listing?.activity_kind_key),
+      accent,
+      ink: inkForAccent(accent),
     });
   });
 
