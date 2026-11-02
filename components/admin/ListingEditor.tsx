@@ -310,7 +310,11 @@ export function ListingEditor({
   });
   const editsSaved = listing.status === "approved" && listing.pending_state === "draft";
   const editsWaiting = listing.status === "approved" && listing.pending_state === "review";
-  const canSubmit = listing.status === "draft" || editsSaved;
+  const canSubmit =
+    listing.status === "draft" || listing.status === "review" || editsSaved;
+  const canPublish =
+    canApprove &&
+    (listing.status !== "approved" || Boolean(listing.is_suspended) || scheduled);
   const media = activeMedia(draft);
 
   function patch(partial: Partial<ListingDraft>) {
@@ -387,6 +391,33 @@ export function ListingEditor({
       setDirty(false);
       router.refresh();
     });
+  }
+
+  function runListingAction(action: "review" | "approve") {
+    setSaveError(null);
+    startTransition(async () => {
+      if (dirty) {
+        const result = await saveListingDraft(listing.id, draft);
+        if (!result.ok) {
+          setSaveError(result.error);
+          return;
+        }
+        setDirty(false);
+      }
+      const form = new FormData();
+      form.set("id", listing.id);
+      form.set("queue", steps.query);
+      form.set("action", action);
+      await applyListingAction(form);
+    });
+  }
+
+  function onSubmitForApproval() {
+    runListingAction("review");
+  }
+
+  function onPublish() {
+    runListingAction("approve");
   }
 
   function addActivity() {
@@ -605,14 +636,19 @@ export function ListingEditor({
             <button className="btn cr-save" type="button" onClick={onSave} disabled={pending}>
               {pending ? "Saving…" : "Save Draft"}
             </button>
-            <form action={applyListingAction}>
-              <input type="hidden" name="id" value={listing.id} />
-              <input type="hidden" name="queue" value={steps.query} />
-              <input type="hidden" name="action" value="review" />
-              <button className="btn" type="submit" disabled={!canSubmit || pending}>
-                Submit for Approval
+            {canPublish ? (
+              <button className="btn btn-primary" type="button" onClick={onPublish} disabled={pending}>
+                {pending ? "Publishing…" : "Approve & Publish"}
               </button>
-            </form>
+            ) : null}
+            <button
+              className="btn"
+              type="button"
+              onClick={onSubmitForApproval}
+              disabled={!canSubmit || pending}
+            >
+              {pending ? "Submitting…" : "Submit for Approval"}
+            </button>
             {editsWaiting && canApprove ? (
               <form action={applyListingAction}>
                 <input type="hidden" name="id" value={listing.id} />

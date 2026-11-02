@@ -1,6 +1,7 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
+import { bustPublicCatalog } from "@/lib/public-cache";
 import { redirect } from "next/navigation";
 import { requireAdmin, requireGuideWriter } from "@/lib/auth";
 import { fromZaLocalInput, isGuideAction } from "@/lib/guide-shared";
@@ -15,6 +16,7 @@ function revalidateEventGuides(id?: string) {
   revalidatePath("/events");
   revalidatePath("/guides");
   revalidatePath("/event-guides");
+  bustPublicCatalog();
 }
 
 export async function createCuratedEventGuide() {

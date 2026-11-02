@@ -1,3 +1,4 @@
+import { createAnonClient } from "@/lib/supabase/anon";
 import { createClient } from "@/lib/supabase/server";
 import { authorFromEmbed, type GuideAuthor, type GuideAuthorPublic } from "@/lib/guide-authors";
 import {
@@ -175,7 +176,7 @@ function liveRows(rows: GuideRow[]) {
 }
 
 export async function liveEventGuides(limit = 48): Promise<EventGuideCardData[]> {
-  const supabase = await createClient();
+  const supabase = createAnonClient();
   if (!supabase) return [];
   const { data, error } = await supabase
     .from("curated_event_guides")

@@ -1,3 +1,7 @@
+import { cache } from "react";
+import { unstable_cache } from "next/cache";
+import { PUBLIC_CATALOG_TAG } from "@/lib/public-cache";
+import { createAnonClient } from "@/lib/supabase/anon";
 import { createClient } from "@/lib/supabase/server";
 import { liveEventGuides } from "@/lib/event-guides";
 import { authorFromEmbed, type GuideAuthor, type GuideAuthorPublic } from "@/lib/guide-authors";
@@ -236,8 +240,8 @@ function isCurrentlyLive(row: {
   return true;
 }
 
-export async function liveGuides(limit?: number): Promise<GuideCardData[]> {
-  const supabase = await createClient();
+async function fetchLiveGuides(limit?: number): Promise<GuideCardData[]> {
+  const supabase = createAnonClient();
   if (!supabase) return [];
 
   let query = supabase
@@ -300,6 +304,14 @@ export async function liveGuides(limit?: number): Promise<GuideCardData[]> {
 
   return typeof limit === "number" ? merged.slice(0, limit) : merged;
 }
+
+const cachedLiveGuides = unstable_cache(
+  async (limit: number) => fetchLiveGuides(limit === 0 ? undefined : limit),
+  ["live-guides"],
+  { revalidate: 60, tags: [PUBLIC_CATALOG_TAG] },
+);
+
+export const liveGuides = cache(async (limit?: number) => cachedLiveGuides(limit ?? 0));
 
 export async function liveGuidesByAuthor(authorId: string): Promise<GuideCardData[]> {
   if (!authorId) return [];

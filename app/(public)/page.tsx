@@ -3,15 +3,14 @@ import { LandingDiscover } from "@/components/LandingDiscover";
 import { LandingHeaderScrim } from "@/components/LandingHeaderScrim";
 import { getCurrentUser } from "@/lib/auth";
 import { getAppStoreLinks, storeUrlIsConfigured } from "@/lib/brand";
-import { listingsByCategory, mixListingsByInterest } from "@/lib/listings";
+import { mixListingsByInterest } from "@/lib/listings";
 import { loadHomeFeatures, loadWebsiteCopy } from "@/lib/website";
 
 export default async function HomePage() {
-  const [copy, features, user, listings, headerList] = await Promise.all([
+  const [copy, features, user, headerList] = await Promise.all([
     loadWebsiteCopy(),
     loadHomeFeatures(),
     getCurrentUser(),
-    listingsByCategory("all"),
     headers(),
   ]);
   const stores = getAppStoreLinks();
@@ -25,7 +24,7 @@ export default async function HomePage() {
       <LandingHeaderScrim />
       <LandingDiscover
         copy={copy}
-        listings={mixListingsByInterest(listings, 8)}
+        listings={mixListingsByInterest(features.listings, 8)}
         events={features.events.slice(0, 8)}
         communities={features.communities.slice(0, 8)}
         appStoreHref={copy.appStoreUrl || stores.appStore}

@@ -1,3 +1,7 @@
+import { cache } from "react";
+import { unstable_cache } from "next/cache";
+import { PUBLIC_CATALOG_TAG } from "@/lib/public-cache";
+import { createAnonClient } from "@/lib/supabase/anon";
 import { createClient } from "@/lib/supabase/server";
 
 export type CategoryId =
@@ -170,8 +174,8 @@ function isPublicNow(row: { is_suspended?: boolean | null; publish_at?: string |
   return true;
 }
 
-async function loadLiveListings(): Promise<Listing[] | null> {
-  const supabase = await createClient();
+async function fetchLiveListings(): Promise<Listing[] | null> {
+  const supabase = createAnonClient();
   if (!supabase) return null;
 
   const first = await supabase
@@ -200,6 +204,13 @@ async function loadLiveListings(): Promise<Listing[] | null> {
   if (!rows) return null;
   return (rows as LiveRow[]).filter(isPublicNow).map(mapLiveRow);
 }
+
+const loadLiveListings = cache(() =>
+  unstable_cache(fetchLiveListings, ["live-listings"], {
+    revalidate: 60,
+    tags: [PUBLIC_CATALOG_TAG],
+  })(),
+);
 
 function shuffle<T>(items: T[]) {
   const copy = [...items];

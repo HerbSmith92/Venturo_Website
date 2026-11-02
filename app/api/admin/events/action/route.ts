@@ -1,5 +1,7 @@
+import { revalidatePath } from "next/cache";
 import { NextResponse } from "next/server";
 import { getStaffSession } from "@/lib/auth";
+import { bustPublicCatalog } from "@/lib/public-cache";
 import { isStaff } from "@/lib/roles";
 import { createClient } from "@/lib/supabase/server";
 
@@ -39,5 +41,8 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: error.message }, { status: 400 });
   }
 
+  revalidatePath("/");
+  revalidatePath("/events");
+  bustPublicCatalog();
   return NextResponse.json({ ok: true });
 }

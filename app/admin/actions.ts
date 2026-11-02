@@ -2,6 +2,7 @@
 
 import { headers } from "next/headers";
 import { revalidatePath } from "next/cache";
+import { bustPublicCatalog } from "@/lib/public-cache";
 import { redirect } from "next/navigation";
 import { requireAdmin } from "@/lib/auth";
 import { isListingAction } from "@/lib/control-room-shared";
@@ -18,24 +19,11 @@ export async function createListing() {
   }
 
   const { data, error } = await supabase.rpc("admin_create_listing");
-  const row = (Array.isArray(data) ? data[0] : data) as { id?: string; status?: string } | null;
+  const row = (Array.isArray(data) ? data[0] : data) as { id?: string } | null;
   if (error || !row?.id) {
     redirect(
       `/admin/listings?error=${encodeURIComponent(error?.message ?? "Could not create that listing.")}`,
     );
-  }
-
-  if (row.status !== "review") {
-    const moved = await supabase.rpc("admin_apply_listing_action", {
-      p_listing_id: row.id,
-      p_action: "review",
-      p_featured: null,
-      p_note: null,
-      p_publish_at: null,
-    });
-    if (moved.error) {
-      redirect(`/admin/listings/${row.id}?error=${encodeURIComponent(moved.error.message)}`);
-    }
   }
 
   revalidatePath("/admin");
@@ -289,6 +277,7 @@ export async function applyListingAction(formData: FormData) {
   revalidatePath(`/admin/listings/${id}`);
   revalidatePath("/");
   revalidatePath("/directory");
+  bustPublicCatalog();
   redirect(listingReturn(id, formData, { done: action }));
 }
 

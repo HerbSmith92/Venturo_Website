@@ -1,5 +1,9 @@
-import { createClient } from "@/lib/supabase/server";
+import { cache } from "react";
+import { unstable_cache } from "next/cache";
+import { PUBLIC_CATALOG_TAG } from "@/lib/public-cache";
 import { createServiceClient } from "@/lib/supabase/admin";
+import { createAnonClient } from "@/lib/supabase/anon";
+import { createClient } from "@/lib/supabase/server";
 import {
   eventAddressText,
   eventFeedImage,
@@ -218,24 +222,60 @@ const EVENT_SELECT = `
   )
 `;
 
-export async function getPlatformFees(): Promise<PlatformFees> {
-  const supabase = await createClient();
-  if (!supabase) return EMPTY_PLATFORM_FEES;
-  const { data } = await supabase
-    .from("platform_fee_settings")
-    .select(
-      "commission_pct, booking_fee_cents, member_discount_pct, pass_booking_to_buyer, pass_commission_to_buyer",
-    )
-    .eq("id", 1)
-    .maybeSingle();
-  return {
-    commissionPct: Number(data?.commission_pct ?? 0),
-    bookingFeeCents: Number(data?.booking_fee_cents ?? 0),
-    memberDiscountPct: Number(data?.member_discount_pct ?? 0),
-    passBookingToBuyer: Boolean(data?.pass_booking_to_buyer),
-    passCommissionToBuyer: Boolean(data?.pass_commission_to_buyer),
-  };
+export const getPlatformFees = cache(() =>
+  unstable_cache(
+    async (): Promise<PlatformFees> => {
+      const supabase = createAnonClient();
+      if (!supabase) return EMPTY_PLATFORM_FEES;
+      const { data } = await supabase
+        .from("platform_fee_settings")
+        .select(
+          "commission_pct, booking_fee_cents, member_discount_pct, pass_booking_to_buyer, pass_commission_to_buyer",
+        )
+        .eq("id", 1)
+        .maybeSingle();
+      return {
+        commissionPct: Number(data?.commission_pct ?? 0),
+        bookingFeeCents: Number(data?.booking_fee_cents ?? 0),
+        memberDiscountPct: Number(data?.member_discount_pct ?? 0),
+        passBookingToBuyer: Boolean(data?.pass_booking_to_buyer),
+        passCommissionToBuyer: Boolean(data?.pass_commission_to_buyer),
+      };
+    },
+    ["platform-fees"],
+    { revalidate: 300, tags: [PUBLIC_CATALOG_TAG] },
+  )(),
+);
+
+async function fetchUpcomingPublicEvents(): Promise<VenturoEvent[]> {
+  const supabase = createAnonClient();
+  if (!supabase) return [];
+  const now = new Date();
+  const nowIso = now.toISOString();
+  const { data, error } = await supabase
+    .from("events")
+    .select(EVENT_SELECT)
+    .eq("status", "approved")
+    .eq("visibility", "public")
+    .or(`ends_at.gte."${nowIso}",repeat_until.gte."${nowIso}"`)
+    .order("starts_at", { ascending: true })
+    .limit(40);
+  if (error || !data) return [];
+  const fees = await getPlatformFees();
+  return (data as EventRow[])
+    .map((row) => mapEvent(row, fees.memberDiscountPct))
+    .flatMap((event) => {
+      const next = nextOccurrence(event.startsAt, event.endsAt, event.repeatEvery, event.repeatUntil, now);
+      return next ? [{ ...event, startsAt: next.startsAt, endsAt: next.endsAt }] : [];
+    });
 }
+
+const loadUpcomingPublicEvents = cache(() =>
+  unstable_cache(fetchUpcomingPublicEvents, ["upcoming-public-events"], {
+    revalidate: 60,
+    tags: [PUBLIC_CATALOG_TAG],
+  })(),
+);
 
 export async function listPublicEvents(options?: {
   category?: string;
@@ -244,7 +284,17 @@ export async function listPublicEvents(options?: {
   price?: "free" | "paid";
   expandRepeats?: boolean;
 }): Promise<VenturoEvent[]> {
-  const supabase = await createClient();
+  const defaultUpcoming =
+    (options?.when ?? "upcoming") === "upcoming" &&
+    !options?.category &&
+    !options?.price &&
+    !options?.expandRepeats;
+  if (defaultUpcoming) {
+    const events = await loadUpcomingPublicEvents();
+    return options?.limit ? events.slice(0, options.limit) : events;
+  }
+
+  const supabase = createAnonClient() ?? (await createClient());
   if (!supabase) return [];
 
   const when = options?.when ?? "upcoming";

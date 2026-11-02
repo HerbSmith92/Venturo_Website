@@ -1,6 +1,7 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
+import { bustPublicCatalog } from "@/lib/public-cache";
 import { redirect } from "next/navigation";
 import { requireStaff } from "@/lib/auth";
 import { createClient } from "@/lib/supabase/server";
@@ -137,6 +138,7 @@ export async function saveCommunityDraft(id: string, draft: CommunityDraftInput)
   revalidatePath(`/communities/${slug}`);
   revalidatePath("/admin/communities");
   revalidatePath("/");
+  bustPublicCatalog();
   redirect(`/admin/communities/${id}?done=1`);
 }
 
@@ -212,6 +214,7 @@ export async function saveCommunity(formData: FormData) {
     revalidatePath("/communities");
     revalidatePath(`/communities/${slug}`);
     revalidatePath("/");
+    bustPublicCatalog();
     redirect(`/admin/communities/${id}?done=1`);
   }
 
@@ -272,6 +275,7 @@ export async function saveWebsite(formData: FormData) {
   revalidatePath("/");
   revalidatePath("/about");
   revalidatePath("/help");
+  bustPublicCatalog();
   redirect("/admin/website?done=1");
 }
 

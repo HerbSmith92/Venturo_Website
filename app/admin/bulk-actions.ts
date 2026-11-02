@@ -3,6 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { requireAdmin, requireStaff } from "@/lib/auth";
+import { bustPublicCatalog } from "@/lib/public-cache";
 import { createClient } from "@/lib/supabase/server";
 
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
@@ -69,6 +70,7 @@ export async function bulkListingAction(formData: FormData) {
   revalidatePath("/admin/listings");
   revalidatePath("/");
   revalidatePath("/directory");
+  bustPublicCatalog();
   redirect(back);
 }
 
@@ -95,6 +97,7 @@ export async function bulkEventAction(formData: FormData) {
   revalidatePath("/admin/events");
   revalidatePath("/events");
   revalidatePath("/");
+  bustPublicCatalog();
   redirect(back);
 }
 
@@ -119,6 +122,7 @@ export async function bulkCommunityAction(formData: FormData) {
   revalidatePath("/admin/communities");
   revalidatePath("/communities");
   revalidatePath("/");
+  bustPublicCatalog();
   redirect(back);
 }
 
@@ -150,5 +154,6 @@ export async function bulkGuideAction(formData: FormData) {
   revalidatePath("/admin/guides");
   revalidatePath("/guides");
   revalidatePath("/");
+  bustPublicCatalog();
   redirect(back);
 }

@@ -1,3 +1,4 @@
+import { cache } from "react";
 import { createServiceClient } from "@/lib/supabase/admin";
 import { createClient } from "@/lib/supabase/server";
 import { getPaidMembershipDetail } from "@/lib/revenuecat";
@@ -32,7 +33,7 @@ export async function ensureMemberAccessRow(userId: string) {
   return true;
 }
 
-export async function isMemberAccessSubscribed(userId: string) {
+export const isMemberAccessSubscribed = cache(async (userId: string) => {
   const supabase = await createClient();
   if (!supabase) return false;
   const { data } = await supabase
@@ -41,7 +42,7 @@ export async function isMemberAccessSubscribed(userId: string) {
     .eq("user_id", userId)
     .maybeSingle();
   return Boolean(data?.subscribed);
-}
+});
 
 export async function getMemberAccessMap(userIds: string[]) {
   const map = new Map<string, boolean>();

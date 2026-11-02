@@ -1,3 +1,7 @@
+import { cache } from "react";
+import { unstable_cache } from "next/cache";
+import { PUBLIC_CATALOG_TAG } from "@/lib/public-cache";
+import { createAnonClient } from "@/lib/supabase/anon";
 import { createClient } from "@/lib/supabase/server";
 import type { CommunityEventLink, CommunityPhoto, CommunityRecord, CommunityStatus } from "@/lib/community-shared";
 
@@ -69,9 +73,19 @@ export async function listCommunities(status?: CommunityStatus | "all") {
   return (data as CommunityRow[]).map(mapCommunity);
 }
 
-export async function listPublishedCommunities() {
-  return listCommunities("published");
-}
+export const listPublishedCommunities = cache(() =>
+  unstable_cache(
+    async () => {
+      const supabase = createAnonClient();
+      if (!supabase) return [];
+      const { data, error } = await supabase.from("communities").select(SELECT).eq("status", "published").order("title");
+      if (error || !data) return [];
+      return (data as CommunityRow[]).map(mapCommunity);
+    },
+    ["published-communities"],
+    { revalidate: 60, tags: [PUBLIC_CATALOG_TAG] },
+  )(),
+);
 
 export async function listClaimedCommunities(userId: string) {
   const supabase = await createClient();

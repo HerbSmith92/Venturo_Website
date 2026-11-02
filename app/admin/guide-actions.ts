@@ -1,6 +1,7 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
+import { bustPublicCatalog } from "@/lib/public-cache";
 import { redirect } from "next/navigation";
 import { requireAdmin, requireGuideWriter } from "@/lib/auth";
 import { fromZaLocalInput, isGuideAction } from "@/lib/guide-shared";
@@ -12,6 +13,7 @@ function revalidateGuides(id?: string) {
   if (id) revalidatePath(`/admin/guides/${id}`);
   revalidatePath("/");
   revalidatePath("/guides");
+  bustPublicCatalog();
 }
 
 export async function createCuratedGuide(formData?: FormData) {

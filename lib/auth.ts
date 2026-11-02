@@ -1,3 +1,4 @@
+import { cache } from "react";
 import { redirect } from "next/navigation";
 import { linkedAuthorIdForUser } from "@/lib/control-room-authors";
 import { isMemberAccessSubscribed, type Plan } from "@/lib/member-access";
@@ -32,7 +33,7 @@ function firstNameFromClaims(claims: Record<string, unknown>) {
   return "there";
 }
 
-export async function getStaffSession(): Promise<StaffSession | null> {
+export const getStaffSession = cache(async (): Promise<StaffSession | null> => {
   const supabase = await createClient();
   if (!supabase) return null;
 
@@ -54,9 +55,9 @@ export async function getStaffSession(): Promise<StaffSession | null> {
     role: roleFromClaims(claims),
     legacyWpUserId,
   };
-}
+});
 
-export async function getCurrentUser(): Promise<CurrentUser | null> {
+export const getCurrentUser = cache(async (): Promise<CurrentUser | null> => {
   const session = await getStaffSession();
   if (!session) return null;
 
@@ -77,7 +78,7 @@ export async function getCurrentUser(): Promise<CurrentUser | null> {
     firstName,
     plan: paid ? "paid" : "free",
   };
-}
+});
 
 export async function requireAdmin() {
   const session = await getStaffSession();

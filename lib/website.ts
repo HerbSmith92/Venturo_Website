@@ -1,9 +1,12 @@
+import { cache } from "react";
+import { unstable_cache } from "next/cache";
 import { getAppStoreLinks } from "@/lib/brand";
 import { listPublishedCommunities, type CommunityRecord } from "@/lib/communities";
 import { listPublicEvents, type VenturoEvent } from "@/lib/events";
 import { liveGuides, type GuideCardData } from "@/lib/guides";
 import { listingsByCategory, type Listing } from "@/lib/listings";
-import { createClient } from "@/lib/supabase/server";
+import { PUBLIC_CATALOG_TAG } from "@/lib/public-cache";
+import { createAnonClient } from "@/lib/supabase/anon";
 
 export type WebsiteCopy = {
   heroEyebrow: string;
@@ -49,38 +52,44 @@ type SettingsRow = {
   play_store_url: string | null;
 };
 
-export async function loadWebsiteCopy(): Promise<WebsiteCopy> {
-  const stores = getAppStoreLinks();
-  const base: WebsiteCopy = {
-    ...DEFAULTS,
-    appStoreUrl: stores.appStore,
-    playStoreUrl: stores.playStore,
-  };
-  const supabase = await createClient();
-  if (!supabase) return base;
-  const { data, error } = await supabase
-    .from("website_settings")
-    .select(
-      "hero_eyebrow, hero_title, hero_lede, hero_image_url, about_title, about_body, help_title, help_body, help_email, app_store_url, play_store_url",
-    )
-    .eq("id", 1)
-    .maybeSingle();
-  if (error || !data) return base;
-  const row = data as SettingsRow;
-  return {
-    heroEyebrow: row.hero_eyebrow?.trim() || base.heroEyebrow,
-    heroTitle: row.hero_title?.trim() || base.heroTitle,
-    heroLede: row.hero_lede?.trim() || base.heroLede,
-    heroImageUrl: row.hero_image_url?.trim() || base.heroImageUrl,
-    aboutTitle: row.about_title?.trim() || base.aboutTitle,
-    aboutBody: row.about_body?.trim() || base.aboutBody,
-    helpTitle: row.help_title?.trim() || base.helpTitle,
-    helpBody: row.help_body?.trim() || base.helpBody,
-    helpEmail: row.help_email?.trim() || base.helpEmail,
-    appStoreUrl: row.app_store_url?.trim() || base.appStoreUrl,
-    playStoreUrl: row.play_store_url?.trim() || base.playStoreUrl,
-  };
-}
+export const loadWebsiteCopy = cache(() =>
+  unstable_cache(
+    async (): Promise<WebsiteCopy> => {
+      const stores = getAppStoreLinks();
+      const base: WebsiteCopy = {
+        ...DEFAULTS,
+        appStoreUrl: stores.appStore,
+        playStoreUrl: stores.playStore,
+      };
+      const supabase = createAnonClient();
+      if (!supabase) return base;
+      const { data, error } = await supabase
+        .from("website_settings")
+        .select(
+          "hero_eyebrow, hero_title, hero_lede, hero_image_url, about_title, about_body, help_title, help_body, help_email, app_store_url, play_store_url",
+        )
+        .eq("id", 1)
+        .maybeSingle();
+      if (error || !data) return base;
+      const row = data as SettingsRow;
+      return {
+        heroEyebrow: row.hero_eyebrow?.trim() || base.heroEyebrow,
+        heroTitle: row.hero_title?.trim() || base.heroTitle,
+        heroLede: row.hero_lede?.trim() || base.heroLede,
+        heroImageUrl: row.hero_image_url?.trim() || base.heroImageUrl,
+        aboutTitle: row.about_title?.trim() || base.aboutTitle,
+        aboutBody: row.about_body?.trim() || base.aboutBody,
+        helpTitle: row.help_title?.trim() || base.helpTitle,
+        helpBody: row.help_body?.trim() || base.helpBody,
+        helpEmail: row.help_email?.trim() || base.helpEmail,
+        appStoreUrl: row.app_store_url?.trim() || base.appStoreUrl,
+        playStoreUrl: row.play_store_url?.trim() || base.playStoreUrl,
+      };
+    },
+    ["website-copy"],
+    { revalidate: 60, tags: [PUBLIC_CATALOG_TAG] },
+  )(),
+);
 
 export type FeatureSlot = "event" | "listing" | "community" | "guide";
 
@@ -91,7 +100,7 @@ export async function loadFeatureIds() {
     community: [],
     guide: [],
   };
-  const supabase = await createClient();
+  const supabase = createAnonClient();
   if (!supabase) return empty;
   const { data, error } = await supabase
     .from("website_features")
@@ -115,10 +124,10 @@ export type HomeFeatures = {
 export async function loadHomeFeatures(): Promise<HomeFeatures> {
   const [ids, events, allListings, communities, guides] = await Promise.all([
     loadFeatureIds(),
-    listPublicEvents(),
+    listPublicEvents({ limit: 24 }),
     listingsByCategory("all"),
     listPublishedCommunities(),
-    liveGuides(40),
+    liveGuides(12),
   ]);
 
   const pick = <T extends { id: string }>(rows: T[], chosen: string[], fallback: number) => {
