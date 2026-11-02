@@ -282,6 +282,12 @@ export async function applyListingAction(formData: FormData) {
 }
 
 function listingReturn(id: string, formData: FormData, extra: Record<string, string>) {
+  const back = String(formData.get("return_to") ?? "");
+  if (back.startsWith("/admin/listings") && !back.startsWith("/admin/listings/")) {
+    const url = new URL(back, "http://local");
+    for (const [key, value] of Object.entries(extra)) url.searchParams.set(key, value);
+    return `${url.pathname}${url.search}`;
+  }
   const params = new URLSearchParams(extra);
   const queue = new URLSearchParams(String(formData.get("queue") ?? ""));
   queue.forEach((value, key) => {

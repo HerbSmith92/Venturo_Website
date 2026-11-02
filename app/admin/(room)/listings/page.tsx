@@ -2,11 +2,17 @@ import { DeleteArchivedListing } from "@/components/admin/DeleteArchivedListing"
 import { BulkForm } from "@/components/admin/BulkForm";
 import { DirectoryColumnHead } from "@/components/admin/DirectoryColumnHead";
 import { bulkListingAction } from "@/app/admin/bulk-actions";
-import { deleteArchivedListing } from "@/app/admin/actions";
+import { applyListingAction, deleteArchivedListing } from "@/app/admin/actions";
 import { getStaffSession } from "@/lib/auth";
 import { formatClock, listingStatusLabel, loadDirectoryQueue } from "@/lib/control-room";
 import type { QueueListing } from "@/lib/control-room-types";
-import { directoryGroups, listingEditorHref, listingQueueFromSearch, type ListingQueue } from "@/lib/listing-queue";
+import {
+  directoryGroups,
+  listingDirectoryHref,
+  listingEditorHref,
+  listingQueueFromSearch,
+  type ListingQueue,
+} from "@/lib/listing-queue";
 import { isAdmin } from "@/lib/roles";
 
 export default async function ListingsQueuePage({
@@ -21,9 +27,10 @@ export default async function ListingsQueuePage({
     dir?: string;
     group?: string;
     error?: string;
+    done?: string;
   }>;
 }) {
-  const { status = "approved", q = "", interest = "", author = "", sort = "", dir = "", group = "", error } =
+  const { status = "approved", q = "", interest = "", author = "", sort = "", dir = "", group = "", error, done } =
     await searchParams;
   const session = await getStaffSession();
   const canBulk = isAdmin(session?.role);
@@ -65,11 +72,11 @@ export default async function ListingsQueuePage({
             </tr>
           ) : grouped ? (
             grouped.map((bucket) => (
-              <ListingGroup key={bucket.title} title={bucket.title} rows={bucket.rows} canDelete={canDelete} columns={columns} selectable={canBulk} queue={queue} />
+              <ListingGroup key={bucket.title} title={bucket.title} rows={bucket.rows} canDelete={canDelete} canApprove={canBulk} columns={columns} selectable={canBulk} queue={queue} />
             ))
           ) : (
             board.rows.map((listing) => (
-              <ListingRow key={listing.id} listing={listing} canDelete={canDelete} selectable={canBulk} queue={queue} />
+              <ListingRow key={listing.id} listing={listing} canDelete={canDelete} canApprove={canBulk} selectable={canBulk} queue={queue} />
             ))
           )}
         </tbody>
@@ -83,6 +90,7 @@ export default async function ListingsQueuePage({
         <h1>Directory</h1>
       </div>
       {error ? <p className="error">{error}</p> : null}
+      {done === "approve" ? <p className="notice">Listing is live.</p> : null}
       {canBulk && board.rows.length > 0 ? (
         <BulkForm formId="bulk-listings" noun="Activity" nouns="Activities" action={bulkListingAction} returnTo={returnTo}>
           {table}
@@ -98,6 +106,7 @@ function ListingGroup({
   title,
   rows,
   canDelete,
+  canApprove,
   columns,
   selectable,
   queue,
@@ -105,6 +114,7 @@ function ListingGroup({
   title: string;
   rows: QueueListing[];
   canDelete: boolean;
+  canApprove: boolean;
   columns: number;
   selectable: boolean;
   queue: ListingQueue;
@@ -115,7 +125,14 @@ function ListingGroup({
         <td colSpan={columns}>{title}</td>
       </tr>
       {rows.map((listing) => (
-        <ListingRow key={listing.id} listing={listing} canDelete={canDelete} selectable={selectable} queue={queue} />
+        <ListingRow
+          key={listing.id}
+          listing={listing}
+          canDelete={canDelete}
+          canApprove={canApprove}
+          selectable={selectable}
+          queue={queue}
+        />
       ))}
     </>
   );
@@ -124,16 +141,20 @@ function ListingGroup({
 function ListingRow({
   listing,
   canDelete,
+  canApprove,
   selectable,
   queue,
 }: {
   listing: QueueListing;
   canDelete: boolean;
+  canApprove: boolean;
   selectable: boolean;
   queue: ListingQueue;
 }) {
   const place = [listing.branch_name, listing.suburb, listing.city].filter(Boolean).join(" · ");
   const scheduled = Boolean(listing.publish_at) && new Date(listing.publish_at ?? "").getTime() > Date.now();
+  const showApprove =
+    canApprove && (listing.status !== "approved" || Boolean(listing.is_suspended) || scheduled);
   return (
     <tr>
       {selectable ? (
@@ -174,7 +195,17 @@ function ListingRow({
       <td>{formatClock(listing.updated_at)}</td>
       <td>
         <div className="cr-directory-actions">
-          <a className="btn btn-primary" href={listingEditorHref(listing.id, queue)}>
+          {showApprove ? (
+            <form action={applyListingAction}>
+              <input type="hidden" name="id" value={listing.id} />
+              <input type="hidden" name="action" value="approve" />
+              <input type="hidden" name="return_to" value={listingDirectoryHref(queue)} />
+              <button className="btn btn-primary" type="submit">
+                Approve & Publish
+              </button>
+            </form>
+          ) : null}
+          <a className={showApprove ? "btn" : "btn btn-primary"} href={listingEditorHref(listing.id, queue)}>
             Edit
           </a>
           {canDelete ? <DeleteArchivedListing id={listing.id} action={deleteArchivedListing} /> : null}
