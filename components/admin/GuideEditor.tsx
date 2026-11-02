@@ -130,6 +130,7 @@ export function GuideEditor({
   const [fillKey, setFillKey] = useState(0);
   const [filling, setFilling] = useState(false);
   const [matchNote, setMatchNote] = useState("");
+  const [matches, setMatches] = useState<GuideListingPreview[]>([]);
   const fillSkip = useRef(true);
   const placesRef = useRef(places);
   placesRef.current = places;
@@ -247,10 +248,8 @@ export function GuideEditor({
       previous.priceAmount === priceAmount &&
       previous.priceOn === priceOn;
     fillSnapshot.current = { audienceKey, fillKey, placeId, priceAmount, priceOn };
-    if (fillSkip.current) {
-      fillSkip.current = false;
-      return;
-    }
+    const firstPass = fillSkip.current;
+    if (fillSkip.current) fillSkip.current = false;
     const place = placesRef.current.find((item) => item.id === placeId) ?? null;
     const amount = priceOn ? Math.round(priceAmount) : null;
     const hasAmount = amount != null && Number.isFinite(amount) && amount > 0;
@@ -292,36 +291,39 @@ export function GuideEditor({
         }
         const listings = body.listings ?? [];
         const total = body.total ?? listings.length;
-        setDraft((current) => {
-          const notes = new Map(current.items.map((item) => [item.listing_id, item.editorial_note]));
-          return {
-            ...current,
-            title:
-              hasAmount && amount != null
-                ? underPriceTitle(amount, place?.name ?? null)
-                : current.title,
-            items: (draftRef.current.shape === "spotlight" ? listings.slice(0, 1) : listings).map(
-              (listing) => ({
-                listing_id: listing.id,
-                editorial_note: notes.get(listing.id) ?? "",
-                listing,
-              }),
-            ),
-          };
-        });
         const labels = audienceLabelsFor(audience, catalogRef.current);
-        setMatchNote(
-          guideFillSummary(
-            listings.length,
-            total,
-            hasAmount ? amount : null,
-            place?.name ?? null,
-            joinLabels(labels) || null,
-          ),
+        const summary = guideFillSummary(
+          listings.length,
+          total,
+          hasAmount ? amount : null,
+          place?.name ?? null,
+          joinLabels(labels) || null,
         );
+        if (draftRef.current.shape === "spotlight") {
+          if (!firstPass) {
+            setDraft((current) => {
+              const notes = new Map(current.items.map((item) => [item.listing_id, item.editorial_note]));
+              return {
+                ...current,
+                title:
+                  hasAmount && amount != null
+                    ? underPriceTitle(amount, place?.name ?? null)
+                    : current.title,
+                items: listings.slice(0, 1).map((listing) => ({
+                  listing_id: listing.id,
+                  editorial_note: notes.get(listing.id) ?? "",
+                  listing,
+                })),
+              };
+            });
+          }
+        } else {
+          setMatches(listings);
+        }
+        setMatchNote(summary);
         setOpenSteps((current) => ({ ...current, spots: true }));
         setSaveNotice(null);
-        if (scrollToList) {
+        if (scrollToList && !firstPass) {
           setActiveStep("spots");
           document.getElementById("step-spots")?.scrollIntoView({ behavior: "smooth", block: "start" });
         }
@@ -347,6 +349,16 @@ export function GuideEditor({
     setPickerInterestIds((current) =>
       current.includes(id) ? current.filter((item) => item !== id) : [...current, id].slice(0, 12),
     );
+  }
+
+  function toggleFeature(listing: GuideListingPreview) {
+    if (draft.items.some((item) => item.listing_id === listing.id)) {
+      removeItem(listing.id);
+      return;
+    }
+    patch({
+      items: [...draft.items, { listing_id: listing.id, editorial_note: "", listing }],
+    });
   }
 
   function addListing(listing: GuideListingPreview) {
@@ -844,10 +856,9 @@ export function GuideEditor({
             </div>
           ) : null}
           <p className="muted cr-step-help">
-            Change the amount, the place, or the audience and the matching businesses replace
-            Recommendations. A listing has to fit every audience group you turn on. Only prices
-            ticked Include in From are counted when an amount is set. Notes on listings that stay
-            are kept.
+            Amount, place &amp; audience find matching activities. Tick the ones to feature on this
+            Collection. A listing has to fit every audience group you turn on. Only prices ticked
+            Include in From are counted when an amount is set.
           </p>
           <div className="field-row">
             {priceOn ? (
@@ -1007,7 +1018,10 @@ export function GuideEditor({
         <section className="guide-desk-card" id="step-spots">
           <header className="guide-desk-card-head">
             <h2>
-              <span>03</span> {draft.shape === "spotlight" ? "Activity" : "Activities"}
+              <span>03</span>{" "}
+              {draft.shape === "spotlight"
+                ? "Activity"
+                : `Activities${draft.items.length ? ` · ${draft.items.length} featured` : ""}`}
             </h2>
             {draft.shape === "roundup" ? (
               <button
@@ -1025,12 +1039,53 @@ export function GuideEditor({
             ) : null}
           </header>
           <p className="muted cr-step-help">
-            Directory details stay linked. Add your own editorial notes.
+            {draft.shape === "roundup"
+              ? "Tick matching activities to feature them. Directory details stay linked. Add notes on the featured set."
+              : "Directory details stay linked. Add your own editorial notes."}
           </p>
+          {draft.shape === "roundup" && (matches.length > 0 || filling) ? (
+            <div className="guide-desk-matches">
+              <p className="cr-about-label">Matching activities</p>
+              <p className="muted">
+                {filling
+                  ? "Finding listings…"
+                  : `${matches.length} match. Tick to feature on this guide.`}
+              </p>
+              <ul>
+                {matches.map((listing) => {
+                  const featured = draft.items.some((item) => item.listing_id === listing.id);
+                  return (
+                    <li key={listing.id}>
+                      <label className={featured ? "is-on" : undefined}>
+                        <input
+                          type="checkbox"
+                          checked={featured}
+                          onChange={() => toggleFeature(listing)}
+                        />
+                        <img src={listing.image ?? FALLBACK_IMAGE} alt="" />
+                        <span>
+                          <strong>{listing.name}</strong>
+                          <em>
+                            {areaLabel(listing)}
+                            {listing.price_from != null ? ` · From ${formatRand(listing.price_from)}` : ""}
+                          </em>
+                        </span>
+                      </label>
+                    </li>
+                  );
+                })}
+              </ul>
+            </div>
+          ) : null}
           <div className="cr-guide-items">
+            {draft.shape === "roundup" && draft.items.length > 0 ? (
+              <p className="cr-about-label">Featured on this guide</p>
+            ) : null}
             {draft.items.length === 0 && (
               <p className="muted">
-                No recommendations yet. Choose a place or audience, or add a live listing below.
+                {draft.shape === "roundup"
+                  ? "No featured activities yet. Tick matches above, or add a live listing."
+                  : "No recommendations yet. Choose a place or audience, or add a live listing below."}
               </p>
             )}
             {draft.items.map((item, index) => (
