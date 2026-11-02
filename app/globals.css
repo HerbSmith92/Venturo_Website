@@ -14939,6 +14939,7 @@ a.chip,
 }
 
 .story-modal-shell {
+  position: relative;
   width: min(1180px, calc(100% - 24px));
   height: min(92vh, 900px);
   background: var(--snow);
@@ -15060,8 +15061,19 @@ a.chip,
 
 .story-media-pane {
   flex: 0 1 auto;
-  max-height: 36%;
+  max-height: 42%;
   overflow: auto;
+}
+
+.story-modal-edit.is-media-only .story-media-pane {
+  flex: 1 1 auto;
+  max-height: none;
+}
+
+.story-modal .btn-secondary {
+  background: white;
+  border-color: color-mix(in srgb, var(--night) 28%, transparent);
+  color: var(--night);
 }
 
 .story-modal-preview {
@@ -15084,6 +15096,19 @@ a.chip,
 .story-preview.is-mobile {
   width: min(390px, 100%);
   margin: 0 auto;
+}
+
+.story-preview-empty {
+  min-height: 220px;
+  margin: 0;
+  display: grid;
+  place-items: center;
+  text-align: center;
+  padding: 28px 20px;
+  border: 1px dashed color-mix(in srgb, var(--night) 24%, transparent);
+  border-radius: 12px;
+  background: white;
+  color: var(--night);
 }
 
 .story-preview.is-mobile .spotlight-pair,
@@ -15345,13 +15370,20 @@ a.chip,
 
 .story-picker-panel,
 .story-confirm > div {
-  width: min(720px, calc(100% - 24px));
-  max-height: 85%;
+  width: min(960px, calc(100% - 28px));
+  max-height: min(88%, 740px);
   overflow: auto;
   background: var(--snow);
   color: var(--night);
   border-radius: 16px;
   padding: 16px;
+}
+
+.story-picker-panel header h3,
+.story-picker-panel header button,
+.story-picker-tabs button,
+.story-confirm h3 {
+  color: var(--night);
 }
 
 .story-picker-panel header,
@@ -15402,7 +15434,7 @@ a.chip,
 .story-picker-inspect img,
 .story-keep img {
   width: 100%;
-  height: 84px;
+  height: 120px;
   object-fit: cover;
   display: block;
 }

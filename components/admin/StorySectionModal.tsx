@@ -96,6 +96,8 @@ export function StorySectionModal({
     else if (slots != null) {
       next = next.slice(0, slots);
       while (next.length < slots) next.push(emptyPlacement());
+    } else if (next.length < 2) {
+      while (next.length < 2) next.push(emptyPlacement());
     }
     patch({ layout, placements: next });
     setKeepLayout(null);
@@ -203,7 +205,7 @@ export function StorySectionModal({
           </button>
         </div>
         <div className={`story-modal-grid${pane === "preview" ? " is-preview" : " is-edit"}`}>
-          <div className="story-modal-edit">
+          <div className={`story-modal-edit${draft.type === "photos" ? " is-media-only" : ""}`}>
             {draft.type === "story" ? (
               <div className="story-text-pane">
                 <label className="field">
@@ -263,7 +265,7 @@ export function StorySectionModal({
                       ? "Selected: one photo below the writing."
                       : draft.layout === "two"
                         ? "Selected: two photos side by side, stacked on a phone."
-                        : "Selected: a photo grid below the writing."}
+                        : "Selected: a photo grid. Choose at least two photos."}
                 </p>
                 <div className="story-layout-tiles" role="radiogroup" aria-label="Photo layout">
                   {layouts.map((layout) => (
@@ -310,7 +312,7 @@ export function StorySectionModal({
                 ))}
                 <button
                   type="button"
-                  className="btn btn-secondary"
+                  className={draft.placements.some((item) => item.photoId) ? "btn btn-secondary" : "btn btn-primary"}
                   onClick={() => {
                     if (draft.layout === "gallery") {
                       setPickerFor("gallery");
@@ -322,7 +324,7 @@ export function StorySectionModal({
                 >
                   + Choose photos
                 </button>
-                <p className="muted">Activity photos · Guide uploads · Upload new</p>
+                <p className="muted">Activity photos, guide uploads, or upload new. Gallery needs two or more.</p>
               </div>
             ) : null}
             </div>
@@ -340,9 +342,17 @@ export function StorySectionModal({
               </div>
             </div>
             <div className={`story-preview spotlight-page${device === "mobile" ? " is-mobile" : ""}`}>
-              <div className="spotlight-story">
-                <SpotlightSectionView section={draft} photos={photos} authorName={authorName} />
-              </div>
+              {draft.layout !== "none" && !draft.placements.some((item) => item.photoId) ? (
+                <p className="story-preview-empty">
+                  {draft.layout === "gallery"
+                    ? "Choose at least two photos on the left. They’ll land here as a grid."
+                    : "Choose photos on the left. They’ll land here."}
+                </p>
+              ) : (
+                <div className="spotlight-story">
+                  <SpotlightSectionView section={draft} photos={photos} authorName={authorName} />
+                </div>
+              )}
             </div>
             {device === "mobile" && (draft.layout === "two" || draft.layout === "gallery") ? (
               <p className="muted">Mobile preview · Photos stack on mobile</p>
