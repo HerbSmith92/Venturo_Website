@@ -5,7 +5,6 @@ import { useRouter } from "next/navigation";
 import { saveGuideEvents } from "@/app/admin/content-actions";
 import { applyGuideAction, duplicateCuratedGuide, saveCuratedGuide } from "@/app/admin/guide-actions";
 import { CarouselWorkspace } from "@/components/admin/carousel/CarouselWorkspace";
-import { SpotlightCarouselModal } from "@/components/admin/SpotlightCarouselModal";
 import { StoryBuilder } from "@/components/admin/StoryBuilder";
 import { SpotlightArticle } from "@/components/SpotlightArticle";
 import { formatRand } from "@/lib/control-room-shared";
@@ -617,6 +616,13 @@ export function GuideEditor({
       }
     : null;
   const credited = authors.find((row) => row.id === draft.author_id) ?? null;
+  const spotlightCarousel = useMemo(
+    () =>
+      draft.shape === "spotlight"
+        ? { listing: activity, photos, cover, story }
+        : undefined,
+    [draft.shape, activity, photos, cover, story],
+  );
   const coverReady = Boolean(cover.photoId || draft.items[0]?.listing?.image);
   const checks = [
     { id: "title", ok: Boolean(draft.title.trim()), label: "Title", href: "step-list" },
@@ -1416,27 +1422,17 @@ export function GuideEditor({
       </div>
 
       <CarouselWorkspace
-        open={exportOpen && draft.shape !== "spotlight"}
+        open={exportOpen}
         onClose={() => setExportOpen(false)}
         guideId={guide.id}
         title={draft.title}
         intro={draft.intro}
-        items={draft.items}
+        items={draft.shape === "spotlight" ? [] : draft.items}
         author={credited}
-        place={places.find((row) => row.id === placeId)?.name ?? "Joburg & nearby"}
+        place={activity?.area || places.find((row) => row.id === placeId)?.name || "Joburg & nearby"}
         savedDraft={guide.carousel_draft}
-        events={carouselEvents}
-      />
-      <SpotlightCarouselModal
-        open={exportOpen && draft.shape === "spotlight"}
-        onClose={() => setExportOpen(false)}
-        title={draft.title}
-        intro={draft.intro}
-        story={story}
-        photos={photos}
-        cover={cover}
-        listing={visit}
-        author={credited}
+        events={draft.shape === "spotlight" ? [] : carouselEvents}
+        spotlight={spotlightCarousel}
       />
       {previewOpen ? (
         <div className="spotlight-preview-modal">

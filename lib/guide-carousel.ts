@@ -56,6 +56,7 @@ export type CarouselEventSource = {
 
 export type CarouselCover = {
   seriesLabel: string;
+  headerTitle?: string;
   headline: string;
   supporting: string;
   geoLabel: string;
@@ -83,6 +84,9 @@ export type CarouselRec = {
   priceBasis: PriceBasis;
   priceNote: string;
   tip: string;
+  kicker?: string;
+  credit?: string;
+  role?: "story" | "pack";
   image: string;
   photos: string[];
   crop: CarouselCrop;
@@ -97,6 +101,7 @@ export type CarouselAuthor = {
   sourceId: string;
   name: string;
   bio: string;
+  tagline?: string;
   photo: string;
   cover: string;
   handle: string;
@@ -109,6 +114,7 @@ export type CarouselAuthor = {
 
 export type CarouselDraft = {
   version: 1;
+  kind?: "collection" | "spotlight";
   cover: CarouselCover;
   recs: CarouselRec[];
   author: CarouselAuthor;
@@ -220,6 +226,10 @@ export function isWeekendGuide(title: string, seriesLabel: string) {
 
 export function padRecIndex(index: number, total: number) {
   return `${String(index).padStart(2, "0")} / ${String(total).padStart(2, "0")}`;
+}
+
+export function spotlightSlideCount(index: number, recCount: number) {
+  return padRecIndex(index, recCount + 2);
 }
 
 export function exportFileSlug(title: string) {
@@ -340,6 +350,7 @@ function seedAuthor(author: GuideAuthor | null): CarouselAuthor {
     sourceId: author?.id ?? "",
     name,
     bio: completeSentence(author?.tagline || author?.bio || ""),
+    tagline: (author?.tagline || "").trim(),
     photo: (author?.photo_url || "").trim(),
     cover: (author?.cover_url || "").trim(),
     handle,
@@ -368,6 +379,7 @@ function mergeAuthor(saved: CarouselAuthor | undefined, seed: CarouselAuthor): C
   return {
     ...seed,
     bio: saved.bio.trim() ? saved.bio : seed.bio,
+    tagline: saved.tagline?.trim() ? saved.tagline : seed.tagline,
     photo: seed.photo,
     cover: seed.cover,
     kicker: saved.kicker || seed.kicker,
@@ -388,6 +400,7 @@ export function seedCarouselDraft(input: {
   const recs = input.items.map(seedRecFromListing);
   return {
     version: 1,
+    kind: "collection",
     cover: seedCover(input.title, input.intro, recs, input.place ?? ""),
     recs,
     author: seedAuthor(input.author),
@@ -397,6 +410,7 @@ export function seedCarouselDraft(input: {
 
 export function mergeCarouselDraft(saved: CarouselDraft | null | undefined, seed: CarouselDraft): CarouselDraft {
   if (!saved || saved.version !== 1) return seed;
+  if ((seed.kind ?? "collection") !== (saved.kind ?? "collection")) return seed;
   const recs = seed.recs.map((fresh) => {
     const prev = saved.recs.find((row) => row.id === fresh.id || row.sourceId === fresh.sourceId);
     if (!prev) return fresh;
@@ -412,6 +426,9 @@ export function mergeCarouselDraft(saved: CarouselDraft | null | undefined, seed
       priceBasis: custom.priceBasis ? prev.priceBasis : fresh.priceBasis,
       priceNote: custom.priceNote ? prev.priceNote : fresh.priceNote,
       tip: custom.tip ? prev.tip : fresh.tip,
+      kicker: custom.kicker ? prev.kicker : (fresh.kicker ?? prev.kicker),
+      credit: custom.credit ? prev.credit : (fresh.credit ?? prev.credit),
+      role: custom.role ? prev.role : (fresh.role ?? prev.role),
       image: custom.image ? prev.image : fresh.image,
       crop: prev.crop ?? fresh.crop,
       eventDate: custom.eventDate ? prev.eventDate : fresh.eventDate,
@@ -425,6 +442,7 @@ export function mergeCarouselDraft(saved: CarouselDraft | null | undefined, seed
   const extra = saved.recs.filter((row) => row.kind === "event" && !recs.some((item) => item.sourceId === row.sourceId));
   return {
     version: 1,
+    kind: seed.kind ?? saved.kind ?? "collection",
     cover: {
       ...seed.cover,
       ...saved.cover,
@@ -449,7 +467,8 @@ export function parseCarouselDraft(value: unknown): CarouselDraft | null {
 
 export function validateCarousel(draft: CarouselDraft, overflowIds: string[] = []): CarouselIssue[] {
   const issues: CarouselIssue[] = [];
-  const weekend = isWeekendGuide(draft.cover.headline, draft.cover.seriesLabel);
+  const spotlight = draft.kind === "spotlight";
+  const weekend = !spotlight && isWeekendGuide(draft.cover.headline, draft.cover.seriesLabel);
   if (!draft.cover.headline.trim()) {
     issues.push({ id: "cover-headline", level: "error", slide: "cover", message: "Cover needs a headline." });
   }
@@ -485,7 +504,7 @@ export function validateCarousel(draft: CarouselDraft, overflowIds: string[] = [
       hint: "Add a photo on the author profile, or use the compact layout.",
     });
   }
-  if (draft.author.name && !draft.author.bio.trim()) {
+  if (draft.author.name && !draft.author.bio.trim() && !(spotlight && draft.author.tagline?.trim())) {
     issues.push({
       id: "author-bio",
       level: "error",
@@ -515,7 +534,7 @@ export function validateCarousel(draft: CarouselDraft, overflowIds: string[] = [
         message: `${label} description is ${words} words. Aim for 15–25.`,
       });
     }
-    if (rec.priceAmount == null && rec.priceBasis !== "omit" && rec.priceBasis !== "free" && rec.priceBasis !== "varies") {
+    if (!spotlight && rec.priceAmount == null && rec.priceBasis !== "omit" && rec.priceBasis !== "free" && rec.priceBasis !== "varies") {
       issues.push({ id: `${slide}-price`, level: "warn", slide, message: `${label} is missing a verified price.` });
     }
     if (!rec.location.trim() || /^south africa$/i.test(rec.location)) {

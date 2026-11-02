@@ -10539,6 +10539,12 @@ button.listing-cost-toggle {
   white-space: pre-line;
 }
 
+.ig-cover-copy h2.is-long {
+  font-size: 64px;
+  line-height: 0.92;
+  max-height: 360px;
+}
+
 .ig-cover-geo,
 .ig-cover-support,
 .ig-cover-swipe {
@@ -10802,6 +10808,257 @@ button.listing-cost-toggle {
 
 .ig-author.is-compact .ig-author-sky {
   padding-top: 180px;
+}
+
+.ig-spot {
+  background: var(--night);
+  color: var(--night);
+}
+
+.ig-spot-photo {
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  overflow: hidden;
+  background: var(--night);
+}
+
+.ig-spot-photo img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+
+.ig-spot-head {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  z-index: 4;
+  display: grid;
+  grid-template-columns: 140px minmax(0, 1fr) 140px;
+  align-items: start;
+  gap: 24px;
+  padding: 36px 48px 0;
+  height: 220px;
+  pointer-events: none;
+  background: linear-gradient(
+    to bottom,
+    rgb(42, 45, 53) 0%,
+    rgba(42, 45, 53, 0.72) 36%,
+    rgba(42, 45, 53, 0) 100%
+  );
+}
+
+.ig-spot-head img {
+  height: 48px;
+  width: auto;
+  justify-self: start;
+}
+
+.ig-spot-head h2 {
+  margin: 8px 0 0;
+  font-family: "Social Gothic Rough", "Arial Black", sans-serif;
+  font-size: 43px;
+  line-height: 0.95;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  text-align: center;
+  color: var(--snow);
+  overflow: hidden;
+  max-height: 96px;
+}
+
+.ig-spot-head p {
+  margin: 12px 0 0;
+  justify-self: end;
+  font-family: Nunito, "Nunito Extra Light", system-ui, sans-serif;
+  font-size: 22px;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--snow);
+  white-space: nowrap;
+}
+
+.ig-spot-band {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 3;
+  color: #45a67f;
+  background: #45a67f;
+}
+
+.ig-spot-band .cr-ig-wave {
+  color: #45a67f;
+}
+
+.ig-spot-copy {
+  padding: 4px 56px 44px;
+  box-sizing: border-box;
+  min-height: 430px;
+}
+
+.ig-spot-kicker {
+  margin: 0 0 16px;
+  font-family: Nunito, "Nunito Extra Light", system-ui, sans-serif;
+  font-size: 26px;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--night);
+}
+
+.ig-spot-copy h3,
+.ig-spot-pack {
+  margin: 0 0 18px;
+  font-family: "Social Gothic Rough", "Arial Black", sans-serif;
+  font-size: 88px;
+  line-height: 0.9;
+  letter-spacing: 0.01em;
+  text-transform: uppercase;
+  color: var(--night);
+  overflow: hidden;
+  max-height: 280px;
+}
+
+.ig-spot-copy h3.is-long,
+.ig-spot-pack {
+  font-size: 56px;
+  line-height: 0.94;
+  max-height: 220px;
+}
+
+.ig-spot-body,
+.ig-spot-support,
+.ig-spot-geo {
+  margin: 0 0 14px;
+  color: var(--night);
+  font-family: Nunito, "Nunito Extra Light", system-ui, sans-serif;
+  font-size: 34px;
+  line-height: 1.25;
+}
+
+.ig-spot-geo {
+  font-weight: 700;
+}
+
+.ig-spot-foot {
+  display: flex;
+  justify-content: space-between;
+  gap: 16px;
+  margin: 28px 0 0;
+  font-size: 24px;
+  color: var(--night);
+  opacity: 0.85;
+}
+
+.ig-spot-author {
+  display: flex;
+  flex-direction: column;
+  background: var(--night);
+}
+
+.ig-spot-author-sky {
+  position: relative;
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 0 48px 40px;
+  overflow: hidden;
+}
+
+.ig-spot-author-cover {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  z-index: 0;
+}
+
+.ig-spot-author.has-cover .ig-spot-author-sky::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  background: linear-gradient(
+    to bottom,
+    rgba(42, 45, 53, 0.72) 0%,
+    rgba(42, 45, 53, 0.22) 32%,
+    rgba(42, 45, 53, 0.18) 58%,
+    rgba(42, 45, 53, 0.58) 100%
+  );
+  pointer-events: none;
+}
+
+.ig-spot-author .ig-spot-head {
+  position: relative;
+  z-index: 2;
+  width: 100%;
+  height: auto;
+  padding: 36px 0 0;
+  background: none;
+}
+
+.ig-spot-portrait {
+  position: relative;
+  z-index: 2;
+  width: 340px;
+  height: 340px;
+  margin: 48px 0 28px;
+  border-radius: 50%;
+  overflow: hidden;
+  background: color-mix(in srgb, var(--snow) 12%, var(--night));
+  border: 14px solid #f4f1e8;
+  box-shadow: 0 0 0 6px rgba(42, 45, 53, 0.35);
+}
+
+.ig-spot-portrait img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+
+.ig-spot-portrait span {
+  display: grid;
+  place-items: center;
+  width: 100%;
+  height: 100%;
+  font-family: "Social Gothic Rough", "Arial Black", sans-serif;
+  font-size: 96px;
+  color: var(--snow);
+}
+
+.ig-spot-author-sky h3 {
+  position: relative;
+  z-index: 2;
+  margin: 0;
+  font-family: "Social Gothic Rough", "Arial Black", sans-serif;
+  font-size: 72px;
+  line-height: 0.92;
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
+  text-align: center;
+  color: var(--snow);
+}
+
+.ig-spot-tagline {
+  position: relative;
+  z-index: 2;
+  margin: 16px 0 0;
+  font-size: 32px;
+  text-align: center;
+  color: var(--snow);
+  opacity: 0.88;
+}
+
+.ig-spot-closing {
+  max-height: none;
 }
 
 .carousel-desk {

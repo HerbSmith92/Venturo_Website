@@ -6,6 +6,11 @@ import { saveGuideCarousel } from "@/app/admin/carousel-actions";
 import { AuthorSlide } from "@/components/admin/carousel/slides/AuthorSlide";
 import { CoverSlide } from "@/components/admin/carousel/slides/CoverSlide";
 import { RecommendationSlide } from "@/components/admin/carousel/slides/RecommendationSlide";
+import {
+  SpotlightAuthorSlide,
+  SpotlightCoverSlide,
+  SpotlightStorySlide,
+} from "@/components/admin/carousel/slides/SpotlightSlides";
 import { captureIgSlide, downloadBlob } from "@/lib/capture-ig-slide";
 import type { GuideAuthor } from "@/lib/guide-authors";
 import {
@@ -26,9 +31,20 @@ import {
   type CarouselRec,
   type PriceBasis,
 } from "@/lib/guide-carousel";
+import { seedSpotlightCarouselDraft } from "@/lib/spotlight-carousel";
 import type { GuideDraftItem } from "@/lib/guide-shared";
+import type { SpotlightListingDetails } from "@/lib/control-room-guides";
+import type { SpotlightCover, SpotlightPhoto, SpotlightSection } from "@/lib/spotlight";
 
 type SlideKey = "cover" | "author" | string;
+
+function hydrateCarousel(savedDraft: unknown, seed: CarouselDraft, title: string): CarouselDraft {
+  const next = mergeCarouselDraft(parseCarouselDraft(savedDraft), seed);
+  if (seed.kind === "spotlight" && next.cover.headline.trim() === title.trim()) {
+    return { ...next, cover: { ...next.cover, headline: seed.cover.headline } };
+  }
+  return next;
+}
 
 function LiveSlide({
   draft,
@@ -39,11 +55,30 @@ function LiveSlide({
   slide: SlideKey;
   frameRef?: (node: HTMLDivElement | null) => void;
 }) {
-  if (slide === "cover") return <CoverSlide cover={draft.cover} count={draft.recs.length} frameRef={frameRef} />;
-  if (slide === "author") return <AuthorSlide author={draft.author} frameRef={frameRef} />;
+  const spotlight = draft.kind === "spotlight";
+  if (slide === "cover") {
+    return spotlight ? (
+      <SpotlightCoverSlide cover={draft.cover} recCount={draft.recs.length} frameRef={frameRef} />
+    ) : (
+      <CoverSlide cover={draft.cover} count={draft.recs.length} frameRef={frameRef} />
+    );
+  }
+  if (slide === "author") {
+    return spotlight ? (
+      <SpotlightAuthorSlide
+        author={{ ...draft.author, cover: draft.author.cover || draft.cover.image }}
+        frameRef={frameRef}
+      />
+    ) : (
+      <AuthorSlide author={draft.author} frameRef={frameRef} />
+    );
+  }
   const rec = draft.recs.find((row) => row.id === slide);
   if (!rec) return null;
   const index = draft.recs.findIndex((row) => row.id === rec.id) + 1;
+  if (spotlight) {
+    return <SpotlightStorySlide rec={rec} index={index - 1} recCount={draft.recs.length} frameRef={frameRef} />;
+  }
   return <RecommendationSlide rec={rec} index={index} total={draft.recs.length} frameRef={frameRef} />;
 }
 
@@ -76,6 +111,7 @@ export function CarouselWorkspace({
   place,
   savedDraft,
   events = [],
+  spotlight,
 }: {
   open: boolean;
   onClose: () => void;
@@ -87,15 +123,32 @@ export function CarouselWorkspace({
   place: string;
   savedDraft: unknown;
   events?: CarouselEventSource[];
+  spotlight?: {
+    listing: SpotlightListingDetails | null;
+    photos: SpotlightPhoto[];
+    cover: SpotlightCover;
+    story: SpotlightSection[];
+  };
 }) {
   const seed = useMemo(() => {
+    if (spotlight) {
+      return seedSpotlightCarouselDraft({
+        title,
+        intro,
+        author,
+        listing: spotlight.listing,
+        photos: spotlight.photos,
+        cover: spotlight.cover,
+        story: spotlight.story,
+      });
+    }
     const next = seedCarouselDraft({ title, intro, items, author, place });
     const extra = events
       .filter((event) => !next.recs.some((rec) => rec.sourceId === event.id))
       .map(seedRecFromEvent);
     return extra.length ? { ...next, recs: [...next.recs, ...extra] } : next;
-  }, [title, intro, items, author, place, events]);
-  const [draft, setDraft] = useState<CarouselDraft>(() => mergeCarouselDraft(parseCarouselDraft(savedDraft), seed));
+  }, [title, intro, items, author, place, events, spotlight]);
+  const [draft, setDraft] = useState<CarouselDraft>(() => hydrateCarousel(savedDraft, seed, title));
   const [history, setHistory] = useState<CarouselDraft[]>([]);
   const [future, setFuture] = useState<CarouselDraft[]>([]);
   const [slide, setSlide] = useState<SlideKey>("cover");
@@ -114,7 +167,7 @@ export function CarouselWorkspace({
 
   useEffect(() => {
     if (!open) return;
-    setDraft(mergeCarouselDraft(parseCarouselDraft(savedDraft), seed));
+    setDraft(hydrateCarousel(savedDraft, seed, title));
     setHistory([]);
     setFuture([]);
     setSlide("cover");
@@ -362,13 +415,20 @@ export function CarouselWorkspace({
 
           <aside className="carousel-inspector">
             {slide === "cover" ? (
-              <CoverInspector cover={draft.cover} photos={allPhotos} count={draft.recs.length} onChange={patchCover} />
+              <CoverInspector
+                cover={draft.cover}
+                photos={allPhotos}
+                count={draft.recs.length}
+                spotlight={draft.kind === "spotlight"}
+                onChange={patchCover}
+              />
             ) : null}
             {rec ? (
               <RecInspector
                 rec={rec}
                 seed={seed.recs.find((row) => row.id === rec.id)}
                 events={events}
+                spotlight={draft.kind === "spotlight"}
                 onChange={(patch, keysToMark) => patchRec(rec.id, patch, keysToMark)}
                 onReset={(field) => resetRecField(rec.id, field)}
                 onAddEvent={(event) => commit((prev) => ({ ...prev, recs: [...prev.recs, seedRecFromEvent(event)] }))}
@@ -378,6 +438,7 @@ export function CarouselWorkspace({
               <AuthorInspector
                 author={draft.author}
                 assigned={seed.author}
+                spotlight={draft.kind === "spotlight"}
                 onChange={patchAuthor}
                 onReset={() => patchAuthor(seed.author)}
                 onCompact={() => {
@@ -464,11 +525,13 @@ function CoverInspector({
   cover,
   photos,
   count,
+  spotlight,
   onChange,
 }: {
   cover: CarouselCover;
   photos: string[];
   count: number;
+  spotlight?: boolean;
   onChange: (patch: Partial<CarouselCover>) => void;
 }) {
   const crops = cover.collageCrops ?? [cover.crop, cover.crop, cover.crop];
@@ -485,7 +548,13 @@ function CoverInspector({
   return (
     <>
       <h2>Cover</h2>
-      <p className="muted">{count} recommendations · {count + 2} slides</p>
+      <p className="muted">{count} story slides · {count + 2} slides</p>
+      {spotlight ? (
+        <label>
+          Header title
+          <input value={cover.headerTitle ?? ""} onChange={(e) => onChange({ headerTitle: e.target.value })} />
+        </label>
+      ) : null}
       <label>
         Series label
         <input id="cf-seriesLabel" value={cover.seriesLabel} onChange={(e) => onChange({ seriesLabel: e.target.value })} />
@@ -502,33 +571,38 @@ function CoverInspector({
         Geographic label
         <input id="cf-geoLabel" value={cover.geoLabel} onChange={(e) => onChange({ geoLabel: e.target.value })} />
       </label>
-      <p>Weekend on the cover</p>
-      <p className="muted">The dates this carousel is promoting. Not how long the website guide stays live.</p>
-      <div className="carousel-dates">
-        <label>
-          From
-          <input
-            id="cf-dateFrom"
-            type="date"
-            value={cover.dateFrom}
-            onChange={(e) => onChange({ dateFrom: e.target.value, dateTo: cover.dateTo || e.target.value })}
-          />
-        </label>
-        <label>
-          To
-          <input
-            id="cf-dateTo"
-            type="date"
-            value={cover.dateTo}
-            min={cover.dateFrom || undefined}
-            onChange={(e) => onChange({ dateTo: e.target.value })}
-          />
-        </label>
-      </div>
+      {spotlight ? null : (
+        <>
+          <p>Weekend on the cover</p>
+          <p className="muted">The dates this carousel is promoting. Not how long the website guide stays live.</p>
+          <div className="carousel-dates">
+            <label>
+              From
+              <input
+                id="cf-dateFrom"
+                type="date"
+                value={cover.dateFrom}
+                onChange={(e) => onChange({ dateFrom: e.target.value, dateTo: cover.dateTo || e.target.value })}
+              />
+            </label>
+            <label>
+              To
+              <input
+                id="cf-dateTo"
+                type="date"
+                value={cover.dateTo}
+                min={cover.dateFrom || undefined}
+                onChange={(e) => onChange({ dateTo: e.target.value })}
+              />
+            </label>
+          </div>
+        </>
+      )}
       <label>
         Swipe prompt
         <input value={cover.swipePrompt} onChange={(e) => onChange({ swipePrompt: e.target.value })} />
       </label>
+      {spotlight ? null : (
       <label>
         Layout
         <select value={cover.layout} onChange={(e) => onChange({ layout: e.target.value as CarouselCover["layout"] })}>
@@ -536,7 +610,8 @@ function CoverInspector({
           <option value="collage">Three-photo collage</option>
         </select>
       </label>
-      {cover.layout === "hero" ? (
+      )}
+      {cover.layout === "hero" || spotlight ? (
         <PhotoCrop
           label="Cover photograph"
           photos={photos}
@@ -610,6 +685,7 @@ function RecInspector({
   rec,
   seed,
   events,
+  spotlight,
   onChange,
   onReset,
   onAddEvent,
@@ -617,6 +693,7 @@ function RecInspector({
   rec: CarouselRec;
   seed?: CarouselRec;
   events: CarouselEventSource[];
+  spotlight?: boolean;
   onChange: (patch: Partial<CarouselRec>, custom: (keyof CarouselRec)[]) => void;
   onReset: (field: keyof CarouselRec) => void;
   onAddEvent: (event: CarouselEventSource) => void;
@@ -624,7 +701,32 @@ function RecInspector({
   const words = wordCount(rec.description);
   return (
     <>
-      <h2>{rec.kind === "event" ? "Event" : "Activity"}</h2>
+      <h2>{spotlight ? (rec.role === "pack" ? "Pack slide" : "Story slide") : rec.kind === "event" ? "Event" : "Activity"}</h2>
+      {spotlight ? (
+        <>
+          <Field label="Header title" custom={Boolean(rec.custom.title)} onReset={() => onReset("title")}>
+            <input value={rec.title} onChange={(e) => onChange({ title: e.target.value }, ["title"])} />
+          </Field>
+          <label>
+            Kicker
+            <input value={rec.kicker ?? ""} onChange={(e) => onChange({ kicker: e.target.value }, ["kicker"])} />
+          </label>
+          <label>
+            <input
+              type="checkbox"
+              checked={rec.role === "pack"}
+              onChange={(e) => onChange({ role: e.target.checked ? "pack" : "story" }, ["role"])}
+            />{" "}
+            Pack-for-the-day slide
+          </label>
+          {rec.role === "pack" ? (
+            <label>
+              Pack line
+              <input value={rec.tip} onChange={(e) => onChange({ tip: e.target.value }, ["tip"])} />
+            </label>
+          ) : null}
+        </>
+      ) : (
       <Field
         label="Social title"
         custom={Boolean(rec.custom.title)}
@@ -632,6 +734,7 @@ function RecInspector({
       >
         <input value={rec.title} onChange={(e) => onChange({ title: e.target.value }, ["title"])} />
       </Field>
+      )}
       <Field
         label="Social description"
         hint={`${words} words · aim for 15–25. Write one complete sentence.`}
@@ -640,9 +743,13 @@ function RecInspector({
       >
         <textarea id="cf-description" value={rec.description} onChange={(e) => onChange({ description: e.target.value }, ["description"])} />
       </Field>
+      {spotlight ? null : (
       <Field label="Display location" custom={Boolean(rec.custom.location)} onReset={() => onReset("location")}>
         <input value={rec.location} onChange={(e) => onChange({ location: e.target.value }, ["location"])} />
       </Field>
+      )}
+      {spotlight ? null : (
+      <>
       <Field label="Category" custom={Boolean(rec.custom.categoryKey)} onReset={() => onReset("categoryKey")}>
         <select
           value={rec.categoryKey}
@@ -706,6 +813,8 @@ function RecInspector({
           Confirmed for this weekend
         </label>
       )}
+      </>
+      )}
       <p>Photograph</p>
       <div className="carousel-photos">
         {rec.photos.map((src) => (
@@ -739,7 +848,7 @@ function RecInspector({
       {seed && seed.description !== rec.description && rec.custom.description ? (
         <p className="muted">Directory copy has changed. Reset the description to review it.</p>
       ) : null}
-      {events.length ? (
+      {!spotlight && events.length ? (
         <label>
           Add linked event
           <select defaultValue="" onChange={(e) => {
@@ -761,12 +870,14 @@ function RecInspector({
 function AuthorInspector({
   author,
   assigned,
+  spotlight,
   onChange,
   onReset,
   onCompact,
 }: {
   author: CarouselAuthor;
   assigned: CarouselAuthor;
+  spotlight?: boolean;
   onChange: (patch: Partial<CarouselAuthor>) => void;
   onReset: () => void;
   onCompact: () => void;
@@ -779,7 +890,13 @@ function AuthorInspector({
       ) : (
         <p className="muted">Pick an author on the guide, then it will appear here.</p>
       )}
-      {author.cover ? (
+      {spotlight ? (
+        <p className="muted">
+          {author.cover
+            ? "Cover photo sits behind the portrait, with the Jade band for the close."
+            : "Add a cover on the author card, or this slide will use the guide cover."}
+        </p>
+      ) : author.cover ? (
         <p className="muted">Cover photo from the author card is used behind the portrait.</p>
       ) : (
         <p className="muted">This author has no cover photo yet. Add one on their author card.</p>
@@ -794,6 +911,10 @@ function AuthorInspector({
       <label>
         Display name
         <input id="cf-name" value={author.name} onChange={(e) => onChange({ name: e.target.value })} />
+      </label>
+      <label>
+        Tagline
+        <input value={author.tagline ?? ""} onChange={(e) => onChange({ tagline: e.target.value })} />
       </label>
       <label>
         Social bio
@@ -815,9 +936,11 @@ function AuthorInspector({
         Supporting line
         <input value={author.supportingAction} onChange={(e) => onChange({ supportingAction: e.target.value })} />
       </label>
-      <button type="button" className="btn btn-ghost" onClick={onCompact}>
-        Use compact author layout
-      </button>
+      {spotlight ? null : (
+        <button type="button" className="btn btn-ghost" onClick={onCompact}>
+          Use compact author layout
+        </button>
+      )}
     </>
   );
 }

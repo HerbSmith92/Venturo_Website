@@ -1,4 +1,7 @@
 import type { Ref } from "react";
+import { exportPhotoSrc } from "@/lib/export-image";
+import { cropStyle, formatCoverDates, wordCount, type CarouselCover, type CarouselCrop } from "@/lib/guide-carousel";
+import { GuideExportWave } from "@/components/admin/guide-export/GuideExportShell";
 
 function stackHeadline(value: string) {
   const trimmed = value.trim();
@@ -8,9 +11,6 @@ function stackHeadline(value: string) {
   if (parts.length < 3) return trimmed;
   return `${parts.slice(0, -1).join(" ")}\n${parts[parts.length - 1]}`;
 }
-import { exportPhotoSrc } from "@/lib/export-image";
-import { cropStyle, formatCoverDates, type CarouselCover, type CarouselCrop } from "@/lib/guide-carousel";
-import { GuideExportWave } from "@/components/admin/guide-export/GuideExportShell";
 
 export function CoverSlide({
   cover,
@@ -42,7 +42,9 @@ export function CoverSlide({
       <div className="ig-cover-band">
         <GuideExportWave />
         <div className="ig-cover-copy">
-          <h2 data-ig-fit="headline">{stackHeadline(cover.headline || `${count} Weekend Adventures`)}</h2>
+          <h2 className={wordCount(cover.headline) > 6 ? "is-long" : undefined} data-ig-fit="headline">
+            {stackHeadline(cover.headline || `${count} Weekend Adventures`)}
+          </h2>
           <p className="ig-cover-geo">
             {cover.geoLabel}
             {dates ? ` · ${dates}` : ""}

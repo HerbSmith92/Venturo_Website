@@ -1,8 +1,8 @@
 "use client";
 
-import { useEffect, useRef, useState, useTransition } from "react";
+import { useEffect, useMemo, useRef, useState, useTransition } from "react";
 import { applyGuideAction, saveCuratedGuide } from "@/app/admin/guide-actions";
-import { SpotlightCarouselModal } from "@/components/admin/SpotlightCarouselModal";
+import { CarouselWorkspace } from "@/components/admin/carousel/CarouselWorkspace";
 import { StoryBuilder } from "@/components/admin/StoryBuilder";
 import { SpotlightArticle } from "@/components/SpotlightArticle";
 import type { GuideEditorRecord, SpotlightListingDetails } from "@/lib/control-room-guides";
@@ -85,6 +85,10 @@ export function SpotlightGuideEditor({
   const author = authors.find((row) => row.id === authorId) ?? null;
   const visit = asVisit(activity);
   const inspected = photos.find((photo) => photo.id === inspect) ?? null;
+  const spotlightCarousel = useMemo(
+    () => ({ listing: activity, photos, cover, story }),
+    [activity, photos, cover, story],
+  );
 
   useEffect(() => {
     if (!query.trim()) {
@@ -513,16 +517,17 @@ export function SpotlightGuideEditor({
         </div>
       ) : null}
 
-      <SpotlightCarouselModal
+      <CarouselWorkspace
         open={carousel}
         onClose={() => setCarousel(false)}
+        guideId={guide.id}
         title={title}
         intro={intro}
-        story={story}
-        photos={photos}
-        cover={cover}
-        listing={visit}
+        items={[]}
         author={author}
+        place={activity?.area || "Joburg & nearby"}
+        savedDraft={guide.carousel_draft}
+        spotlight={spotlightCarousel}
       />
     </div>
   );
