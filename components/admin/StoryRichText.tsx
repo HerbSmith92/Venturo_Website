@@ -77,18 +77,33 @@ function retag(block: HTMLElement, tag: "h2" | "p"): HTMLElement {
   return next;
 }
 
+function htmlFromRange(range: Range) {
+  const wrap = document.createElement("div");
+  wrap.appendChild(range.cloneContents());
+  return wrap.innerHTML;
+}
+
 function splitHtmlAtCaret(root: HTMLElement): { before: string; after: string } {
   const selection = window.getSelection();
   if (!selection || selection.rangeCount === 0 || !root.contains(selection.anchorNode)) {
     return { before: root.innerHTML, after: "" };
   }
-  const range = selection.getRangeAt(0);
+  const caret = selection.getRangeAt(0).cloneRange();
+  if (!caret.collapsed) caret.collapse(true);
+
+  const beforeRange = document.createRange();
+  beforeRange.selectNodeContents(root);
+  beforeRange.setEnd(caret.startContainer, caret.startOffset);
+
   const afterRange = document.createRange();
   afterRange.selectNodeContents(root);
-  afterRange.setStart(range.endContainer, range.endOffset);
-  const afterWrap = document.createElement("div");
-  afterWrap.appendChild(afterRange.extractContents());
-  return { before: root.innerHTML, after: afterWrap.innerHTML };
+  afterRange.setStart(caret.startContainer, caret.startOffset);
+
+  return { before: tidyHtml(htmlFromRange(beforeRange)), after: tidyHtml(htmlFromRange(afterRange)) };
+}
+
+function tidyHtml(html: string) {
+  return html.replace(/\sdata-cursor-ref="[^"]*"/g, "");
 }
 
 function isBlankHtml(html: string) {
@@ -140,7 +155,7 @@ export function StoryRichText({
   function emit() {
     const node = ref.current;
     if (!node) return;
-    onChange(node.innerHTML);
+    onChange(tidyHtml(node.innerHTML));
     syncFormat();
   }
 
@@ -250,9 +265,7 @@ export function StoryRichText({
             onClick={() => {
               const root = ref.current;
               if (!root) return;
-              const split = splitHtmlAtCaret(root);
-              onChange(split.before);
-              onInsertPhotos(split);
+              onInsertPhotos(splitHtmlAtCaret(root));
             }}
           >
             Insert photos

@@ -76,7 +76,7 @@ export function StorySectionModal({
     setKeepLayout(null);
     setLeaveOpen(false);
     setErrors([]);
-  }, [open]);
+  }, [open, initial?.id, sectionType, mode]);
 
   const snapshot = useMemo(() => JSON.stringify(initial ?? emptySection(sectionType)), [initial, sectionType]);
   const dirty = JSON.stringify(draft) !== snapshot;

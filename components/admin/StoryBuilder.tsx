@@ -67,8 +67,9 @@ export function StoryBuilder({
     const photoSection = emptySection("photos");
     photoSection.layout = "two";
     const follow = emptySection("story");
+    follow.heading = "";
     follow.bodyHtml = afterHtml;
-    const hasFollow = Boolean(htmlToPlainText(afterHtml));
+    const hasFollow = Boolean(htmlToPlainText(afterHtml) || afterHtml.replace(/<[^>]+>/g, "").length);
     const extra = hasFollow ? [photoSection, follow] : [photoSection];
     const insertAt = editor?.index ?? story.length;
     const next =
@@ -76,14 +77,13 @@ export function StoryBuilder({
         ? [...story.slice(0, insertAt), writing, ...extra, ...story.slice(insertAt)]
         : [...story.slice(0, insertAt), writing, ...extra, ...story.slice((editor?.index ?? insertAt) + 1)];
     onStoryChange(next);
-    const ok = await onPersist(next);
-    if (!ok) return;
     setEditor({
       mode: "edit",
       index: insertAt + 1,
       type: "photos",
       section: cloneSection(photoSection),
     });
+    await onPersist(next);
   }
 
   async function saveSection(section: SpotlightSection) {
@@ -190,6 +190,7 @@ export function StoryBuilder({
 
       {editor ? (
         <StorySectionModal
+          key={`${editor.mode}-${editor.index}-${editor.section?.id ?? editor.type}`}
           open
           mode={editor.mode}
           sectionType={editor.type}
