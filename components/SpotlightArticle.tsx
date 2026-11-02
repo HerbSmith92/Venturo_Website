@@ -2,7 +2,6 @@
 
 import { useMemo, useState } from "react";
 import { SaveForm } from "@/components/SaveForm";
-import { formatDay, formatHours } from "@/lib/control-room-shared";
 import type { GuideAuthorPublic } from "@/lib/guide-authors";
 import { authorSocialHref } from "@/lib/guide-authors";
 import { SpotlightSectionView } from "@/components/spotlight/SpotlightSectionView";
@@ -10,6 +9,7 @@ import {
   coverPhoto,
   estimateReadMinutes,
   galleryPhotos,
+  groupSpotlightHours,
   spotlightPriceLabel,
   type SpotlightCover,
   type SpotlightPhoto,
@@ -45,7 +45,7 @@ function ShareButton({ url, title }: { url: string; title: string }) {
 
 function VisitRows({ listing }: { listing: SpotlightVisitInfo }) {
   const price = spotlightPriceLabel(listing.fromPrice);
-  const hours = listing.hours.filter((row) => row.opensAt || row.closesAt || row.isClosed);
+  const hourGroups = groupSpotlightHours(listing.hours);
   const suitability =
     listing.indoorOutdoor === "indoor"
       ? "Indoor"
@@ -75,28 +75,19 @@ function VisitRows({ listing }: { listing: SpotlightVisitInfo }) {
           </dd>
         </>
       )}
-      {hours.length ? (
-        <>
-          <dt>Hours</dt>
-          <dd>
-            {hours.slice(0, 3).map((row) => (
-              <div key={row.dayOfWeek}>
-                {formatDay(row.dayOfWeek)} · {formatHours(row.opensAt, row.closesAt, row.isClosed)}
-              </div>
-            ))}
-            {hours.length > 3 ? (
-              <a href={`/directory/${listing.slug}`}>Check opening times</a>
-            ) : null}
-          </dd>
-        </>
-      ) : (
-        <>
-          <dt>Hours</dt>
-          <dd>
-            <a href={`/directory/${listing.slug}`}>Check opening times</a>
-          </dd>
-        </>
-      )}
+      <dt className="spotlight-visit-hours-label">Hours</dt>
+      <dd className="spotlight-visit-hours">
+        {hourGroups.length ? (
+          hourGroups.map((row) => (
+            <div className="spotlight-visit-hour" key={`${row.days}-${row.time}`}>
+              <span>{row.days}</span>
+              <span className="spotlight-visit-time">{row.time}</span>
+            </div>
+          ))
+        ) : (
+          <a href={`/directory/${listing.slug}`}>Check opening times</a>
+        )}
+      </dd>
       {listing.bookingRequired || listing.bookingUrl ? (
         <>
           <dt>Booking</dt>
@@ -118,6 +109,29 @@ function VisitRows({ listing }: { listing: SpotlightVisitInfo }) {
         </>
       ) : null}
     </dl>
+  );
+}
+
+function VisitCard({
+  listing,
+  photo,
+  variant,
+}: {
+  listing: SpotlightVisitInfo;
+  photo?: SpotlightPhoto | null;
+  variant: "sticky" | "end" | "mobile";
+}) {
+  return (
+    <aside className={`spotlight-visit is-${variant}`}>
+      <p className="eyebrow">Plan your visit</p>
+      {photo ? <img src={photo.url} alt="" /> : null}
+      <h2>{listing.name}</h2>
+      {variant === "mobile" ? listing.area ? <p className="spotlight-visit-area">{listing.area}</p> : null : <VisitRows listing={listing} />}
+      {variant !== "mobile" ? <p className="spotlight-visit-note">Confirm current details before visiting.</p> : null}
+      <a className="btn btn-primary" href={`/directory/${listing.slug}`}>
+        View activity
+      </a>
+    </aside>
   );
 }
 
@@ -180,6 +194,7 @@ export function SpotlightArticle({
   }, [publishedAt, updatedAt]);
 
   const lightboxPhoto = lightbox != null ? gallery[lightbox] : null;
+  const visitPhoto = gallery.find((photo) => photo.url !== hero?.url) ?? gallery[0] ?? hero ?? null;
 
   return (
     <article className={`spotlight-page${compact ? " is-compact" : ""}`}>
@@ -227,16 +242,7 @@ export function SpotlightArticle({
 
       <div className="spotlight-layout">
         <div className="spotlight-story">
-          {listing ? (
-            <aside className="spotlight-visit is-mobile">
-              <p className="eyebrow">Plan your visit</p>
-              <h2>{listing.name}</h2>
-              <p>{listing.area}</p>
-              <a className="btn btn-primary" href={`/directory/${listing.slug}`}>
-                View activity
-              </a>
-            </aside>
-          ) : null}
+          {listing ? <VisitCard listing={listing} variant="mobile" /> : null}
 
           {story.map((section) => (
             <SpotlightSectionView key={section.id} section={section} photos={photos} authorName={author?.name} />
@@ -260,21 +266,11 @@ export function SpotlightArticle({
             </section>
           ) : null}
 
-          {listing ? (
-            <aside className="spotlight-visit is-end">
-              <p className="eyebrow">Plan your visit</p>
-              <h2>{listing.name}</h2>
-              <VisitRows listing={listing} />
-              <p className="muted">Confirm current details before visiting.</p>
-              <a className="btn btn-primary" href={`/directory/${listing.slug}`}>
-                View activity
-              </a>
-            </aside>
-          ) : null}
+          {listing ? <VisitCard listing={listing} photo={visitPhoto} variant="end" /> : null}
 
           {author ? (
             <aside className="spotlight-author">
-              {author.photo ? <img src={author.photo} alt="" /> : <div>{author.name.charAt(0)}</div>}
+              {author.photo ? <img src={author.photo} alt="" /> : <div aria-hidden="true">{author.name.charAt(0)}</div>}
               <div>
                 <p className="eyebrow">Meet your guide</p>
                 <h2>
@@ -299,22 +295,7 @@ export function SpotlightArticle({
           ) : null}
         </div>
 
-        {listing ? (
-          <aside className="spotlight-visit is-sticky">
-            <p className="eyebrow">Plan your visit</p>
-            {photos.find((photo) => photo.gallery) ? (
-              <img src={(gallery[0] ?? hero)?.url} alt="" />
-            ) : hero ? (
-              <img src={hero.url} alt="" />
-            ) : null}
-            <h2>{listing.name}</h2>
-            <VisitRows listing={listing} />
-            <a className="btn btn-primary" href={`/directory/${listing.slug}`}>
-              View activity
-            </a>
-            <p className="muted">Confirm current details before visiting.</p>
-          </aside>
-        ) : null}
+        {listing ? <VisitCard listing={listing} photo={visitPhoto} variant="sticky" /> : null}
       </div>
 
       {lightboxPhoto ? (

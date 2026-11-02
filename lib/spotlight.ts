@@ -1,3 +1,5 @@
+import { formatDay, formatHours } from "@/lib/control-room-shared";
+
 export const SPOTLIGHT_BLOCK_TYPES = [
   "heading",
   "paragraph",
@@ -478,6 +480,40 @@ export function spotlightPriceLabel(value: number | string | null | undefined) {
   if (!Number.isFinite(amount)) return "";
   if (amount === 0) return "Free";
   return `From R ${amount.toFixed(2)}`;
+}
+
+export function groupSpotlightHours(hours: SpotlightVisitInfo["hours"]) {
+  const week = hours
+    .filter((row) => row.dayOfWeek >= 1 && row.dayOfWeek <= 7)
+    .filter((row) => row.opensAt || row.closesAt || row.isClosed)
+    .slice()
+    .sort((a, b) => a.dayOfWeek - b.dayOfWeek);
+
+  const groups: { from: number; to: number; time: string }[] = [];
+  for (const row of week) {
+    const time = formatHours(row.opensAt, row.closesAt, row.isClosed);
+    const last = groups[groups.length - 1];
+    if (last && last.to === row.dayOfWeek - 1 && last.time === time) {
+      last.to = row.dayOfWeek;
+      continue;
+    }
+    groups.push({ from: row.dayOfWeek, to: row.dayOfWeek, time });
+  }
+
+  const lines = groups.map((group) => ({
+    days: group.from === group.to ? formatDay(group.from) : `${formatDay(group.from)} – ${formatDay(group.to)}`,
+    time: group.time,
+  }));
+
+  const holiday = hours.find((row) => row.dayOfWeek === 8 && (row.opensAt || row.closesAt || row.isClosed));
+  if (holiday) {
+    lines.push({
+      days: formatDay(8),
+      time: formatHours(holiday.opensAt, holiday.closesAt, holiday.isClosed),
+    });
+  }
+
+  return lines;
 }
 
 export function moveItem<T>(items: T[], from: number, to: number) {

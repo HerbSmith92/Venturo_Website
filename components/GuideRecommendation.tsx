@@ -1,7 +1,6 @@
 import Link from "next/link";
 import {
   categoryColour,
-  categoryLabel,
   formatFromPrice,
   type GuideRecommendation,
 } from "@/lib/guides";
@@ -32,33 +31,24 @@ export function GuideRecommendationBlock({
         {memberDeal && <span className="deal-badge">Member Discount</span>}
       </div>
       <div className="card-body">
-        <p className="card-kicker" style={{ color: colour }}>
-          {categoryLabel(item.category)}
-        </p>
         <h3>{item.name}</h3>
         <p className="card-meta">{item.area}</p>
-        <div className="price-row">
-          <span className="from-price">{formatFromPrice(item.fromPrice)}</span>
-          {memberDeal &&
-            (paid && item.memberFromPrice !== null ? (
-              <span className="member-price">
-                Members {formatFromPrice(item.memberFromPrice)}
-              </span>
-            ) : (
-              <span className="member-price">Paid members save</span>
-            ))}
-        </div>
+        {memberDeal ? (
+          <p className="member-price">
+            {paid && item.memberFromPrice !== null
+              ? `Members ${formatFromPrice(item.memberFromPrice)}`
+              : "Paid members save"}
+          </p>
+        ) : null}
       </div>
     </Link>
   );
 
   const copy = (
     <div className="guide-rec-copy">
-      <p className="eyebrow" style={{ color: colour }}>
-        Spot {index}
-      </p>
+      <p className="eyebrow">Day {index}</p>
       <h2>{item.name}</h2>
-      <p className="muted">{item.area}</p>
+      <p className="guide-rec-place">{item.area}</p>
       {item.vibe ? <p className="guide-rec-vibe">{item.vibe}</p> : null}
       {item.editorialNote ? <p className="guide-rec-note">{item.editorialNote}</p> : null}
       <a className="btn btn-primary guide-see-more" href={href}>

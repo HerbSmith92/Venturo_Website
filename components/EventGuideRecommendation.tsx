@@ -18,24 +18,18 @@ export function EventGuideRecommendationBlock({
         <span className="guide-rec-num">{index}</span>
       </div>
       <div className="card-body">
-        <p className="card-kicker">Event</p>
         <h3>{item.title}</h3>
-        <p className="card-meta">{item.when}</p>
         <p className="card-meta">{item.area}</p>
-        {item.fromPrice ? (
-          <div className="price-row">
-            <span className="from-price">{item.fromPrice}</span>
-          </div>
-        ) : null}
+        {item.when ? <p className="card-meta">{item.when}</p> : null}
       </div>
     </Link>
   );
 
   const copy = (
     <div className="guide-rec-copy">
-      <p className="eyebrow">Spot {index}</p>
+      <p className="eyebrow">Day {index}</p>
       <h2>{item.title}</h2>
-      <p className="muted">
+      <p className="guide-rec-place">
         {item.when} · {item.area}
       </p>
       {item.editorialNote ? <p className="guide-rec-note">{item.editorialNote}</p> : null}

@@ -9256,21 +9256,78 @@ button.listing-cost-toggle {
   color: var(--canary);
 }
 
-.guide-recs {
-  --guide-card-w: 300px;
-  --guide-pair-gap: 20px;
-  --guide-copy-w: calc(var(--guide-card-w) * 2 + var(--guide-pair-gap));
+.guide-collection {
+  padding: 28px 0 80px;
+  color: var(--snow);
+}
+
+.guide-collection-head {
+  margin-bottom: 28px;
+}
+
+.guide-collection-head .eyebrow {
+  margin-bottom: 10px;
+}
+
+.guide-collection-head .eyebrow a {
+  color: inherit;
+}
+
+.guide-collection-head h1 {
+  margin: 0 0 18px;
+  font-size: clamp(28px, 4vw, 44px);
+  line-height: 0.95;
+  max-width: 22ch;
+}
+
+.guide-collection-intro {
+  max-width: 52ch;
+  margin: 0 0 18px;
+  font-size: 18px;
+  color: color-mix(in srgb, var(--snow) 78%, transparent);
+}
+
+.guide-collection-head .btn {
+  min-height: 40px;
+  padding: 6px 18px;
+}
+
+.guide-collection-main {
   display: grid;
   gap: 22px;
+  min-width: 0;
+}
+
+.guide-collection-body {
+  margin: 0;
+  white-space: pre-wrap;
+  max-width: 62ch;
+  color: color-mix(in srgb, var(--snow) 82%, transparent);
+}
+
+.guide-collection .guide-author {
+  width: 100%;
+}
+
+.guide-collection .guide-author-cover {
+  height: 168px;
+}
+
+.guide-collection-events h2 {
+  margin: 8px 0 12px;
+}
+
+.guide-recs {
+  display: grid;
+  gap: 20px;
 }
 
 .guide-rec {
   display: grid;
-  grid-template-columns: minmax(0, var(--guide-card-w)) minmax(0, var(--guide-copy-w));
-  gap: var(--guide-pair-gap);
+  grid-template-columns: minmax(220px, 0.9fr) minmax(0, 1.25fr);
+  gap: 20px;
   align-items: stretch;
-  width: fit-content;
-  max-width: 100%;
+  width: 100%;
   padding: 16px;
   background: color-mix(in srgb, var(--currant) 32%, var(--night));
   border-radius: var(--radius-lg);
@@ -9279,7 +9336,7 @@ button.listing-cost-toggle {
 }
 
 .guide-rec-flip {
-  grid-template-columns: minmax(0, var(--guide-copy-w)) minmax(0, var(--guide-card-w));
+  grid-template-columns: minmax(0, 1.25fr) minmax(220px, 0.9fr);
 }
 
 .guide-rec-flip .guide-rec-card {
@@ -9295,8 +9352,22 @@ button.listing-cost-toggle {
   height: 100%;
 }
 
+.guide-rec-card.card::before {
+  display: none;
+}
+
 .guide-rec-card .card-image {
   position: relative;
+  aspect-ratio: 16 / 10;
+}
+
+.guide-rec-card .card-body h3 {
+  font-size: 18px;
+  line-height: 1.1;
+}
+
+.guide-collection .guide-author-tagline {
+  color: color-mix(in srgb, var(--night) 62%, transparent);
 }
 
 .guide-rec-num {
@@ -9329,13 +9400,19 @@ button.listing-cost-toggle {
 
 .guide-rec-copy h2 {
   margin: 0;
-  font-size: clamp(24px, 2.6vw, 30px);
+  font-size: clamp(24px, 2.6vw, 32px);
+}
+
+.guide-rec-place {
+  margin: 0;
+  color: color-mix(in srgb, var(--snow) 70%, transparent);
 }
 
 .guide-rec-vibe {
   margin: 2px 0 0;
   font-size: 1.02rem;
   line-height: 1.55;
+  color: color-mix(in srgb, var(--snow) 88%, transparent);
 }
 
 .guide-rec-note {
@@ -9369,14 +9446,14 @@ button.listing-cost-toggle {
 
 .guide-layout {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) 260px;
-  gap: 24px;
+  grid-template-columns: minmax(0, 1fr) 240px;
+  gap: 22px;
   align-items: start;
 }
 
 .guide-browse {
   position: sticky;
-  top: 92px;
+  top: 140px;
   display: grid;
   gap: 14px;
   padding: 16px;
@@ -9660,6 +9737,10 @@ button.listing-cost-toggle {
   .guide-grid,
   .author-index-grid {
     grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .guide-collection-head h1 {
+    max-width: none;
   }
 
   .guide-rec,
@@ -13853,8 +13934,27 @@ a.chip,
 }
 
 .spotlight-page {
+  position: relative;
+  isolation: isolate;
   background: var(--snow);
   color: var(--night);
+}
+
+.spotlight-page::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  pointer-events: none;
+  background: url("/brand/pattern/pathway.png") center / 520px repeat;
+  opacity: 0.1;
+}
+
+.spotlight-hero,
+.spotlight-bar,
+.spotlight-layout {
+  position: relative;
+  z-index: 1;
 }
 
 .spotlight-hero {
@@ -13907,12 +14007,12 @@ a.chip,
 .spotlight-kicker {
   display: inline-block;
   margin: 0;
-  padding: 6px 10px;
-  border-radius: 4px;
+  padding: 6px 12px;
+  border-radius: var(--radius-sm);
   background: var(--canary);
   color: var(--night);
   font-size: 12px;
-  letter-spacing: 0.08em;
+  letter-spacing: 0.16em;
   text-transform: uppercase;
 }
 
@@ -13930,8 +14030,9 @@ a.chip,
 }
 
 .spotlight-bar {
-  background: var(--snow);
-  border-bottom: 1px solid color-mix(in srgb, var(--night) 10%, transparent);
+  background: var(--night);
+  color: var(--snow);
+  border-bottom: 0;
 }
 
 .spotlight-bar-inner,
@@ -13980,9 +14081,9 @@ a.chip,
 
 .spotlight-layout {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) 320px;
-  gap: 36px;
-  padding: 36px 0 72px;
+  grid-template-columns: minmax(0, 1fr) 340px;
+  gap: 40px;
+  padding: 48px 0 88px;
   align-items: start;
 }
 
@@ -13992,7 +14093,9 @@ a.chip,
 
 .spotlight-story h2 {
   color: var(--night);
-  margin: 32px 0 12px;
+  margin: 40px 0 14px;
+  font-size: clamp(28px, 3vw, 36px);
+  line-height: 1.05;
 }
 
 .spotlight-story p {
@@ -14041,36 +14144,71 @@ a.chip,
 }
 
 .spotlight-quote {
-  margin: 28px 0;
+  margin: 32px 0;
   padding: 8px 0 8px 18px;
-  border-left: 4px solid var(--canary);
+  border-left: 6px solid var(--canary);
   font-family: "Social Gothic Rough", "Arial Black", sans-serif;
   font-size: 28px;
   line-height: 1.15;
+  color: var(--night);
+}
+
+.spotlight-quote cite {
+  display: block;
+  margin-top: 10px;
+  font-family: Nunito, "Trebuchet MS", sans-serif;
+  font-size: 14px;
+  font-style: normal;
+  letter-spacing: 0.04em;
+  color: color-mix(in srgb, var(--night) 62%, transparent);
 }
 
 .spotlight-tip {
-  margin: 28px 0;
-  padding: 18px 20px;
+  margin: 32px 0;
+  padding: 20px 22px;
   background: color-mix(in srgb, var(--canary) 28%, var(--snow));
-  border-radius: 4px 22px 4px 4px;
+  border-radius: 8px 28px 8px 8px;
 }
 
 .spotlight-tip strong {
   display: block;
   margin-bottom: 6px;
+  font-family: "Social Gothic Rough", "Arial Black", sans-serif;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  font-size: 16px;
 }
 
 .spotlight-visit {
-  background: white;
-  padding: 18px;
+  position: relative;
+  isolation: isolate;
+  overflow: hidden;
+  background: var(--night);
+  color: var(--snow);
+  padding: 22px 20px 20px;
   border-radius: 8px 28px 8px 8px;
-  box-shadow: 0 12px 40px color-mix(in srgb, var(--night) 10%, transparent);
+  border-top: 8px solid var(--canary);
+  box-shadow: 0 18px 40px color-mix(in srgb, var(--currant) 28%, transparent);
+}
+
+.spotlight-visit::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  pointer-events: none;
+  background: url("/brand/pattern/pathway.png") center / 280px repeat;
+  opacity: 0.05;
+}
+
+.spotlight-visit > * {
+  position: relative;
+  z-index: 1;
 }
 
 .spotlight-visit.is-sticky {
   position: sticky;
-  top: 88px;
+  top: 140px;
 }
 
 .spotlight-visit.is-mobile,
@@ -14080,26 +14218,74 @@ a.chip,
 
 .spotlight-visit img {
   width: 100%;
-  height: 140px;
+  height: 168px;
   object-fit: cover;
-  border-radius: 6px;
-  margin-bottom: 12px;
+  border-radius: 4px 22px 4px 4px;
+  margin: 10px 0 16px;
 }
 
 .spotlight-visit h2 {
-  margin: 0 0 12px;
+  margin: 0 0 16px;
   font-size: 28px;
+  line-height: 1.05;
+  color: var(--snow);
+}
+
+.spotlight-visit .eyebrow {
+  margin-bottom: 0;
+}
+
+.spotlight-visit-area {
+  margin: 0 0 16px;
+  color: color-mix(in srgb, var(--snow) 78%, transparent);
 }
 
 .spotlight-visit-list {
   display: grid;
-  grid-template-columns: 88px 1fr;
-  gap: 8px 12px;
-  margin: 0 0 16px;
+  grid-template-columns: 72px 1fr;
+  gap: 10px 14px;
+  margin: 0 0 8px;
+  font-size: 14px;
 }
 
 .spotlight-visit-list dt {
-  color: color-mix(in srgb, var(--night) 50%, transparent);
+  color: color-mix(in srgb, var(--snow) 58%, transparent);
+}
+
+.spotlight-visit-list dd {
+  margin: 0;
+}
+
+.spotlight-visit-hours-label,
+.spotlight-visit-hours {
+  grid-column: 1 / -1;
+}
+
+.spotlight-visit-hours {
+  display: grid;
+  gap: 6px;
+}
+
+.spotlight-visit-hour {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  align-items: baseline;
+}
+
+.spotlight-visit-time {
+  white-space: nowrap;
+  font-variant-numeric: tabular-nums;
+}
+
+.spotlight-visit a:not(.btn) {
+  color: var(--canary);
+}
+
+.spotlight-visit-note {
+  margin: 12px 0 14px;
+  font-size: 13px;
+  color: color-mix(in srgb, var(--snow) 70%, transparent);
 }
 
 .spotlight-visit .btn {
@@ -14108,27 +14294,62 @@ a.chip,
 
 .spotlight-author {
   display: grid;
-  grid-template-columns: 88px 1fr;
-  gap: 16px;
-  margin-top: 48px;
-  padding-top: 28px;
-  border-top: 1px solid color-mix(in srgb, var(--night) 10%, transparent);
+  grid-template-columns: 96px 1fr;
+  gap: 20px;
+  align-items: start;
+  margin-top: 56px;
+  padding: 24px 22px 22px;
+  background: white;
+  border-radius: 8px 28px 8px 8px;
+  border-top: 8px solid var(--canary);
+  box-shadow: 0 12px 32px color-mix(in srgb, var(--night) 8%, transparent);
 }
 
 .spotlight-author img,
-.spotlight-author div:first-child {
-  width: 88px;
-  height: 88px;
+.spotlight-author > div:first-child {
+  width: 96px;
+  height: 96px;
   border-radius: 50%;
   object-fit: cover;
   background: var(--night);
   color: var(--snow);
   display: grid;
   place-items: center;
+  font-family: "Social Gothic Rough", "Arial Black", sans-serif;
+  font-size: 36px;
+}
+
+.spotlight-author h2 {
+  margin: 4px 0 8px;
+}
+
+.spotlight-author h2 a {
+  color: inherit;
+  text-decoration: none;
+}
+
+.spotlight-author-tag {
+  margin: 0 0 8px;
+  color: color-mix(in srgb, var(--night) 62%, transparent);
+}
+
+.spotlight-author .eyebrow {
+  margin-bottom: 4px;
 }
 
 .spotlight-gallery {
-  margin-top: 36px;
+  margin-top: 48px;
+}
+
+.spotlight-gallery .btn-secondary {
+  border-color: color-mix(in srgb, var(--night) 22%, transparent);
+  color: var(--night);
+}
+
+.spotlight-author p a {
+  color: var(--night);
+  text-decoration: underline;
+  text-underline-offset: 3px;
 }
 
 .spotlight-gallery-grid button {

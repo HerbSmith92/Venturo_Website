@@ -1,10 +1,6 @@
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
-import { EventGuideRecommendationBlock } from "@/components/EventGuideRecommendation";
-import { GuideAuthorCard } from "@/components/GuideAuthorCard";
-import { GuideBrowse } from "@/components/GuideBrowse";
-import { GuideRecommendationBlock } from "@/components/GuideRecommendation";
-import { SaveForm } from "@/components/SaveForm";
+import { CollectionGuide } from "@/components/CollectionGuide";
 import { SpotlightArticle } from "@/components/SpotlightArticle";
 import { getCurrentUser } from "@/lib/auth";
 import { getEventById } from "@/lib/events";
@@ -12,7 +8,7 @@ import { getPublicEventGuideBySlug } from "@/lib/event-guides";
 import { getPublicGuideBySlug, listGuideEventIds, liveGuides, liveGuidesByAuthor } from "@/lib/guides";
 import { getPublicListingById } from "@/lib/listings";
 import { isSaved } from "@/lib/saves";
-import { coverPhoto, galleryPhotos, type SpotlightVisitInfo } from "@/lib/spotlight";
+import { coverPhoto, type SpotlightVisitInfo } from "@/lib/spotlight";
 
 function siteUrl() {
   return process.env.NEXT_PUBLIC_SITE_URL?.replace(/\/$/, "") || "https://venturo.co.za";
@@ -63,7 +59,6 @@ export default async function GuideDetailPage({
   const intro = guide.intro;
   const body = listingGuide?.body ?? eventGuide?.body ?? null;
   const author = listingGuide?.author ?? eventGuide?.author ?? null;
-  const shape = listingGuide?.shape ?? eventGuide?.shape ?? "roundup";
   const nextPath = `/guides/${guide.slug}`;
 
   const [saved, eventIds, otherGuides, listing, moreByAuthor] = await Promise.all([
@@ -118,70 +113,19 @@ export default async function GuideDetailPage({
   }
 
   return (
-    <main>
-      <section className="shell section">
-        <p className="eyebrow">
-          <a href="/guides">Guides</a>
-          {shape === "spotlight" ? " · Spotlight" : listingGuide ? " · Activities" : " · Events"}
-        </p>
-        <h1>{title}</h1>
-        {intro ? <p className="lede">{intro}</p> : null}
-        {listingGuide ? <SaveForm kind="guide" targetId={guideId} saved={saved} next={nextPath} /> : null}
-        {listingGuide && galleryPhotos(listingGuide.photos).length > 0 ? (
-          <div className="listing-gallery" style={{ marginTop: 20 }}>
-            {galleryPhotos(listingGuide.photos).map((photo) => (
-              <img key={photo.id} src={photo.url} alt={photo.alt || listingGuide.title} />
-            ))}
-          </div>
-        ) : null}
-      </section>
-      {author ? (
-        <section className="shell section" style={{ paddingTop: 0 }}>
-          <GuideAuthorCard author={author} profileHref={author.slug ? `/authors/${author.slug}` : null} />
-        </section>
-      ) : null}
-      {body ? (
-        <section className="shell section" style={{ paddingTop: 0 }}>
-          <div className="lede" style={{ whiteSpace: "pre-wrap" }}>
-            {body}
-          </div>
-        </section>
-      ) : null}
-      <section className="shell section" style={{ paddingTop: 0 }}>
-        <div className={moreGuides.length > 0 ? "guide-layout" : undefined}>
-          <div>
-            <div className="guide-recs">
-              {listingGuide
-                ? listingGuide.items.map((item, index) => (
-                    <GuideRecommendationBlock
-                      key={item.listingId}
-                      item={item}
-                      index={index + 1}
-                      paid={paid}
-                    />
-                  ))
-                : eventGuide!.items.map((item, index) => (
-                    <EventGuideRecommendationBlock key={item.eventId} item={item} index={index + 1} />
-                  ))}
-            </div>
-            {linkedEvents.length > 0 ? (
-              <div style={{ marginTop: 28 }}>
-                <h2>Linked Events</h2>
-                <ul>
-                  {linkedEvents.map((event) =>
-                    event ? (
-                      <li key={event.id}>
-                        <a href={`/events/${event.slug}`}>{event.title}</a>
-                      </li>
-                    ) : null,
-                  )}
-                </ul>
-              </div>
-            ) : null}
-          </div>
-          <GuideBrowse guides={moreGuides} />
-        </div>
-      </section>
-    </main>
+    <CollectionGuide
+      title={title}
+      intro={intro}
+      body={body}
+      about={listingGuide ? "activities" : "events"}
+      publishedAt={listingGuide?.publishedAt ?? null}
+      author={author}
+      listingItems={listingGuide?.items}
+      eventItems={eventGuide?.items}
+      moreGuides={moreGuides}
+      linkedEvents={linkedEvents.filter((event): event is NonNullable<typeof event> => Boolean(event))}
+      paid={paid}
+      save={listingGuide ? { targetId: guideId, saved, next: nextPath } : undefined}
+    />
   );
 }
