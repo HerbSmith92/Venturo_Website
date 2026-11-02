@@ -13858,36 +13858,55 @@ a.chip,
 }
 
 .spotlight-hero {
-  min-height: min(78vh, 760px);
-  background: var(--night) center/cover no-repeat;
+  min-height: min(72vh, 680px);
+  background: var(--night);
   position: relative;
+  isolation: isolate;
+  overflow: hidden;
   display: grid;
   align-items: end;
+}
+
+.spotlight-hero-photo {
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  object-position: center;
 }
 
 .spotlight-hero::after {
   content: "";
   position: absolute;
   inset: 0;
-  background: linear-gradient(180deg, transparent 20%, color-mix(in srgb, var(--night) 78%, transparent) 100%);
+  z-index: 1;
+  pointer-events: none;
+  background: linear-gradient(180deg, transparent 28%, color-mix(in srgb, var(--night) 78%, transparent) 100%);
 }
 
 .spotlight-hero-copy {
   position: relative;
-  z-index: 1;
-  padding: 48px 8vw 56px;
+  z-index: 2;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 22px;
+  padding: 56px 8vw 64px;
   max-width: 920px;
   color: var(--snow);
 }
 
 .spotlight-hero-copy.is-center {
   text-align: center;
+  align-items: center;
   margin: 0 auto;
 }
 
 .spotlight-kicker {
   display: inline-block;
-  margin: 0 0 12px;
+  margin: 0;
   padding: 6px 10px;
   border-radius: 4px;
   background: var(--canary);
@@ -13898,13 +13917,13 @@ a.chip,
 }
 
 .spotlight-hero h1 {
-  margin: 0 0 12px;
+  margin: 0;
   font-size: clamp(42px, 7vw, 86px);
   line-height: 0.92;
   color: var(--snow);
 }
 
-.spotlight-hero p {
+.spotlight-hero-copy > p:not(.spotlight-kicker) {
   margin: 0;
   max-width: 36ch;
   font-size: 20px;
@@ -14730,7 +14749,9 @@ a.chip,
   position: relative;
   width: min(1200px, calc(100% - 24px));
   height: min(90vh, 900px);
-  overflow: auto;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
   background: var(--snow);
   border-radius: 12px;
 }
@@ -14739,15 +14760,22 @@ a.chip,
   width: min(430px, calc(100% - 24px));
 }
 
-.spotlight-preview-frame header {
-  position: sticky;
-  top: 0;
+.spotlight-preview-frame > header {
+  position: relative;
+  flex: 0 0 auto;
   display: flex;
   justify-content: space-between;
   padding: 10px 14px;
   background: var(--night);
   color: var(--snow);
-  z-index: 2;
+  z-index: 3;
+}
+
+.spotlight-preview-frame > .spotlight-page,
+.spotlight-preview-frame > .guide-desk-preview-list {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow: auto;
 }
 
 .spotlight-ig-editor {

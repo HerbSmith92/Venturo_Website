@@ -183,13 +183,15 @@ export function SpotlightArticle({
 
   return (
     <article className={`spotlight-page${compact ? " is-compact" : ""}`}>
-      <header
-        className="spotlight-hero"
-        style={{
-          backgroundImage: hero ? `url(${hero.url})` : undefined,
-          backgroundPosition: `${cover.focusX}% ${cover.focusY}%`,
-        }}
-      >
+      <header className="spotlight-hero">
+        {hero ? (
+          <img
+            className="spotlight-hero-photo"
+            src={hero.url}
+            alt=""
+            style={{ objectPosition: `${cover.focusX}% ${cover.focusY}%` }}
+          />
+        ) : null}
         <div className={`spotlight-hero-copy is-${cover.textAlign}`}>
           <p className="spotlight-kicker">Activity Spotlight</p>
           <h1>{title || "Untitled Spotlight"}</h1>
