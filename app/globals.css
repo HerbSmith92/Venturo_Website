@@ -9326,9 +9326,10 @@ button.listing-cost-toggle {
   display: grid;
   grid-template-columns: minmax(220px, 0.9fr) minmax(0, 1.25fr);
   gap: 20px;
-  align-items: stretch;
+  align-items: start;
   width: 100%;
   padding: 16px;
+  overflow: visible;
   background: color-mix(in srgb, var(--currant) 32%, var(--night));
   border-radius: var(--radius-lg);
   border: 1px solid color-mix(in srgb, var(--snow) 8%, transparent);
@@ -9349,7 +9350,7 @@ button.listing-cost-toggle {
 
 .guide-rec-card {
   min-width: 0;
-  height: 100%;
+  height: auto;
 }
 
 .guide-rec-card.card::before {
@@ -9389,8 +9390,10 @@ button.listing-cost-toggle {
 .guide-rec-copy {
   display: grid;
   gap: 8px;
-  align-content: center;
+  align-content: start;
+  align-self: start;
   min-width: 0;
+  overflow: visible;
   padding: 8px 12px 8px 4px;
 }
 
@@ -9408,15 +9411,19 @@ button.listing-cost-toggle {
   color: color-mix(in srgb, var(--snow) 70%, transparent);
 }
 
-.guide-rec-vibe {
+.guide-rec-vibe,
+.guide-rec-note {
   margin: 2px 0 0;
+  max-width: none;
+  overflow: visible;
+  white-space: normal;
+  overflow-wrap: break-word;
   font-size: 1.02rem;
   line-height: 1.55;
   color: color-mix(in srgb, var(--snow) 88%, transparent);
 }
 
 .guide-rec-note {
-  margin: 2px 0 0;
   padding: 10px 12px;
   border-left: 3px solid var(--canary);
   background: color-mix(in srgb, var(--canary) 10%, transparent);

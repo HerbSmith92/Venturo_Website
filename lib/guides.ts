@@ -85,6 +85,7 @@ type ListingEmbed = {
   suburb: string | null;
   city: string | null;
   short_description: string | null;
+  description: string | null;
   price_from: number | string | null;
   status: string | null;
   listing_media?: MediaRow[];
@@ -153,6 +154,20 @@ function memberFrom(row: ListingEmbed) {
   return memberFromPrice !== null && memberFromPrice < fromListed ? memberFromPrice : null;
 }
 
+function listingBlurb(description: string | null | undefined, shortDescription: string | null | undefined) {
+  const source = (description || shortDescription || "").trim().replace(/\s+/g, " ");
+  if (!source) return "";
+  const sentences = source.match(/[^.!?]+[.!?]+(?:["”']*)/g);
+  if (!sentences?.length) {
+    const cut = source.lastIndexOf(" ", 360);
+    return source.length > 360 ? `${source.slice(0, cut > 180 ? cut : 360).trimEnd()}…` : source;
+  }
+  let out = sentences[0].trim();
+  const second = sentences[1]?.trim();
+  if (second && `${out} ${second}`.length <= 480) out = `${out} ${second}`;
+  return out;
+}
+
 function kindKey(
   entry: NonNullable<ListingEmbed["listing_activity_kinds"]>[number],
 ): string | null {
@@ -166,7 +181,7 @@ function mapRecommendation(
 ): GuideRecommendation | null {
   const listing = asListing(item.directory_listings);
   if (!listing || listing.status !== "approved") return null;
-  const vibe = (listing.short_description ?? "").trim().replace(/\s+/g, " ");
+  const vibe = listingBlurb(listing.description, listing.short_description);
   const area = (listing.suburb ?? listing.city ?? "South Africa").replace(/,$/, "").trim();
   const kinds = [...(listing.listing_activity_kinds ?? [])].sort(
     (a, b) => Number(Boolean(b.is_primary)) - Number(Boolean(a.is_primary)),
@@ -181,7 +196,7 @@ function mapRecommendation(
     name: listing.name,
     area,
     category,
-    vibe: vibe.length > 320 ? `${vibe.slice(0, 317)}…` : vibe,
+    vibe,
     image: coverUrl(listing.listing_media),
     fromPrice: asNumber(listing.price_from) ?? 0,
     memberFromPrice: memberFrom(listing),
@@ -208,6 +223,7 @@ const GUIDE_ITEMS_SELECT = `
       suburb,
       city,
       short_description,
+      description,
       price_from,
       status,
       listing_media ( public_url, is_cover, sort_order, is_pending ),
