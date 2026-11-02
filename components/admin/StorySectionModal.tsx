@@ -380,75 +380,75 @@ export function StorySectionModal({
             </button>
           </div>
         </footer>
+
+        {keepLayout ? (
+          <div className="story-confirm">
+            <div>
+              <h3>Which photos should stay?</h3>
+              <p>This layout keeps {layoutSlotCount(keepLayout)} photo{layoutSlotCount(keepLayout) === 1 ? "" : "s"}. Writing stays as it is.</p>
+              {draft.placements.filter((placement) => placement.photoId).map((placement) => {
+                const photo = photoById(photos, placement.photoId);
+                const on = keepIds.includes(placement.id);
+                return (
+                  <label key={placement.id} className="story-keep">
+                    <input
+                      type="checkbox"
+                      checked={on}
+                      onChange={() =>
+                        setKeepIds((current) => (on ? current.filter((id) => id !== placement.id) : [...current, placement.id]))
+                      }
+                    />
+                    {photo ? <img src={photo.url} alt="" /> : null}
+                    <span>{placement.caption || "Photo"}</span>
+                  </label>
+                );
+              })}
+              <footer>
+                <button type="button" className="btn btn-secondary" onClick={() => setKeepLayout(null)}>
+                  Keep current layout
+                </button>
+                <button
+                  type="button"
+                  className="btn btn-primary"
+                  onClick={() => applyLayout(keepLayout, draft.placements.filter((placement) => keepIds.includes(placement.id)))}
+                  disabled={keepIds.length !== (layoutSlotCount(keepLayout) ?? 0)}
+                >
+                  Apply layout
+                </button>
+              </footer>
+            </div>
+          </div>
+        ) : null}
+
+        {leaveOpen ? (
+          <div className="story-confirm">
+            <div>
+              <h3>Discard changes?</h3>
+              <p>This section has unsaved edits.</p>
+              <footer>
+                <button type="button" className="btn btn-secondary" onClick={() => setLeaveOpen(false)}>
+                  Keep editing
+                </button>
+                <button type="button" className="btn btn-primary" onClick={onDiscard}>
+                  Discard changes
+                </button>
+              </footer>
+            </div>
+          </div>
+        ) : null}
+
+        <StoryPhotoPicker
+          open={pickerFor != null}
+          photos={photos}
+          sections={sections}
+          cover={cover}
+          guideId={guideId}
+          multiple={pickerFor === "gallery"}
+          onClose={() => setPickerFor(null)}
+          onChoose={choosePhotos}
+          onPhotosChange={onPhotosChange}
+        />
       </div>
-
-      {keepLayout ? (
-        <div className="story-confirm">
-          <div>
-            <h3>Which photos should stay?</h3>
-            <p>This layout keeps {layoutSlotCount(keepLayout)} photo{layoutSlotCount(keepLayout) === 1 ? "" : "s"}. Writing stays as it is.</p>
-            {draft.placements.filter((placement) => placement.photoId).map((placement) => {
-              const photo = photoById(photos, placement.photoId);
-              const on = keepIds.includes(placement.id);
-              return (
-                <label key={placement.id} className="story-keep">
-                  <input
-                    type="checkbox"
-                    checked={on}
-                    onChange={() =>
-                      setKeepIds((current) => (on ? current.filter((id) => id !== placement.id) : [...current, placement.id]))
-                    }
-                  />
-                  {photo ? <img src={photo.url} alt="" /> : null}
-                  <span>{placement.caption || "Photo"}</span>
-                </label>
-              );
-            })}
-            <footer>
-              <button type="button" className="btn btn-secondary" onClick={() => setKeepLayout(null)}>
-                Keep current layout
-              </button>
-              <button
-                type="button"
-                className="btn btn-primary"
-                onClick={() => applyLayout(keepLayout, draft.placements.filter((placement) => keepIds.includes(placement.id)))}
-                disabled={keepIds.length !== (layoutSlotCount(keepLayout) ?? 0)}
-              >
-                Apply layout
-              </button>
-            </footer>
-          </div>
-        </div>
-      ) : null}
-
-      {leaveOpen ? (
-        <div className="story-confirm">
-          <div>
-            <h3>Discard changes?</h3>
-            <p>This section has unsaved edits.</p>
-            <footer>
-              <button type="button" className="btn btn-secondary" onClick={() => setLeaveOpen(false)}>
-                Keep editing
-              </button>
-              <button type="button" className="btn btn-primary" onClick={onDiscard}>
-                Discard changes
-              </button>
-            </footer>
-          </div>
-        </div>
-      ) : null}
-
-      <StoryPhotoPicker
-        open={pickerFor != null}
-        photos={photos}
-        sections={sections}
-        cover={cover}
-        guideId={guideId}
-        multiple={pickerFor === "gallery"}
-        onClose={() => setPickerFor(null)}
-        onChoose={choosePhotos}
-        onPhotosChange={onPhotosChange}
-      />
     </div>
   );
 }
