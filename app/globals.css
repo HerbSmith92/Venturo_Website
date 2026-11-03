@@ -9380,11 +9380,11 @@ button.listing-cost-toggle {
 
 .guide-rec {
   display: grid;
-  grid-template-columns: minmax(220px, 0.9fr) minmax(0, 1.25fr);
-  gap: 20px;
+  grid-template-columns: 1fr;
+  gap: 16px;
   align-items: start;
   width: 100%;
-  padding: 16px;
+  padding: 20px;
   overflow: visible;
   background: color-mix(in srgb, var(--currant) 32%, var(--night));
   border-radius: var(--radius-lg);
@@ -9392,16 +9392,8 @@ button.listing-cost-toggle {
   box-shadow: var(--shadow-1);
 }
 
-.guide-rec-flip {
-  grid-template-columns: minmax(0, 1.25fr) minmax(220px, 0.9fr);
-}
-
-.guide-rec-flip .guide-rec-card {
-  order: 2;
-}
-
-.guide-rec-flip .guide-rec-copy {
-  order: 1;
+.guide-rec.is-stack .guide-rec-card {
+  max-width: 560px;
 }
 
 .guide-rec-card {
@@ -9445,16 +9437,12 @@ button.listing-cost-toggle {
 
 .guide-rec-copy {
   display: grid;
-  gap: 8px;
+  gap: 10px;
   align-content: start;
   align-self: start;
   min-width: 0;
   overflow: visible;
-  padding: 8px 12px 8px 4px;
-}
-
-.guide-rec-flip .guide-rec-copy {
-  padding: 8px 4px 8px 12px;
+  padding: 0;
 }
 
 .guide-rec-copy h2 {
@@ -9806,22 +9794,14 @@ button.listing-cost-toggle {
     max-width: none;
   }
 
-  .guide-rec,
-  .guide-rec-flip {
-    grid-template-columns: 1fr;
+  .guide-rec {
     gap: 14px;
     padding: 12px;
     width: 100%;
   }
 
-  .guide-rec-flip .guide-rec-card,
-  .guide-rec-flip .guide-rec-copy {
-    order: unset;
-  }
-
-  .guide-rec-copy,
-  .guide-rec-flip .guide-rec-copy {
-    padding: 4px 6px 8px;
+  .guide-rec.is-stack .guide-rec-card {
+    max-width: none;
   }
 }
 

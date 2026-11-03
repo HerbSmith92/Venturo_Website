@@ -100,7 +100,6 @@ export function EventGuideEditor({
   const fillSkip = useRef(true);
   const placesRef = useRef(places);
   placesRef.current = places;
-  const [notesOpen, setNotesOpen] = useState<Record<string, boolean>>({});
   const [activeStep, setActiveStep] = useState<StepKey>("list");
   const [openSteps, setOpenSteps] = useState<Record<StepKey, boolean>>({
     list: true,
@@ -311,7 +310,7 @@ export function EventGuideEditor({
       const result = await saveCuratedEventGuide(guide.id, {
         title: draft.title,
         intro: draft.intro,
-        body: draft.body,
+        body: draft.shape === "spotlight" ? "" : draft.body,
         shape: draft.shape,
         author_id: draft.author_id,
         publish_at: draft.publish_at,
@@ -565,20 +564,9 @@ export function EventGuideEditor({
                   rows={3}
                   value={draft.intro}
                   onChange={(e) => patch({ intro: e.target.value })}
-                  placeholder="This weekend’s worth getting out for — markets, nights, & a few cheap dates."
+                  placeholder="This weekend’s worth getting out for—markets, nights, & a few cheap dates."
                 />
               </label>
-              {draft.shape === "spotlight" ? (
-                <label className="field" style={{ marginTop: 18 }}>
-                  <span>The Write-up</span>
-                  <textarea
-                    rows={8}
-                    value={draft.body}
-                    onChange={(e) => patch({ body: e.target.value })}
-                    placeholder="Why this one is worth leaving the house for."
-                  />
-                </label>
-              ) : null}
             </section>
 
             <section className={stepOpen("audience") ? "cr-step is-open" : "cr-step"} id="step-audience">
@@ -775,11 +763,11 @@ export function EventGuideEditor({
                           ? ` · From ${formatCents(item.event.fromPriceCents)}`
                           : ""}
                       </p>
-                      {notesOpen[item.event_id] || item.editorial_note.trim() ? (
+                      {draft.shape === "roundup" ? (
                         <label className="field">
-                          <span>Editorial Note (optional)</span>
+                          <span>Write-up</span>
                           <textarea
-                            rows={2}
+                            rows={4}
                             value={item.editorial_note}
                             onChange={(e) =>
                               patch({
@@ -790,20 +778,10 @@ export function EventGuideEditor({
                                 ),
                               })
                             }
-                            placeholder="Worth it for the sunset views."
+                            placeholder="Why this one is worth leaving the house for."
                           />
                         </label>
-                      ) : (
-                        <button
-                          className="cr-text-remove"
-                          type="button"
-                          onClick={() =>
-                            setNotesOpen((current) => ({ ...current, [item.event_id]: true }))
-                          }
-                        >
-                          Add a note
-                        </button>
-                      )}
+                      ) : null}
                       <div className="cr-guide-item-tools">
                         <button type="button" disabled={index === 0} onClick={() => moveItem(item.event_id, -1)}>
                           Up

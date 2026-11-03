@@ -261,7 +261,7 @@ function seedRecFromListing(item: GuideDraftItem): CarouselRec {
     sourceId: item.listing_id,
     kind: "activity",
     title: (listing?.name ?? "Listing missing").trim(),
-    description: defaultSocialDescription(listing),
+    description: defaultSocialDescription(listing), // listing copy only — Guide write-up stays on the public page
     location: areaFromListing(listing),
     categoryKey: key,
     categoryTitle: title || "Adventure",

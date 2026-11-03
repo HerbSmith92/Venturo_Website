@@ -498,7 +498,7 @@ export function GuideEditor({
         title: draft.title,
         slug: guide.slug,
         intro: draft.intro,
-        body: draft.body,
+        body: draft.shape === "spotlight" ? "" : draft.body,
         shape: draft.shape,
         author_id: draft.author_id,
         publish_at: publishNow ? "" : draft.publish_at,
@@ -532,7 +532,7 @@ export function GuideEditor({
       title: draft.title.trim() || "Untitled Guide",
       slug: guide.slug,
       intro: draft.intro,
-      body: draft.body,
+      body: "",
       shape: draft.shape,
       author_id: draft.author_id,
       publish_at: publishNow ? "" : draft.publish_at,
@@ -924,17 +924,6 @@ export function GuideEditor({
               placeholder="The weekend is calling. Here are five kid-friendly adventures worth getting out of the house for."
             />
           </label>
-          {draft.shape === "spotlight" ? (
-            <label className="field" style={{ marginTop: 18 }}>
-              <span>The Write-up</span>
-              <textarea
-                rows={8}
-                value={draft.body}
-                onChange={(e) => patch({ body: e.target.value })}
-                placeholder="Why this one is worth the drive. Keep it specific."
-              />
-            </label>
-          ) : null}
         </section>
 
         <section className="guide-desk-card" id="step-audience">
@@ -1048,8 +1037,8 @@ export function GuideEditor({
           </header>
           <p className="muted cr-step-help">
             {draft.shape === "roundup"
-              ? "Tick matching activities to feature them. Directory details stay linked. Add notes on the featured set."
-              : "Directory details stay linked. Add your own editorial notes."}
+                  ? "Tick matching activities to feature them. Directory details stay linked. Write-up sits under the name on the Guide. Instagram export stays on the activity."
+                  : "Directory details stay linked."}
           </p>
           {draft.shape === "roundup" && (matches.length > 0 || filling) ? (
             <div className="guide-desk-matches">
@@ -1139,10 +1128,11 @@ export function GuideEditor({
                   <p className="muted">
                     {item.listing?.status === "approved" ? "Live · Linked directory listing" : "Listing missing"}
                   </p>
+                  {draft.shape === "roundup" ? (
                   <label className="field">
-                    <span>Guide note</span>
+                    <span>Write-up</span>
                     <textarea
-                      rows={2}
+                      rows={4}
                       value={item.editorial_note}
                       onChange={(e) =>
                         patch({
@@ -1153,9 +1143,10 @@ export function GuideEditor({
                           ),
                         })
                       }
-                      placeholder="For the friend who always takes the scenic route."
+                      placeholder="Why this one is worth the drive. Keep it specific."
                     />
                   </label>
+                  ) : null}
                   <div className="cr-guide-item-tools">
                     <button
                       type="button"
