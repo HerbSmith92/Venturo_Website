@@ -232,8 +232,8 @@ export function AuthForm({
         <p className="eyebrow">Check Your Email</p>
         <h1>Enter Your Code</h1>
         <p className="lede muted">
-          We emailed a <strong>6-digit code</strong> to <strong>{email}</strong>.
-          Type it here to continue — no password needed.
+          We emailed an <strong>8-digit code</strong> to <strong>{email}</strong>. Type it here to
+          continue—no password needed.
         </p>
         <div className="field">
           <span>One-Time Code</span>

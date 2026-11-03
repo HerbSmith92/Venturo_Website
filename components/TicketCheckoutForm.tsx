@@ -325,7 +325,7 @@ export function TicketCheckoutForm({
         <p className="eyebrow">Check Your Email</p>
         <h3>Enter Your Code</h3>
         <p className="muted">
-          We emailed a 6-digit code to <strong>{email}</strong>.
+          We emailed an 8-digit code to <strong>{email}</strong>.
         </p>
         <div className="field">
           <span>One-Time Code</span>

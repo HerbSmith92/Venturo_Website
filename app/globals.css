@@ -1370,14 +1370,14 @@ a.chip.active {
 
 .otp-boxes-row {
   display: grid;
-  grid-template-columns: repeat(6, minmax(0, 1fr));
-  gap: 8px;
+  grid-template-columns: repeat(8, minmax(0, 1fr));
+  gap: 6px;
 }
 
 .otp-box {
   width: 100%;
   aspect-ratio: 3 / 4;
-  min-height: 56px;
+  min-height: 48px;
   margin: 0;
   padding: 0;
   border-radius: var(--radius-sm);
@@ -1385,7 +1385,7 @@ a.chip.active {
   background: color-mix(in srgb, var(--night) 80%, black);
   color: var(--snow);
   font-family: "Social Gothic Rough", "Arial Black", sans-serif;
-  font-size: 28px;
+  font-size: 22px;
   line-height: 1;
   text-align: center;
   caret-color: var(--canary);
@@ -1403,7 +1403,7 @@ a.chip.active {
 
 .field .otp-box {
   padding: 0;
-  min-height: 56px;
+  min-height: 48px;
 }
 
 .auth-split {

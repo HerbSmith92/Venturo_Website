@@ -84,7 +84,7 @@ export default function LoginScreen() {
         </Text>
         <Text style={styles.lede}>
           {step === "code"
-            ? `We emailed a 6-digit code to ${email}. Check Mail on your phone — Inbox & Junk. It is not an SMS; iCloud can take a minute.`
+            ? `We emailed an 8-digit code to ${email}. Check Mail on your phone—Inbox & Junk. It is not an SMS; iCloud can take a minute.`
             : "Same Venturo account as Event Host. Pull the guest list onto this phone, then scan at the door."}
         </Text>
 
@@ -126,7 +126,7 @@ export default function LoginScreen() {
           <View style={styles.form}>
             <Text style={styles.label}>One-Time Code</Text>
             <View style={styles.otpRow}>
-              {Array.from({ length: 6 }, (_, index) => (
+              {Array.from({ length: 8 }, (_, index) => (
                 <TextInput
                   key={index}
                   ref={(node) => {
@@ -136,19 +136,19 @@ export default function LoginScreen() {
                   onChangeText={(raw) => {
                     const incoming = raw.replace(/\D/g, "");
                     if (incoming.length > 1) {
-                      const next = incoming.slice(0, 6);
+                      const next = incoming.slice(0, 8);
                       setToken(next);
-                      otpBoxes.current[Math.min(next.length, 5)]?.focus();
+                      otpBoxes.current[Math.min(next.length, 7)]?.focus();
                       return;
                     }
-                    const slots = Array.from({ length: 6 }, (_, slot) => token[slot] ?? "");
+                    const slots = Array.from({ length: 8 }, (_, slot) => token[slot] ?? "");
                     slots[index] = incoming.slice(-1);
                     setToken(slots.join(""));
-                    if (incoming && index < 5) otpBoxes.current[index + 1]?.focus();
+                    if (incoming && index < 7) otpBoxes.current[index + 1]?.focus();
                   }}
                   onKeyPress={({ nativeEvent }) => {
                     if (nativeEvent.key === "Backspace" && !token[index] && index > 0) {
-                      const slots = Array.from({ length: 6 }, (_, slot) => token[slot] ?? "");
+                      const slots = Array.from({ length: 8 }, (_, slot) => token[slot] ?? "");
                       slots[index - 1] = "";
                       setToken(slots.join(""));
                       otpBoxes.current[index - 1]?.focus();
@@ -157,7 +157,7 @@ export default function LoginScreen() {
                   keyboardType="number-pad"
                   autoComplete={index === 0 ? "one-time-code" : "off"}
                   textContentType={index === 0 ? "oneTimeCode" : "none"}
-                  maxLength={index === 0 ? 6 : 1}
+                  maxLength={index === 0 ? 8 : 1}
                   style={styles.otpBox}
                 />
               ))}

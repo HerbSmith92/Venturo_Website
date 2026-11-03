@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 
-const OTP_LENGTH = 6;
+const OTP_LENGTH = 8;
 
 function onlyDigits(raw: string) {
   return raw.replace(/\D/g, "").slice(0, OTP_LENGTH);

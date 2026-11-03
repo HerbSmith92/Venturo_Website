@@ -38,7 +38,7 @@ export default async function AuthorJoinPage({
       <p className="eyebrow">Guides</p>
       <h1>Write with Venturo</h1>
       <p className="lede muted">
-        Pick a username, we email you a one-time code, then you fill in your own Author card &amp;
+        Pick a username, we email you an 8-digit code, then you fill in your own Author card &amp;
         start your Guides. Venturo still publishes them.
       </p>
       {error ? <p className="error">{error}</p> : null}

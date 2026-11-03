@@ -94,8 +94,8 @@ export function AuthorJoinAuth({
         <p className="eyebrow">Check Your Email</p>
         <h2>Enter Your Code</h2>
         <p className="lede muted">
-          We emailed a <strong>6-digit code</strong> to <strong>{email}</strong>. Type it here —
-          no password needed.
+          We emailed an <strong>8-digit code</strong> to <strong>{email}</strong>. Type it here—no
+          password needed.
         </p>
         <div className="field">
           <span>One-Time Code</span>
@@ -131,7 +131,7 @@ export function AuthorJoinAuth({
       <h2>{mode === "signup" ? "Pick a username" : "Log in"}</h2>
       <p className="lede muted">
         {mode === "signup"
-          ? "Choose a username, then we email you a one-time code. After that you fill in your Author card."
+          ? "Choose a username, then we email you an 8-digit code. After that you fill in your Author card."
           : "Enter your email & we will send a one-time code."}
       </p>
       {mode === "signup" ? (

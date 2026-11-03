@@ -89,7 +89,7 @@ export function ClaimCommunityForm({
         <p className="eyebrow">Check Your Email</p>
         <h1>Enter Your Code</h1>
         <p className="lede muted">
-          We emailed a 6-digit code to <strong>{email}</strong>. Type it here to claim {communityTitle}.
+          We emailed an 8-digit code to <strong>{email}</strong>. Type it here to claim {communityTitle}.
         </p>
         <div className="field">
           <span>One-Time Code</span>
