@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { OtpCodeBoxes } from "@/components/OtpCodeBoxes";
 import { HostPayoutForm } from "@/components/portal/HostPayoutForm";
 import { formatCents } from "@/lib/event-types";
 import { PORTAL_SETTINGS } from "@/lib/portal";
@@ -122,13 +123,7 @@ export function EventPayment({
               <form onSubmit={(submit) => void verify(submit)}>
                 <label className="field">
                   <span>Code</span>
-                  <input
-                    value={code}
-                    onChange={(change) => setCode(change.target.value)}
-                    inputMode="numeric"
-                    autoComplete="one-time-code"
-                    required
-                  />
+                  <OtpCodeBoxes value={code} onChange={setCode} disabled={pending} />
                 </label>
                 <button className="btn btn-primary" type="submit" disabled={pending}>
                   {pending ? "Checking" : "Unlock Bank"}

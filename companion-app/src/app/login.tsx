@@ -1,5 +1,5 @@
 import { Redirect, router } from "expo-router";
-import { useState } from "react";
+import { useRef, useState } from "react";
 import {
   KeyboardAvoidingView,
   Platform,
@@ -24,6 +24,7 @@ export default function LoginScreen() {
   const [token, setToken] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [pending, setPending] = useState(false);
+  const otpBoxes = useRef<Array<TextInput | null>>([]);
 
   if (!loading && session) return <Redirect href="/" />;
 
@@ -124,15 +125,43 @@ export default function LoginScreen() {
         {step === "code" && (
           <View style={styles.form}>
             <Text style={styles.label}>One-Time Code</Text>
-            <TextInput
-              autoComplete="one-time-code"
-              keyboardType="number-pad"
-              value={token}
-              onChangeText={setToken}
-              placeholder="123456"
-              placeholderTextColor="rgba(235,235,243,0.4)"
-              style={styles.input}
-            />
+            <View style={styles.otpRow}>
+              {Array.from({ length: 6 }, (_, index) => (
+                <TextInput
+                  key={index}
+                  ref={(node) => {
+                    otpBoxes.current[index] = node;
+                  }}
+                  value={token[index] ?? ""}
+                  onChangeText={(raw) => {
+                    const incoming = raw.replace(/\D/g, "");
+                    if (incoming.length > 1) {
+                      const next = incoming.slice(0, 6);
+                      setToken(next);
+                      otpBoxes.current[Math.min(next.length, 5)]?.focus();
+                      return;
+                    }
+                    const slots = Array.from({ length: 6 }, (_, slot) => token[slot] ?? "");
+                    slots[index] = incoming.slice(-1);
+                    setToken(slots.join(""));
+                    if (incoming && index < 5) otpBoxes.current[index + 1]?.focus();
+                  }}
+                  onKeyPress={({ nativeEvent }) => {
+                    if (nativeEvent.key === "Backspace" && !token[index] && index > 0) {
+                      const slots = Array.from({ length: 6 }, (_, slot) => token[slot] ?? "");
+                      slots[index - 1] = "";
+                      setToken(slots.join(""));
+                      otpBoxes.current[index - 1]?.focus();
+                    }
+                  }}
+                  keyboardType="number-pad"
+                  autoComplete={index === 0 ? "one-time-code" : "off"}
+                  textContentType={index === 0 ? "oneTimeCode" : "none"}
+                  maxLength={index === 0 ? 6 : 1}
+                  style={styles.otpBox}
+                />
+              ))}
+            </View>
             <Pressable style={styles.primary} onPress={() => void verify()} disabled={pending}>
               <Text style={styles.primaryText}>{pending ? "Please Wait" : "Verify & Continue"}</Text>
             </Pressable>
@@ -204,6 +233,21 @@ const styles = StyleSheet.create({
     color: colours.snow,
     fontFamily: fonts.body,
     fontSize: 16,
+  },
+  otpRow: {
+    flexDirection: "row",
+    gap: 8,
+  },
+  otpBox: {
+    flex: 1,
+    minHeight: 56,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: "rgba(235,235,243,0.22)",
+    color: colours.snow,
+    fontFamily: fonts.heading,
+    fontSize: 24,
+    textAlign: "center",
   },
   primary: {
     minHeight: 48,

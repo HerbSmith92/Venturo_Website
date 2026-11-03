@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { OtpCodeBoxes } from "@/components/OtpCodeBoxes";
 import { PolicyConsent } from "@/components/PolicyConsent";
 import { CONSENT_REQUIRED } from "@/lib/policy-consent";
 
@@ -89,27 +90,19 @@ export function AuthorJoinAuth({
 
   if (step === "code") {
     return (
-      <form className="auth-card" onSubmit={(event) => void verifyCode(event)}>
+      <form key="author-code" className="auth-card" onSubmit={(event) => void verifyCode(event)} autoComplete="off">
         <p className="eyebrow">Check Your Email</p>
         <h2>Enter Your Code</h2>
         <p className="lede muted">
           We emailed a <strong>6-digit code</strong> to <strong>{email}</strong>. Type it here —
           no password needed.
         </p>
+        {username ? (
+          <input type="text" name="username" autoComplete="username" defaultValue={username} tabIndex={-1} aria-hidden="true" className="sr-only" readOnly />
+        ) : null}
         <label className="field">
           <span>One-Time Code</span>
-          <input
-            name="token"
-            type="text"
-            inputMode="numeric"
-            autoComplete="one-time-code"
-            pattern="[0-9]{6,8}"
-            minLength={6}
-            maxLength={8}
-            required
-            autoFocus
-            placeholder="123456"
-          />
+          <OtpCodeBoxes key={`otp-${email}`} disabled={pending} />
         </label>
         {error ? <p className="error">{error}</p> : null}
         <button className="btn btn-primary" type="submit" disabled={!configured || pending}>
@@ -150,7 +143,7 @@ export function AuthorJoinAuth({
           <input
             name="username"
             type="text"
-            autoComplete="username"
+            autoComplete="nickname"
             required
             maxLength={80}
             value={username}

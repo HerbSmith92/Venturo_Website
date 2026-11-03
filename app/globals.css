@@ -1350,6 +1350,51 @@ a.chip.active {
   padding: 32px 28px;
 }
 
+.otp-boxes {
+  margin: 0 0 20px;
+  padding: 0;
+  border: 0;
+  min-width: 0;
+}
+
+.otp-boxes-row {
+  display: grid;
+  grid-template-columns: repeat(6, minmax(0, 1fr));
+  gap: 8px;
+}
+
+.otp-box {
+  width: 100%;
+  aspect-ratio: 3 / 4;
+  min-height: 56px;
+  margin: 0;
+  padding: 0;
+  border-radius: var(--radius-sm);
+  border: 1px solid color-mix(in srgb, var(--snow) 18%, transparent);
+  background: color-mix(in srgb, var(--night) 80%, black);
+  color: var(--snow);
+  font-family: "Social Gothic Rough", "Arial Black", sans-serif;
+  font-size: 28px;
+  line-height: 1;
+  text-align: center;
+  caret-color: var(--canary);
+}
+
+.otp-box:focus {
+  outline: 2px solid var(--canary);
+  outline-offset: 2px;
+  border-color: var(--canary);
+}
+
+.field .otp-boxes {
+  margin-bottom: 0;
+}
+
+.field .otp-box {
+  padding: 0;
+  min-height: 56px;
+}
+
 .auth-split {
   display: grid;
   grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);

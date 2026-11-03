@@ -3,7 +3,7 @@ import { NextResponse, type NextRequest } from "next/server";
 import { isSupabaseConfigured } from "@/lib/env";
 import { COMPANION_HOME, COMPANION_LOGIN, isCompanionPath } from "@/lib/companion";
 import { isPortalPath, PORTAL_HOME, PORTAL_LOGIN, portalReturnPath } from "@/lib/portal";
-import { roleFromClaims } from "@/lib/roles";
+import { isStaff, roleFromClaims } from "@/lib/roles";
 
 export async function updateSession(request: NextRequest) {
   let response = NextResponse.next({ request });
@@ -48,12 +48,11 @@ export async function updateSession(request: NextRequest) {
       const login = new URL("/admin/login", request.url);
       return NextResponse.redirect(login);
     }
-    if (role !== "admin") {
-      return NextResponse.redirect(new URL("/admin/denied", request.url));
-    }
+    // Staff & invited writers are gated in the Control Room layout. Do not
+    // bounce members here — writers keep the member role.
   }
 
-  if (path === "/admin/login" && signedIn && role === "admin") {
+  if (path === "/admin/login" && signedIn && isStaff(role)) {
     return NextResponse.redirect(new URL("/admin", request.url));
   }
 

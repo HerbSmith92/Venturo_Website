@@ -5,6 +5,7 @@ import { Roboto } from "next/font/google";
 import { AuthProviderIcon } from "@/components/AuthProviderIcon";
 import { portalLoginHref, portalSignupNext } from "@/lib/portal";
 import { createClient } from "@/lib/supabase/client";
+import { OtpCodeBoxes } from "@/components/OtpCodeBoxes";
 import { PolicyConsent } from "@/components/PolicyConsent";
 import { CONSENT_REQUIRED } from "@/lib/policy-consent";
 
@@ -236,20 +237,7 @@ export function AuthForm({
         </p>
         <label className="field">
           <span>One-Time Code</span>
-          <input
-            key={`otp-${email}`}
-            name="token"
-            type="text"
-            inputMode="numeric"
-            autoComplete="one-time-code"
-            pattern="[0-9]{6,8}"
-            minLength={6}
-            maxLength={8}
-            required
-            autoFocus
-            defaultValue=""
-            placeholder="123456"
-          />
+          <OtpCodeBoxes key={`otp-${email}`} disabled={pending} />
         </label>
         {error && <p className="error">{error}</p>}
         <button className="btn btn-primary" type="submit" disabled={!configured || pending}>
