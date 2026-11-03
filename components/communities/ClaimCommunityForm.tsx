@@ -91,10 +91,10 @@ export function ClaimCommunityForm({
         <p className="lede muted">
           We emailed a 6-digit code to <strong>{email}</strong>. Type it here to claim {communityTitle}.
         </p>
-        <label className="field">
+        <div className="field">
           <span>One-Time Code</span>
           <OtpCodeBoxes disabled={pending} />
-        </label>
+        </div>
         {error ? <p className="error">{error}</p> : null}
         <button className="btn btn-primary" type="submit" disabled={pending}>
           {pending ? "Please Wait" : "Verify & Claim"}

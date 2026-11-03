@@ -327,10 +327,10 @@ export function TicketCheckoutForm({
         <p className="muted">
           We emailed a 6-digit code to <strong>{email}</strong>.
         </p>
-        <label className="field">
+        <div className="field">
           <span>One-Time Code</span>
           <OtpCodeBoxes disabled={pending} />
-        </label>
+        </div>
         {error ? <p className="error">{error}</p> : null}
         <button className="btn btn-primary" type="submit" disabled={pending}>
           {pending ? "Please Wait" : "Verify & Continue"}

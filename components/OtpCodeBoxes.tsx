@@ -8,6 +8,11 @@ function onlyDigits(raw: string) {
   return raw.replace(/\D/g, "").slice(0, OTP_LENGTH);
 }
 
+function slotsFrom(raw: string) {
+  const digits = onlyDigits(raw);
+  return Array.from({ length: OTP_LENGTH }, (_, index) => digits[index] ?? "");
+}
+
 export function OtpCodeBoxes({
   name = "token",
   value,
@@ -21,43 +26,54 @@ export function OtpCodeBoxes({
   disabled?: boolean;
   autoFocus?: boolean;
 }) {
-  const [digits, setDigits] = useState(() =>
-    Array.from({ length: OTP_LENGTH }, (_, index) => onlyDigits(value ?? "")[index] ?? ""),
-  );
+  const [digits, setDigits] = useState(() => slotsFrom(value ?? ""));
   const boxes = useRef<Array<HTMLInputElement | null>>([]);
 
   useEffect(() => {
     if (value === undefined) return;
-    setDigits(Array.from({ length: OTP_LENGTH }, (_, index) => onlyDigits(value)[index] ?? ""));
+    setDigits(slotsFrom(value));
   }, [value]);
 
-  const code = digits.join("").replace(/\s/g, "");
+  const code = digits.join("");
 
   function publish(next: string[]) {
     setDigits(next);
-    onChange?.(next.join("").replace(/\s/g, ""));
+    onChange?.(next.join(""));
   }
 
   function fillFrom(raw: string, start = 0) {
     const incoming = onlyDigits(raw);
-    if (!incoming) return;
+    if (!incoming) {
+      if (!raw) return;
+      publish(slotsFrom(""));
+      return;
+    }
     const next = [...digits];
     incoming.split("").forEach((char, index) => {
       const slot = start + index;
       if (slot < OTP_LENGTH) next[slot] = char;
     });
-    for (let i = start + incoming.length; i < OTP_LENGTH; i += 1) {
-      if (incoming.length >= OTP_LENGTH - start) next[i] = "";
-    }
     publish(next);
-    const focusAt = Math.min(start + incoming.length, OTP_LENGTH - 1);
-    boxes.current[focusAt]?.focus();
+    boxes.current[Math.min(start + incoming.length, OTP_LENGTH - 1)]?.focus();
   }
 
   return (
-    <fieldset className="otp-boxes" disabled={disabled}>
-      <legend className="sr-only">One-time code</legend>
+    <div className="otp-boxes">
       <input type="hidden" name={name} value={code} />
+      <input
+        className="otp-collector"
+        type="text"
+        inputMode="numeric"
+        autoComplete="one-time-code"
+        autoCorrect="off"
+        autoCapitalize="off"
+        spellCheck={false}
+        value={code}
+        tabIndex={-1}
+        aria-hidden="true"
+        disabled={disabled}
+        onChange={(event) => fillFrom(event.target.value, 0)}
+      />
       <div className="otp-boxes-row">
         {digits.map((digit, index) => (
           <input
@@ -68,11 +84,14 @@ export function OtpCodeBoxes({
             className="otp-box"
             type="text"
             inputMode="numeric"
-            autoComplete={index === 0 ? "one-time-code" : "off"}
+            name={`otp-${index}`}
+            autoComplete="off"
             autoCorrect="off"
             autoCapitalize="off"
             spellCheck={false}
-            maxLength={index === 0 ? OTP_LENGTH : 1}
+            data-lpignore="true"
+            data-1p-ignore="true"
+            maxLength={1}
             value={digit}
             disabled={disabled}
             autoFocus={autoFocus && index === 0}
@@ -80,7 +99,7 @@ export function OtpCodeBoxes({
             onChange={(event) => {
               const incoming = onlyDigits(event.target.value);
               if (incoming.length > 1) {
-                fillFrom(incoming, index === 0 ? 0 : index);
+                fillFrom(incoming, 0);
                 return;
               }
               const next = [...digits];
@@ -112,6 +131,6 @@ export function OtpCodeBoxes({
           />
         ))}
       </div>
-    </fieldset>
+    </div>
   );
 }

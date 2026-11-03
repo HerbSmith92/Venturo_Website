@@ -1351,10 +1351,21 @@ a.chip.active {
 }
 
 .otp-boxes {
+  position: relative;
   margin: 0 0 20px;
   padding: 0;
   border: 0;
   min-width: 0;
+}
+
+.otp-collector {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  opacity: 0;
+  pointer-events: none;
+  border: 0;
+  padding: 0;
 }
 
 .otp-boxes-row {

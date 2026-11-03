@@ -97,13 +97,10 @@ export function AuthorJoinAuth({
           We emailed a <strong>6-digit code</strong> to <strong>{email}</strong>. Type it here —
           no password needed.
         </p>
-        {username ? (
-          <input type="text" name="username" autoComplete="username" defaultValue={username} tabIndex={-1} aria-hidden="true" className="sr-only" readOnly />
-        ) : null}
-        <label className="field">
+        <div className="field">
           <span>One-Time Code</span>
           <OtpCodeBoxes key={`otp-${email}`} disabled={pending} />
-        </label>
+        </div>
         {error ? <p className="error">{error}</p> : null}
         <button className="btn btn-primary" type="submit" disabled={!configured || pending}>
           {pending ? "Please wait" : "Verify & continue"}
@@ -141,9 +138,9 @@ export function AuthorJoinAuth({
         <label className="field">
           <span>Username</span>
           <input
-            name="username"
+            name="authorHandle"
             type="text"
-            autoComplete="nickname"
+            autoComplete="off"
             required
             maxLength={80}
             value={username}

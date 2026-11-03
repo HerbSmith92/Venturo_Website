@@ -235,10 +235,10 @@ export function AuthForm({
           We emailed a <strong>6-digit code</strong> to <strong>{email}</strong>.
           Type it here to continue — no password needed.
         </p>
-        <label className="field">
+        <div className="field">
           <span>One-Time Code</span>
           <OtpCodeBoxes key={`otp-${email}`} disabled={pending} />
-        </label>
+        </div>
         {error && <p className="error">{error}</p>}
         <button className="btn btn-primary" type="submit" disabled={!configured || pending}>
           {pending ? "Please Wait" : "Verify & Continue"}

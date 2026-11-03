@@ -121,10 +121,10 @@ export function EventPayment({
             </p>
             {sent ? (
               <form onSubmit={(submit) => void verify(submit)}>
-                <label className="field">
+                <div className="field">
                   <span>Code</span>
                   <OtpCodeBoxes value={code} onChange={setCode} disabled={pending} />
-                </label>
+                </div>
                 <button className="btn btn-primary" type="submit" disabled={pending}>
                   {pending ? "Checking" : "Unlock Bank"}
                 </button>
