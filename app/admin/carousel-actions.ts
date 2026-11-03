@@ -1,11 +1,12 @@
 "use server";
 
-import { requireGuideWriter } from "@/lib/auth";
+import { requireWritableGuide } from "@/lib/guide-access";
 import type { CarouselDraft } from "@/lib/guide-carousel";
 import { createClient } from "@/lib/supabase/server";
 
 export async function saveGuideCarousel(guideId: string, draft: CarouselDraft) {
-  await requireGuideWriter();
+  const access = await requireWritableGuide("curated_guides", guideId);
+  if (!access.ok) return { ok: false as const, error: access.error };
   const supabase = await createClient();
   if (!supabase || !guideId) return { ok: false as const, error: "Could not save that carousel." };
   const { error } = await supabase.rpc("admin_save_guide_carousel", {

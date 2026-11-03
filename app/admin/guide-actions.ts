@@ -4,6 +4,7 @@ import { revalidatePath } from "next/cache";
 import { bustPublicCatalog } from "@/lib/public-cache";
 import { redirect } from "next/navigation";
 import { requireAdmin, requireGuideWriter } from "@/lib/auth";
+import { requireWritableGuide } from "@/lib/guide-access";
 import { fromZaLocalInput, isGuideAction } from "@/lib/guide-shared";
 import { createClient } from "@/lib/supabase/server";
 
@@ -58,7 +59,8 @@ export async function saveCuratedGuide(
     cover?: unknown;
   },
 ) {
-  await requireGuideWriter();
+  const access = await requireWritableGuide("curated_guides", guideId);
+  if (!access.ok) return { ok: false as const, error: access.error };
   const supabase = await createClient();
   if (!supabase || !guideId) {
     return { ok: false as const, error: "Could not save that guide." };
@@ -105,8 +107,10 @@ export async function saveCuratedGuide(
 
 export async function applyGuideAction(formData: FormData) {
   const action = String(formData.get("action") ?? "");
-  if (action === "submit") await requireGuideWriter();
-  else await requireAdmin();
+  if (action === "submit") {
+    const access = await requireWritableGuide("curated_guides", String(formData.get("id") ?? ""));
+    if (!access.ok) redirect(`/admin/guides?error=${encodeURIComponent(access.error)}`);
+  } else await requireAdmin();
   const supabase = await createClient();
   const id = String(formData.get("id") ?? "");
 
@@ -128,9 +132,12 @@ export async function applyGuideAction(formData: FormData) {
 }
 
 export async function duplicateCuratedGuide(formData: FormData) {
-  await requireGuideWriter();
-  const supabase = await createClient();
   const id = String(formData.get("id") ?? "");
+  const access = await requireWritableGuide("curated_guides", id);
+  if (!access.ok) {
+    redirect(`/admin/guides?error=${encodeURIComponent(access.error)}`);
+  }
+  const supabase = await createClient();
   if (!supabase || !id) {
     redirect("/admin/guides?error=Could+not+duplicate+that+guide.");
   }

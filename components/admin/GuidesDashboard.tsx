@@ -41,10 +41,12 @@ function authorInitial(name: string | null) {
 export function GuidesDashboard({
   guides,
   canAdmin,
+  staffView = false,
   error,
 }: {
   guides: GuideQueueRow[];
   canAdmin: boolean;
+  staffView?: boolean;
   error?: string;
 }) {
   const [tab, setTab] = useState<Tab>("all");
@@ -201,7 +203,11 @@ export function GuidesDashboard({
             Content <span>/</span> Guides
           </p>
           <h1>Guides</h1>
-          <p className="lede">Create, review &amp; publish your next great discovery.</p>
+          <p className="lede">
+            {staffView
+              ? "Create, review & publish your next great discovery."
+              : "Your Guides. Draft them here—Venturo still publishes."}
+          </p>
         </div>
         <div className="guides-board-head-actions">
           {canAdmin ? (
@@ -275,6 +281,7 @@ export function GuidesDashboard({
             }}
           />
         </label>
+        {staffView ? (
         <select
           value={author}
           onChange={(event) => {
@@ -289,6 +296,7 @@ export function GuidesDashboard({
             </option>
           ))}
         </select>
+        ) : null}
         <select
           value={category}
           onChange={(event) => {

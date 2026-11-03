@@ -1,3 +1,4 @@
+import { canManageGuide, type GuideViewer } from "@/lib/guide-access";
 import { createClient } from "@/lib/supabase/server";
 import {
   GUIDE_FILL_LIMIT,
@@ -148,7 +149,7 @@ function upcomingQuery(supabase: NonNullable<Awaited<ReturnType<typeof createCli
 
 export async function loadEventGuideQueue(
   status?: string,
-  viewer?: { id: string; admin: boolean },
+  viewer?: GuideViewer,
 ): Promise<EventGuideQueueRow[]> {
   const supabase = await createClient();
   if (!supabase) return [];
@@ -157,7 +158,7 @@ export async function loadEventGuideQueue(
     .from("curated_event_guides")
     .select(
       `
-      id, title, slug, status, publish_at, expire_at, updated_at, shape, created_by,
+      id, title, slug, status, publish_at, expire_at, updated_at, shape, created_by, author_id,
       curated_event_guide_items ( id, sort_order, events ( listing_image_url, banner_url, story_image_url ) ),
       guide_authors ( display_name, photo_url )
     `,
@@ -181,6 +182,7 @@ export async function loadEventGuideQueue(
       updated_at: string;
       shape?: string | null;
       created_by: string;
+      author_id?: string | null;
       curated_event_guide_items?: {
         id?: string;
         sort_order?: number | null;
@@ -189,10 +191,7 @@ export async function loadEventGuideQueue(
       guide_authors?: { display_name: string; photo_url?: string | null } | { display_name: string; photo_url?: string | null }[] | null;
     }[]
   )
-    .filter((row) => {
-      if (!viewer || viewer.admin) return true;
-      return row.created_by === viewer.id || row.status === "published";
-    })
+    .filter((row) => canManageGuide(row, viewer))
     .map((row) => {
       const author = Array.isArray(row.guide_authors) ? row.guide_authors[0] : row.guide_authors;
       const items = [...(row.curated_event_guide_items ?? [])].sort(

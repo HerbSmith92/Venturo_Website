@@ -3,7 +3,8 @@ import { EventGuideEditor } from "@/components/admin/EventGuideEditor";
 import { getStaffSession } from "@/lib/auth";
 import { loadEventGuideEditor, loadGuidePlaces } from "@/lib/control-room-event-guides";
 import { loadGuideAuthors, linkedAuthorIdForUser } from "@/lib/control-room-authors";
-import { isAdmin } from "@/lib/roles";
+import { canManageGuide, guideViewerFor } from "@/lib/guide-access";
+import { isAdmin, isStaff } from "@/lib/roles";
 
 export default async function EventGuideEditPage({
   params,
@@ -18,13 +19,13 @@ export default async function EventGuideEditPage({
   const guide = await loadEventGuideEditor(id);
   if (!guide) notFound();
   const admin = isAdmin(session?.role);
-  if (session && !admin && guide.created_by !== session.id && guide.status !== "published") {
+  const linkedAuthor = session?.id ? await linkedAuthorIdForUser(session.id) : null;
+  if (!canManageGuide(guide, guideViewerFor(session ? { ...session, linkedAuthorId: linkedAuthor } : null))) {
     notFound();
   }
-  const [places, authors, linkedAuthor] = await Promise.all([
+  const [places, authors] = await Promise.all([
     loadGuidePlaces(),
     loadGuideAuthors(),
-    session?.id ? linkedAuthorIdForUser(session.id) : Promise.resolve(null),
   ]);
   const notice =
     done === "duplicated"
@@ -45,7 +46,7 @@ export default async function EventGuideEditPage({
       places={places}
       authors={authors}
       canPublish={admin}
-      lockAuthor={!admin && Boolean(linkedAuthor)}
+      lockAuthor={!isStaff(session?.role) && Boolean(linkedAuthor)}
     />
   );
 }

@@ -1,3 +1,4 @@
+import { canManageGuide, type GuideViewer } from "@/lib/guide-access";
 import { createClient } from "@/lib/supabase/server";
 import {
   GUIDE_FILL_LIMIT,
@@ -213,7 +214,7 @@ function mapListingPreview(row: ListingRow): GuideListingPreview {
 
 export async function loadGuideQueue(
   status?: string,
-  viewer?: { id: string; admin: boolean },
+  viewer?: GuideViewer,
 ): Promise<GuideQueueRow[]> {
   const supabase = await createClient();
   if (!supabase) return [];
@@ -222,7 +223,7 @@ export async function loadGuideQueue(
     .from("curated_guides")
     .select(
       `
-      id, title, slug, status, publish_at, expire_at, updated_at, shape, created_by,
+      id, title, slug, status, publish_at, expire_at, updated_at, shape, created_by, author_id,
       curated_guide_items ( id, sort_order, directory_listings ( listing_media ( public_url, is_cover, sort_order, is_pending ) ) ),
       guide_authors ( display_name, photo_url )
     `,
@@ -238,7 +239,7 @@ export async function loadGuideQueue(
       .from("curated_guides")
       .select(
         `
-      id, title, slug, status, publish_at, expire_at, updated_at,
+      id, title, slug, status, publish_at, expire_at, updated_at, created_by, author_id,
       curated_guide_items ( id )
     `,
       )
@@ -262,6 +263,7 @@ export async function loadGuideQueue(
       updated_at: string;
       shape?: string | null;
       created_by?: string;
+      author_id?: string | null;
       curated_guide_items?: {
         id?: string;
         sort_order?: number | null;
@@ -270,10 +272,7 @@ export async function loadGuideQueue(
       guide_authors?: { display_name: string; photo_url?: string | null } | { display_name: string; photo_url?: string | null }[] | null;
     }[]
   )
-    .filter((row) => {
-      if (!viewer || viewer.admin) return true;
-      return row.created_by === viewer.id || row.status === "published";
-    })
+    .filter((row) => canManageGuide(row, viewer))
     .map((row) => {
       const author = authorFromQueue(row.guide_authors);
       return {
@@ -749,7 +748,7 @@ export async function searchPricedGuideListings(input: {
 
 export async function loadUnifiedGuideQueue(
   status?: string,
-  viewer?: { id: string; admin: boolean },
+  viewer?: GuideViewer,
 ): Promise<GuideQueueRow[]> {
   const { loadEventGuideQueue } = await import("@/lib/control-room-event-guides");
   const [listings, events] = await Promise.all([

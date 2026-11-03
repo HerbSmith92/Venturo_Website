@@ -4,6 +4,7 @@ import { revalidatePath } from "next/cache";
 import { bustPublicCatalog } from "@/lib/public-cache";
 import { redirect } from "next/navigation";
 import { requireAdmin, requireGuideWriter } from "@/lib/auth";
+import { requireWritableGuide } from "@/lib/guide-access";
 import { fromZaLocalInput, isGuideAction } from "@/lib/guide-shared";
 import { createClient } from "@/lib/supabase/server";
 
@@ -56,7 +57,8 @@ export async function saveCuratedEventGuide(
     items: { event_id: string; editorial_note: string }[];
   },
 ) {
-  await requireGuideWriter();
+  const access = await requireWritableGuide("curated_event_guides", guideId);
+  if (!access.ok) return { ok: false as const, error: access.error };
   const supabase = await createClient();
   if (!supabase || !guideId) {
     return { ok: false as const, error: "Could not save that guide." };
@@ -120,9 +122,12 @@ export async function applyEventGuideAction(formData: FormData) {
 }
 
 export async function duplicateCuratedEventGuide(formData: FormData) {
-  await requireGuideWriter();
-  const supabase = await createClient();
   const id = String(formData.get("id") ?? "");
+  const access = await requireWritableGuide("curated_event_guides", id);
+  if (!access.ok) {
+    redirect(`/admin/guides?error=${encodeURIComponent(access.error)}`);
+  }
+  const supabase = await createClient();
   if (!supabase || !id) {
     redirect("/admin/guides?error=Could+not+duplicate+that+guide.");
   }

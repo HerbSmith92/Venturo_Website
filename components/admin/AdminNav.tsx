@@ -58,7 +58,7 @@ function writerMenu(name: string, authorId: string): Group[] {
           label: "Guides",
           href: "/admin/guides",
           leaves: [
-            { id: "all", label: "All", href: "/admin/guides" },
+            { id: "all", label: "Mine", href: "/admin/guides" },
             { id: "draft", label: "Drafts", href: "/admin/guides?status=draft" },
             { id: "published", label: "Published", href: "/admin/guides?status=published" },
             { id: "profile", label: "Your profile", href: `/admin/authors/${authorId}` },
