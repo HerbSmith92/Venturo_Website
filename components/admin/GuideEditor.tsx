@@ -6,7 +6,10 @@ import { saveGuideEvents } from "@/app/admin/content-actions";
 import { applyGuideAction, duplicateCuratedGuide, saveCuratedGuide } from "@/app/admin/guide-actions";
 import { CarouselWorkspace } from "@/components/admin/carousel/CarouselWorkspace";
 import { StoryBuilder } from "@/components/admin/StoryBuilder";
+import { CollectionGuide } from "@/components/CollectionGuide";
 import { SpotlightArticle } from "@/components/SpotlightArticle";
+import type { GuideRecommendation } from "@/lib/guides";
+import type { CategoryId } from "@/lib/listings";
 import { formatRand } from "@/lib/control-room-shared";
 import type { GuideEditorRecord, SpotlightListingDetails } from "@/lib/control-room-guides";
 import type { GuideAuthor } from "@/lib/guide-authors";
@@ -79,6 +82,46 @@ function audienceLabelsFor(
 function areaLabel(listing: GuideListingPreview | null) {
   if (!listing) return "Listing missing";
   return [listing.suburb, listing.city].filter(Boolean).join(", ") || "South Africa";
+}
+
+function previewCategory(key: string | null): CategoryId {
+  switch (key) {
+    case "adventure":
+    case "thrills":
+    case "family":
+    case "romance":
+    case "team":
+    case "nightlife":
+    case "workshop":
+    case "markets":
+    case "digital":
+    case "third-party":
+      return key;
+    default:
+      return "adventure";
+  }
+}
+
+function previewCollectionItems(items: GuideDraft["items"]): GuideRecommendation[] {
+  return items.flatMap((item) => {
+    const listing = item.listing;
+    if (!listing) return [];
+    const amount = listing.price_from;
+    return [
+      {
+        listingId: listing.id,
+        slug: listing.slug,
+        name: listing.name,
+        area: areaLabel(listing),
+        category: previewCategory(listing.activity_kind_key),
+        vibe: listing.short_description ?? "",
+        image: listing.image ?? FALLBACK_IMAGE,
+        fromPrice: typeof amount === "number" ? amount : Number(amount) || 0,
+        memberFromPrice: null,
+        editorialNote: item.editorial_note.trim() || null,
+      },
+    ];
+  });
 }
 
 export function GuideEditor({
@@ -1428,7 +1471,7 @@ export function GuideEditor({
       {previewOpen ? (
         <div className="spotlight-preview-modal">
           <button type="button" className="spotlight-lightbox-backdrop" aria-label="Close preview" onClick={() => setPreviewOpen(false)} />
-          <div className="spotlight-preview-frame">
+          <div className={`spotlight-preview-frame${draft.shape === "roundup" ? " is-collection" : ""}`}>
             <header>
               <strong>Preview</strong>
               <button type="button" onClick={() => setPreviewOpen(false)}>
@@ -1445,18 +1488,19 @@ export function GuideEditor({
                 story={story}
                 listing={visit}
                 author={credited ? mapGuideAuthor(credited) : null}
+                compact
               />
             ) : (
-              <div className="guide-desk-preview-list">
-                <h1>{draft.title || "Untitled Guide"}</h1>
-                {draft.intro ? <p>{draft.intro}</p> : null}
-                {draft.items.map((item) => (
-                  <article key={item.listing_id}>
-                    <strong>{item.listing?.name}</strong>
-                    <p>{item.editorial_note}</p>
-                  </article>
-                ))}
-              </div>
+              <CollectionGuide
+                embedded
+                title={draft.title || "Untitled Guide"}
+                intro={draft.intro || null}
+                body={null}
+                about="activities"
+                author={credited ? mapGuideAuthor(credited) : null}
+                listingItems={previewCollectionItems(draft.items)}
+                moreGuides={[]}
+              />
             )}
           </div>
         </div>

@@ -15292,8 +15292,14 @@ a.chip,
   z-index: 3;
 }
 
+.spotlight-preview-frame.is-collection {
+  background: var(--night);
+  color: var(--snow);
+}
+
 .spotlight-preview-frame > .spotlight-page,
-.spotlight-preview-frame > .guide-desk-preview-list {
+.spotlight-preview-frame > .guide-desk-preview-list,
+.spotlight-preview-frame > .guide-collection {
   flex: 1 1 auto;
   min-height: 0;
   overflow: auto;
