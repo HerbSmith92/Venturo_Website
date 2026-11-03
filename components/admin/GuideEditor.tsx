@@ -6,10 +6,7 @@ import { saveGuideEvents } from "@/app/admin/content-actions";
 import { applyGuideAction, duplicateCuratedGuide, saveCuratedGuide } from "@/app/admin/guide-actions";
 import { CarouselWorkspace } from "@/components/admin/carousel/CarouselWorkspace";
 import { StoryBuilder } from "@/components/admin/StoryBuilder";
-import { CollectionGuide } from "@/components/CollectionGuide";
 import { SpotlightArticle } from "@/components/SpotlightArticle";
-import type { GuideRecommendation } from "@/lib/guides";
-import type { CategoryId } from "@/lib/listings";
 import { formatRand } from "@/lib/control-room-shared";
 import type { GuideEditorRecord, SpotlightListingDetails } from "@/lib/control-room-guides";
 import type { GuideAuthor } from "@/lib/guide-authors";
@@ -82,46 +79,6 @@ function audienceLabelsFor(
 function areaLabel(listing: GuideListingPreview | null) {
   if (!listing) return "Listing missing";
   return [listing.suburb, listing.city].filter(Boolean).join(", ") || "South Africa";
-}
-
-function previewCategory(key: string | null): CategoryId {
-  switch (key) {
-    case "adventure":
-    case "thrills":
-    case "family":
-    case "romance":
-    case "team":
-    case "nightlife":
-    case "workshop":
-    case "markets":
-    case "digital":
-    case "third-party":
-      return key;
-    default:
-      return "adventure";
-  }
-}
-
-function previewCollectionItems(items: GuideDraft["items"]): GuideRecommendation[] {
-  return items.flatMap((item) => {
-    const listing = item.listing;
-    if (!listing) return [];
-    const amount = listing.price_from;
-    return [
-      {
-        listingId: listing.id,
-        slug: listing.slug,
-        name: listing.name,
-        area: areaLabel(listing),
-        category: previewCategory(listing.activity_kind_key),
-        vibe: listing.short_description ?? "",
-        image: listing.image ?? FALLBACK_IMAGE,
-        fromPrice: typeof amount === "number" ? amount : Number(amount) || 0,
-        memberFromPrice: null,
-        editorialNote: item.editorial_note.trim() || null,
-      },
-    ];
-  });
 }
 
 export function GuideEditor({
@@ -1491,16 +1448,54 @@ export function GuideEditor({
                 compact
               />
             ) : (
-              <CollectionGuide
-                embedded
-                title={draft.title || "Untitled Guide"}
-                intro={draft.intro || null}
-                body={null}
-                about="activities"
-                author={credited ? mapGuideAuthor(credited) : null}
-                listingItems={previewCollectionItems(draft.items)}
-                moreGuides={[]}
-              />
+              <div className="guide-collection">
+                <div className="shell">
+                  <header className="guide-collection-head">
+                    <p className="eyebrow">Guides</p>
+                    <h1>{draft.title || "Untitled Guide"}</h1>
+                    {draft.intro ? <p className="guide-collection-intro">{draft.intro}</p> : null}
+                  </header>
+                  {credited ? <p className="muted">By {credited.display_name}</p> : null}
+                  <div className="guide-recs">
+                    {draft.items.length === 0 ? (
+                      <p className="muted">No activities on this Collection yet.</p>
+                    ) : (
+                      draft.items.map((item, index) => {
+                        const listing = item.listing;
+                        const writeUp = item.editorial_note.trim();
+                        const amount = listing?.price_from;
+                        const price =
+                          amount == null || amount === ""
+                            ? null
+                            : typeof amount === "number"
+                              ? amount
+                              : Number(amount);
+                        return (
+                          <article key={item.listing_id} className="guide-rec is-stack">
+                            <header className="guide-rec-copy">
+                              <p className="eyebrow">{String(index + 1).padStart(2, "0")}</p>
+                              <h2>{listing?.name ?? "Listing missing"}</h2>
+                              {writeUp ? <p className="guide-rec-note">{writeUp}</p> : null}
+                            </header>
+                            <div className="card guide-rec-card">
+                              <div className="card-image">
+                                <img src={listing?.image ?? FALLBACK_IMAGE} alt="" />
+                              </div>
+                              <div className="card-body">
+                                <h3>{listing?.name ?? "Listing missing"}</h3>
+                                <p className="card-meta">{areaLabel(listing)}</p>
+                                {price != null && Number.isFinite(price) ? (
+                                  <p className="card-meta">{formatRand(price)}</p>
+                                ) : null}
+                              </div>
+                            </div>
+                          </article>
+                        );
+                      })
+                    )}
+                  </div>
+                </div>
+              </div>
             )}
           </div>
         </div>

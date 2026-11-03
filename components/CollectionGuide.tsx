@@ -33,7 +33,6 @@ export function CollectionGuide({
   linkedEvents,
   paid = false,
   save,
-  embedded = false,
 }: {
   title: string;
   intro: string | null;
@@ -47,15 +46,13 @@ export function CollectionGuide({
   linkedEvents?: VenturoEvent[];
   paid?: boolean;
   save?: { targetId: string; saved: boolean; next: string };
-  embedded?: boolean;
 }) {
   const dateLabel = guideDate(publishedAt);
   const items = listingItems ?? [];
   const events = eventItems ?? [];
-  const Root = embedded ? "div" : "main";
 
   return (
-    <Root className="guide-collection">
+    <main className="guide-collection">
       <div className="shell">
         <header className="guide-collection-head">
           <p className="eyebrow">
@@ -97,6 +94,6 @@ export function CollectionGuide({
           <GuideBrowse guides={moreGuides} />
         </div>
       </div>
-    </Root>
+    </main>
   );
 }
