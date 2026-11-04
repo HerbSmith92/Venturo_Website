@@ -11413,6 +11413,22 @@ button.listing-cost-toggle {
   overflow: hidden;
 }
 
+.carousel-thumb-add {
+  width: 100%;
+  margin: 4px 0 10px;
+  padding: 14px 10px;
+  border: 1px dashed color-mix(in srgb, var(--snow) 28%, transparent);
+  border-radius: 8px;
+  background: transparent;
+  color: var(--snow);
+  cursor: pointer;
+}
+
+.carousel-thumb-add:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
 .carousel-stage {
   min-width: 0;
   display: grid;

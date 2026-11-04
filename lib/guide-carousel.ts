@@ -3,6 +3,7 @@ import type { GuideDraftItem, GuideListingPreview } from "@/lib/guide-shared";
 
 export const IG_POST_WIDTH = 1080;
 export const IG_POST_HEIGHT = 1350;
+export const IG_CAROUSEL_MAX = 20;
 export const CAROUSEL_FOOTER = "@Discover_Venturo";
 export const FALLBACK_EXPORT_IMAGE = "/brand/images/climbing.jpg";
 
@@ -91,7 +92,7 @@ export type CarouselCover = {
 export type CarouselRec = {
   id: string;
   sourceId: string;
-  kind: "activity" | "event";
+  kind: "activity" | "event" | "custom";
   title: string;
   description: string;
   location: string;
@@ -531,6 +532,39 @@ function mergeAuthor(saved: CarouselAuthor | undefined, seed: CarouselAuthor): C
   };
 }
 
+export function createCarouselPost(photos: string[], location = "", spotlight = false): CarouselRec {
+  const id =
+    typeof crypto !== "undefined" && "randomUUID" in crypto
+      ? `post-${crypto.randomUUID()}`
+      : `post-${Date.now()}`;
+  const bank = photos.filter(Boolean);
+  const image = bank[0] ?? FALLBACK_EXPORT_IMAGE;
+  return {
+    id,
+    sourceId: id,
+    kind: "custom",
+    title: "New post",
+    description: "",
+    location,
+    categoryKey: "adventure",
+    categoryTitle: "Adventure",
+    priceAmount: null,
+    priceBasis: "omit",
+    priceNote: "",
+    tip: "",
+    role: "story",
+    template: spotlight ? "combined" : undefined,
+    image,
+    photos: bank.length ? bank : [image],
+    crop: { ...DEFAULT_CROP },
+    eventDate: "",
+    eventStart: "",
+    eventEnd: "",
+    availabilityChecked: true,
+    custom: { title: true, description: true, image: true },
+  };
+}
+
 export function seedCarouselDraft(input: {
   title: string;
   intro: string;
@@ -552,12 +586,11 @@ export function seedCarouselDraft(input: {
 export function mergeCarouselDraft(saved: CarouselDraft | null | undefined, seed: CarouselDraft): CarouselDraft {
   if (!saved || saved.version !== 1) return seed;
   if ((seed.kind ?? "collection") !== (saved.kind ?? "collection")) return seed;
-  const recs = seed.recs.map((fresh) => {
-    const prev = saved.recs.find((row) => row.id === fresh.id || row.sourceId === fresh.sourceId);
-    if (!prev) return fresh;
+  function mergeRec(fresh: CarouselRec, prev: CarouselRec): CarouselRec {
     const custom = prev.custom ?? {};
     return {
       ...fresh,
+      kind: prev.kind === "custom" ? "custom" : fresh.kind,
       title: custom.title ? prev.title : fresh.title,
       description: custom.description ? prev.description : fresh.description,
       location: custom.location ? prev.location : fresh.location,
@@ -593,8 +626,24 @@ export function mergeCarouselDraft(saved: CarouselDraft | null | undefined, seed
       photos: [...new Set([...fresh.photos, ...prev.photos])],
       custom,
     };
-  });
-  const extra = saved.recs.filter((row) => row.kind === "event" && !recs.some((item) => item.sourceId === row.sourceId));
+  }
+
+  const used = new Set<string>();
+  const recs: CarouselRec[] = [];
+  for (const prev of saved.recs) {
+    const fresh = seed.recs.find((row) => row.id === prev.id || row.sourceId === prev.sourceId);
+    if (fresh) {
+      recs.push(mergeRec(fresh, prev));
+      used.add(fresh.id);
+      used.add(fresh.sourceId);
+    } else {
+      recs.push(prev);
+    }
+  }
+  for (const fresh of seed.recs) {
+    if (used.has(fresh.id) || used.has(fresh.sourceId)) continue;
+    recs.push(fresh);
+  }
   return {
     version: 1,
     kind: seed.kind ?? saved.kind ?? "collection",
@@ -607,7 +656,7 @@ export function mergeCarouselDraft(saved: CarouselDraft | null | undefined, seed
       dateFrom: saved.cover.dateFrom || datesFromRange(saved.cover.dateRange).from,
       dateTo: saved.cover.dateTo || datesFromRange(saved.cover.dateRange).to,
     },
-    recs: [...recs, ...extra],
+    recs,
     author: mergeAuthor(saved.author, seed.author),
     acknowledged: saved.acknowledged ?? [],
   };
@@ -722,6 +771,14 @@ export function validateCarousel(draft: CarouselDraft, overflowIds: string[] = [
       });
     }
   });
+  if (2 + draft.recs.length > IG_CAROUSEL_MAX) {
+    issues.push({
+      id: "carousel-max",
+      level: "error",
+      slide: "cover",
+      message: `Instagram allows ${IG_CAROUSEL_MAX} slides, including cover & author.`,
+    });
+  }
   overflowIds.forEach((id) => {
     const [slide, field] = id.split("::");
     const labels: Record<string, string> = {

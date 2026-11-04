@@ -16,7 +16,9 @@ import type { GuideAuthor } from "@/lib/guide-authors";
 import {
   APPROVED_CATEGORIES,
   PRICE_BASES,
+  createCarouselPost,
   exportFileSlug,
+  IG_CAROUSEL_MAX,
   mergeCarouselDraft,
   parseCarouselDraft,
   seedCarouselDraft,
@@ -136,6 +138,7 @@ export function CarouselWorkspace({
   savedDraft,
   events = [],
   spotlight,
+  onSaved,
 }: {
   open: boolean;
   onClose: () => void;
@@ -147,6 +150,7 @@ export function CarouselWorkspace({
   place: string;
   savedDraft: unknown;
   events?: CarouselEventSource[];
+  onSaved?: (draft: CarouselDraft) => void;
   spotlight?: {
     listing: SpotlightListingDetails | null;
     photos: SpotlightPhoto[];
@@ -176,7 +180,8 @@ export function CarouselWorkspace({
   const [history, setHistory] = useState<CarouselDraft[]>([]);
   const [future, setFuture] = useState<CarouselDraft[]>([]);
   const [slide, setSlide] = useState<SlideKey>("cover");
-  const [saveState, setSaveState] = useState<"saved" | "saving" | "error">("saved");
+  const [saveState, setSaveState] = useState<"saved" | "saving" | "unsaved" | "error">("saved");
+  const draftRef = useRef<CarouselDraft>(draft);
   const [preview, setPreview] = useState(false);
   const [overflow, setOverflow] = useState<string[]>([]);
   const [busy, setBusy] = useState(false);
@@ -201,13 +206,31 @@ export function CarouselWorkspace({
     setHistory([]);
     setFuture([]);
     setSlide("cover");
+    setSaveState("saved");
   }, [open, savedDraft, seed, title]);
+
+  draftRef.current = draft;
+
+  const persist = useCallback(async (value?: CarouselDraft) => {
+    const payload = value ?? draftRef.current;
+    setSaveState("saving");
+    const result = await saveGuideCarousel(guideId, payload);
+    if (result.ok) {
+      onSaved?.(payload);
+      setSaveState("saved");
+      return true;
+    }
+    setSaveState("error");
+    setMessage(result.error || "Could not save that carousel.");
+    return false;
+  }, [guideId, onSaved]);
 
   const commit = useCallback((next: CarouselDraft | ((prev: CarouselDraft) => CarouselDraft)) => {
     setDraft((prev) => {
       const value = typeof next === "function" ? next(prev) : next;
       setHistory((stack) => [...stack.slice(-29), prev]);
       setFuture([]);
+      setSaveState("unsaved");
       return value;
     });
   }, []);
@@ -216,15 +239,12 @@ export function CarouselWorkspace({
     if (!open) return;
     if (saveTimer.current) window.clearTimeout(saveTimer.current);
     saveTimer.current = window.setTimeout(() => {
-      setSaveState("saving");
-      void saveGuideCarousel(guideId, draft).then((result) => {
-        setSaveState(result.ok ? "saved" : "error");
-      });
-    }, 700);
+      void persist();
+    }, 900);
     return () => {
       if (saveTimer.current) window.clearTimeout(saveTimer.current);
     };
-  }, [draft, guideId, open]);
+  }, [draft, open, persist]);
 
   useEffect(() => {
     const slideKeys: SlideKey[] = ["cover", ...draft.recs.map((row) => row.id), "author"];
@@ -332,6 +352,45 @@ export function CarouselWorkspace({
     });
   }
 
+  const slideCap = 2 + draft.recs.length;
+  const canAddPost = slideCap < IG_CAROUSEL_MAX;
+
+  function countHeadline(count: number, current: string) {
+    return /^\d+\s+Weekend\s+Adventures$/i.test(current.replace(/\n/g, " "))
+      ? `${count} Weekend\nAdventures`
+      : current;
+  }
+
+  function addPost() {
+    if (!canAddPost) return;
+    const photos = [...new Set([draft.cover.image, ...draft.recs.flatMap((row) => row.photos)])].filter(Boolean);
+    const next = createCarouselPost(photos, draft.cover.geoLabel.replace(/^Near\s+/i, "").replace(/\.$/, ""), draft.kind === "spotlight");
+    commit((prev) => ({
+      ...prev,
+      recs: [...prev.recs, next],
+      cover: { ...prev.cover, headline: countHeadline(prev.recs.length + 1, prev.cover.headline) },
+    }));
+    setSlide(next.id);
+  }
+
+  function removePost(id: string) {
+    commit((prev) => {
+      const recs = prev.recs.filter((row) => row.id !== id);
+      return {
+        ...prev,
+        recs,
+        cover: { ...prev.cover, headline: countHeadline(recs.length, prev.cover.headline) },
+      };
+    });
+    setSlide("cover");
+  }
+
+  async function closeDesk() {
+    if (saveTimer.current) window.clearTimeout(saveTimer.current);
+    await persist();
+    onClose();
+  }
+
   async function exportSlides(all: boolean) {
     if (busy) return;
     if (blocking.length) {
@@ -378,12 +437,28 @@ export function CarouselWorkspace({
     <div className={`carousel-desk${preview ? " is-preview" : ""}`} role="dialog" aria-modal="true" aria-label="Carousel editor">
       <header className="carousel-desk-bar">
         <h1>Instagram carousel</h1>
-        <p className="carousel-save">{saveState === "saving" ? "Saving…" : saveState === "error" ? "Save failed" : "Saved"}</p>
+        <p className="carousel-save">
+          {saveState === "saving"
+            ? "Saving…"
+            : saveState === "error"
+              ? "Save failed"
+              : saveState === "unsaved"
+                ? "Unsaved changes"
+                : "Saved to draft"}
+        </p>
         <div className="carousel-desk-bar-actions">
           <button type="button" className="btn btn-ghost" onClick={undo} disabled={!history.length}>Undo</button>
           <button type="button" className="btn btn-ghost" onClick={redo} disabled={!future.length}>Redo</button>
           <button type="button" className="btn btn-secondary" onClick={() => setPreview((value) => !value)}>
             {preview ? "Edit slides" : "Preview carousel"}
+          </button>
+          <button
+            type="button"
+            className="btn btn-secondary"
+            disabled={saveState === "saving"}
+            onClick={() => void persist()}
+          >
+            Save draft
           </button>
           <button type="button" className="btn btn-secondary" disabled={busy || blocking.length > 0} onClick={() => void exportSlides(false)}>
             Download this slide
@@ -391,7 +466,7 @@ export function CarouselWorkspace({
           <button type="button" className="btn btn-primary" disabled={busy || blocking.length > 0} onClick={() => void exportSlides(true)}>
             {busy ? "Exporting…" : "Download all"}
           </button>
-          <button type="button" className="btn btn-ghost" onClick={onClose}>Close</button>
+          <button type="button" className="btn btn-ghost" onClick={() => void closeDesk()}>Close</button>
         </div>
       </header>
 
@@ -434,7 +509,22 @@ export function CarouselWorkspace({
                   {key === "cover" ? "Cover" : key === "author" ? "Author" : recTitle(draft, key)}
                 </span>
               </button>
-            ))}
+            )).flatMap((thumb, index) =>
+              keys[index] === "author"
+                ? [
+                    <button
+                      key="add-post"
+                      type="button"
+                      className="carousel-thumb-add"
+                      disabled={!canAddPost}
+                      onClick={addPost}
+                    >
+                      + Add post
+                    </button>,
+                    thumb,
+                  ]
+                : [thumb],
+            )}
           </aside>
 
           <div className="carousel-stage">
@@ -462,6 +552,7 @@ export function CarouselWorkspace({
                 onChange={(patch, keysToMark) => patchRec(rec.id, patch, keysToMark)}
                 onReset={(field) => resetRecField(rec.id, field)}
                 onAddEvent={(event) => commit((prev) => ({ ...prev, recs: [...prev.recs, seedRecFromEvent(event)] }))}
+                onRemove={rec.kind === "custom" ? () => removePost(rec.id) : undefined}
               />
             ) : null}
             {slide === "author" ? (
@@ -787,6 +878,7 @@ function RecInspector({
   onChange,
   onReset,
   onAddEvent,
+  onRemove,
 }: {
   rec: CarouselRec;
   seed?: CarouselRec;
@@ -795,6 +887,7 @@ function RecInspector({
   onChange: (patch: Partial<CarouselRec>, custom: (keyof CarouselRec)[]) => void;
   onReset: (field: keyof CarouselRec) => void;
   onAddEvent: (event: CarouselEventSource) => void;
+  onRemove?: () => void;
 }) {
   const words = wordCount(rec.description);
   const template = spotlight ? spotlightTemplate(rec) : null;
@@ -807,7 +900,19 @@ function RecInspector({
   const postAlign = spotlightPostAlign(rec);
   return (
     <>
-      <h2>{spotlight ? (rec.role === "pack" ? "Pack slide" : "Story slide") : rec.kind === "event" ? "Event" : "Activity"}</h2>
+      <h2>
+        {spotlight
+          ? rec.role === "pack"
+            ? "Pack slide"
+            : rec.kind === "custom"
+              ? "Extra post"
+              : "Story slide"
+          : rec.kind === "event"
+            ? "Event"
+            : rec.kind === "custom"
+              ? "Extra post"
+              : "Activity"}
+      </h2>
       {spotlight ? (
         <>
           <p>Template</p>
@@ -1049,6 +1154,11 @@ function RecInspector({
       ) : null}
       {seed && seed.description !== rec.description && rec.custom.description ? (
         <p className="muted">Directory copy has changed. Reset the description to review it.</p>
+      ) : null}
+      {onRemove ? (
+        <button type="button" className="btn btn-ghost" onClick={onRemove}>
+          Remove this post
+        </button>
       ) : null}
       {!spotlight && events.length ? (
         <label>

@@ -141,6 +141,7 @@ export function GuideEditor({
   const placesRef = useRef(places);
   placesRef.current = places;
   const [exportOpen, setExportOpen] = useState(false);
+  const [carouselSaved, setCarouselSaved] = useState(guide.carousel_draft);
   const [activeStep, setActiveStep] = useState<GuideStepKey>("list");
   const [interestKeywords, setInterestKeywords] = useState(() =>
     interestKeywordsFromIds(guide.interest_ids, catalog.interests),
@@ -184,6 +185,10 @@ export function GuideEditor({
     setActivity(listing);
     setPhotos((current) => mergeListingPhotos(current, listing.media));
   }, [listing]);
+
+  useEffect(() => {
+    setCarouselSaved(guide.carousel_draft);
+  }, [guide.carousel_draft]);
 
   const pickerSelectedInterests = useMemo(
     () => catalog.interests.filter((item) => pickerInterestIds.includes(item.id)),
@@ -1388,7 +1393,8 @@ export function GuideEditor({
           joinGuideLabels(places.filter((row) => placeIds.includes(row.id)).map((row) => row.name)) ||
           "Joburg & nearby"
         }
-        savedDraft={guide.carousel_draft}
+        savedDraft={carouselSaved}
+        onSaved={setCarouselSaved}
         events={draft.shape === "spotlight" ? [] : carouselEvents}
         spotlight={spotlightCarousel}
       />

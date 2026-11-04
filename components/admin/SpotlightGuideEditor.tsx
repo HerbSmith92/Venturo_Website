@@ -78,6 +78,7 @@ export function SpotlightGuideEditor({
   const [saveError, setSaveError] = useState<string | null>(error ?? null);
   const [preview, setPreview] = useState<"desktop" | "mobile" | null>(null);
   const [carousel, setCarousel] = useState(false);
+  const [carouselSaved, setCarouselSaved] = useState(guide.carousel_draft);
   const [inspect, setInspect] = useState<string | null>(null);
   const hydrated = useRef(false);
   const fileRef = useRef<HTMLInputElement>(null);
@@ -526,7 +527,8 @@ export function SpotlightGuideEditor({
         items={[]}
         author={author}
         place={activity?.area || "Joburg & nearby"}
-        savedDraft={guide.carousel_draft}
+        savedDraft={carouselSaved}
+        onSaved={setCarouselSaved}
         spotlight={spotlightCarousel}
       />
     </div>
