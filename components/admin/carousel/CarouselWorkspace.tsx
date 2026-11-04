@@ -21,6 +21,15 @@ import {
   parseCarouselDraft,
   seedCarouselDraft,
   seedRecFromEvent,
+  spotlightBackdrop,
+  spotlightPostAlign,
+  spotlightTemplate,
+  spotlightTypeStyle,
+  BACKDROP_COLOURS,
+  COPY_SIZE_MAX,
+  COPY_SIZE_MIN,
+  HEADING_SIZE_MAX,
+  HEADING_SIZE_MIN,
   validateCarousel,
   wordCount,
   type CarouselAuthor,
@@ -29,7 +38,13 @@ import {
   type CarouselDraft,
   type CarouselEventSource,
   type CarouselRec,
+  type PostAlign,
   type PriceBasis,
+  type SlideBackdrop,
+  type SpotlightInk,
+  type SpotlightSlideTemplate,
+  type TypeAlign,
+  type TypeStyle,
 } from "@/lib/guide-carousel";
 import { seedSpotlightCarouselDraft } from "@/lib/spotlight-carousel";
 import type { GuideDraftItem } from "@/lib/guide-shared";
@@ -67,6 +82,7 @@ function LiveSlide({
     return spotlight ? (
       <SpotlightAuthorSlide
         author={{ ...draft.author, cover: draft.author.cover || draft.cover.image }}
+        listingName={draft.cover.headerTitle}
         frameRef={frameRef}
       />
     ) : (
@@ -77,7 +93,15 @@ function LiveSlide({
   if (!rec) return null;
   const index = draft.recs.findIndex((row) => row.id === rec.id) + 1;
   if (spotlight) {
-    return <SpotlightStorySlide rec={rec} index={index - 1} recCount={draft.recs.length} frameRef={frameRef} />;
+    return (
+      <SpotlightStorySlide
+        rec={rec}
+        index={index - 1}
+        recCount={draft.recs.length}
+        listingName={draft.cover.headerTitle || ""}
+        frameRef={frameRef}
+      />
+    );
   }
   return <RecommendationSlide rec={rec} index={index} total={draft.recs.length} frameRef={frameRef} />;
 }
@@ -164,14 +188,20 @@ export function CarouselWorkspace({
   const bankRef = useRef<HTMLDivElement | null>(null);
   const saveTimer = useRef<number | null>(null);
   const dragRec = useRef<string | null>(null);
+  const sessionOpen = useRef(false);
 
   useEffect(() => {
-    if (!open) return;
+    if (!open) {
+      sessionOpen.current = false;
+      return;
+    }
+    if (sessionOpen.current) return;
+    sessionOpen.current = true;
     setDraft(hydrateCarousel(savedDraft, seed, title));
     setHistory([]);
     setFuture([]);
     setSlide("cover");
-  }, [open, savedDraft, seed]);
+  }, [open, savedDraft, seed, title]);
 
   const commit = useCallback((next: CarouselDraft | ((prev: CarouselDraft) => CarouselDraft)) => {
     setDraft((prev) => {
@@ -681,6 +711,74 @@ function PhotoCrop({
   );
 }
 
+function WordRibbon({
+  label,
+  style,
+  min,
+  max,
+  onChange,
+}: {
+  label: string;
+  style: ReturnType<typeof spotlightTypeStyle>;
+  min: number;
+  max: number;
+  onChange: (patch: TypeStyle) => void;
+}) {
+  return (
+    <div className="word-ribbon" role="toolbar" aria-label={`${label} formatting`}>
+      <label className="word-ribbon-size">
+        Size
+        <input
+          type="number"
+          min={min}
+          max={max}
+          value={style.size}
+          onChange={(e) => onChange({ size: Number(e.target.value) })}
+        />
+      </label>
+      <div className="word-ribbon-group">
+        <button type="button" className={style.bold ? "is-on" : ""} aria-pressed={style.bold} onClick={() => onChange({ bold: !style.bold })}>
+          B
+        </button>
+        <button type="button" className={`is-italic${style.italic ? " is-on" : ""}`} aria-pressed={style.italic} onClick={() => onChange({ italic: !style.italic })}>
+          I
+        </button>
+        <button type="button" className={`is-underline${style.underline ? " is-on" : ""}`} aria-pressed={style.underline} onClick={() => onChange({ underline: !style.underline })}>
+          U
+        </button>
+      </div>
+      <div className="word-ribbon-group" aria-label="Alignment">
+        {(["left", "centre", "right"] as TypeAlign[]).map((value) => (
+          <button key={value} type="button" className={style.align === value ? "is-on" : ""} onClick={() => onChange({ align: value })}>
+            {value === "left" ? "Left" : value === "centre" ? "Centre" : "Right"}
+          </button>
+        ))}
+      </div>
+      <label className="word-ribbon-space">
+        Line
+        <select value={String(style.lineSpace)} onChange={(e) => onChange({ lineSpace: Number(e.target.value) })}>
+          <option value="1">1.0</option>
+          <option value="1.15">1.15</option>
+          <option value="1.5">1.5</option>
+          <option value="2">2.0</option>
+        </select>
+      </label>
+      <div className="word-ribbon-group" aria-label="Font colour">
+        {(["snow", "jade", "night"] as SpotlightInk[]).map((value) => (
+          <button
+            key={value}
+            type="button"
+            className={`carousel-ink${style.ink === value ? " is-on" : ""}`}
+            data-ink={value}
+            aria-label={value}
+            onClick={() => onChange({ ink: value })}
+          />
+        ))}
+      </div>
+    </div>
+  );
+}
+
 function RecInspector({
   rec,
   seed,
@@ -699,18 +797,97 @@ function RecInspector({
   onAddEvent: (event: CarouselEventSource) => void;
 }) {
   const words = wordCount(rec.description);
+  const template = spotlight ? spotlightTemplate(rec) : null;
+  const showCopy = template !== "photo";
+  const backdrop = spotlight ? spotlightBackdrop(rec) : "night";
+  const showPhoto = template !== "copy" || backdrop === "image";
+  const headingStyle = spotlightTypeStyle(rec, "heading");
+  const packStyle = spotlightTypeStyle(rec, "pack");
+  const bodyStyle = spotlightTypeStyle(rec, "body");
+  const postAlign = spotlightPostAlign(rec);
   return (
     <>
       <h2>{spotlight ? (rec.role === "pack" ? "Pack slide" : "Story slide") : rec.kind === "event" ? "Event" : "Activity"}</h2>
       {spotlight ? (
         <>
-          <Field label="Header title" custom={Boolean(rec.custom.title)} onReset={() => onReset("title")}>
-            <input value={rec.title} onChange={(e) => onChange({ title: e.target.value }, ["title"])} />
+          <p>Template</p>
+          <div className="carousel-templates" role="group" aria-label="Slide template">
+            {(
+              [
+                ["combined", "Combined"],
+                ["copy", "Write-up"],
+                ["photo", "Photograph"],
+                ["overlay", "Type on photo"],
+              ] as [SpotlightSlideTemplate, string][]
+            ).map(([value, label]) => (
+              <button
+                key={value}
+                type="button"
+                className={template === value ? "is-on" : ""}
+                onClick={() => onChange({ template: value }, ["template"])}
+              >
+                {label}
+              </button>
+            ))}
+          </div>
+          {template === "copy" ? (
+            <>
+              <p>Background</p>
+              <div className="carousel-templates" role="group" aria-label="Slide background">
+                {(["night", "colour", "image"] as SlideBackdrop[]).map((value) => (
+                  <button
+                    key={value}
+                    type="button"
+                    className={backdrop === value ? "is-on" : ""}
+                    onClick={() => onChange({ backdrop: value }, ["backdrop"])}
+                  >
+                    {value === "night" ? "Grey" : value === "colour" ? "Colour" : "Greyed image"}
+                  </button>
+                ))}
+              </div>
+              {backdrop === "colour" ? (
+                <div className="word-ribbon-group" aria-label="Background colour">
+                  {BACKDROP_COLOURS.map((row) => (
+                    <button
+                      key={row.id}
+                      type="button"
+                      className={(rec.backdropColour || "#45A67F") === row.value ? "is-on" : ""}
+                      onClick={() => onChange({ backdropColour: row.value }, ["backdropColour"])}
+                    >
+                      {row.label}
+                    </button>
+                  ))}
+                </div>
+              ) : null}
+            </>
+          ) : null}
+          {showCopy ? (
+            <>
+              <p>Page alignment</p>
+              <div className="word-ribbon-group" aria-label="Page alignment">
+                {(["top", "centre", "bottom"] as PostAlign[]).map((value) => (
+                  <button
+                    key={value}
+                    type="button"
+                    className={postAlign === value ? "is-on" : ""}
+                    onClick={() => onChange({ postAlign: value }, [])}
+                  >
+                    {value === "top" ? "Top" : value === "centre" ? "Centre" : "Bottom"}
+                  </button>
+                ))}
+              </div>
+            </>
+          ) : null}
+          <Field label="Slide heading" custom={Boolean(rec.custom.title)} onReset={() => onReset("title")}>
+            <WordRibbon
+              label="Heading"
+              style={headingStyle}
+              min={HEADING_SIZE_MIN}
+              max={HEADING_SIZE_MAX}
+              onChange={(patch) => onChange({ headingStyle: { ...rec.headingStyle, ...patch } }, ["headingStyle"])}
+            />
+            <textarea id="cf-title" value={rec.title} onChange={(e) => onChange({ title: e.target.value }, ["title"])} />
           </Field>
-          <label>
-            Kicker
-            <input value={rec.kicker ?? ""} onChange={(e) => onChange({ kicker: e.target.value }, ["kicker"])} />
-          </label>
           <label>
             <input
               type="checkbox"
@@ -719,11 +896,17 @@ function RecInspector({
             />{" "}
             Pack-for-the-day slide
           </label>
-          {rec.role === "pack" ? (
-            <label>
-              Pack line
-              <input value={rec.tip} onChange={(e) => onChange({ tip: e.target.value }, ["tip"])} />
-            </label>
+          {rec.role === "pack" && showCopy ? (
+            <Field label="Pack line" custom={Boolean(rec.custom.tip)} onReset={() => onReset("tip")}>
+              <WordRibbon
+                label="Pack line"
+                style={packStyle}
+                min={COPY_SIZE_MIN}
+                max={HEADING_SIZE_MAX}
+                onChange={(patch) => onChange({ packStyle: { ...rec.packStyle, ...patch } }, ["packStyle"])}
+              />
+              <textarea id="cf-pack" value={rec.tip} onChange={(e) => onChange({ tip: e.target.value }, ["tip"])} />
+            </Field>
           ) : null}
         </>
       ) : (
@@ -735,14 +918,29 @@ function RecInspector({
         <input value={rec.title} onChange={(e) => onChange({ title: e.target.value }, ["title"])} />
       </Field>
       )}
+      {showCopy ? (
       <Field
         label="Social description"
-        hint={`${words} words · aim for 15–25. Write one complete sentence.`}
+        hint={
+          spotlight
+            ? `${words} words. Line breaks stay.`
+            : `${words} words · aim for 15–25. Write one complete sentence.`
+        }
         custom={Boolean(rec.custom.description)}
         onReset={() => onReset("description")}
       >
+        {spotlight ? (
+          <WordRibbon
+            label="Paragraph"
+            style={bodyStyle}
+            min={COPY_SIZE_MIN}
+            max={COPY_SIZE_MAX}
+            onChange={(patch) => onChange({ copyStyle: { ...rec.copyStyle, ...patch } }, ["copyStyle"])}
+          />
+        ) : null}
         <textarea id="cf-description" value={rec.description} onChange={(e) => onChange({ description: e.target.value }, ["description"])} />
       </Field>
+      ) : null}
       {spotlight ? null : (
       <Field label="Display location" custom={Boolean(rec.custom.location)} onReset={() => onReset("location")}>
         <input value={rec.location} onChange={(e) => onChange({ location: e.target.value }, ["location"])} />
@@ -815,6 +1013,8 @@ function RecInspector({
       )}
       </>
       )}
+      {showPhoto ? (
+        <>
       <p>Photograph</p>
       <div className="carousel-photos">
         {rec.photos.map((src) => (
@@ -845,6 +1045,8 @@ function RecInspector({
       <button type="button" className="btn btn-ghost" onClick={() => onChange({ crop: { x: 50, y: 50, zoom: 1 } }, [])}>
         Reset crop
       </button>
+        </>
+      ) : null}
       {seed && seed.description !== rec.description && rec.custom.description ? (
         <p className="muted">Directory copy has changed. Reset the description to review it.</p>
       ) : null}
@@ -959,16 +1161,18 @@ function Field({
   children: ReactNode;
 }) {
   return (
-    <label>
+    <div className="carousel-field">
       <span>
         {label}
         {custom ? <span className="carousel-custom"> · customised</span> : null}
         {custom && onReset ? (
-          <button type="button" className="btn btn-ghost" onClick={onReset}>Reset to source</button>
+          <button type="button" className="btn btn-ghost" onClick={onReset}>
+            Reset to source
+          </button>
         ) : null}
       </span>
       {children}
       {hint ? <small className="muted">{hint}</small> : null}
-    </label>
+    </div>
   );
 }

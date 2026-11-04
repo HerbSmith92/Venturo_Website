@@ -34,6 +34,23 @@ export const APPROVED_CATEGORIES = [
 export const PRICE_BASES = ["adult", "person", "group", "hour", "varies", "free", "omit"] as const;
 export type PriceBasis = (typeof PRICE_BASES)[number];
 
+export const SPOTLIGHT_TEMPLATES = ["combined", "copy", "photo", "overlay"] as const;
+export type SpotlightSlideTemplate = (typeof SPOTLIGHT_TEMPLATES)[number];
+export type SpotlightInk = "snow" | "jade" | "night";
+export type TypeAlign = "left" | "centre" | "right";
+export type PostAlign = "top" | "centre" | "bottom";
+export type SlideBackdrop = "night" | "colour" | "image";
+
+export type TypeStyle = {
+  size?: number;
+  bold?: boolean;
+  italic?: boolean;
+  underline?: boolean;
+  align?: TypeAlign;
+  lineSpace?: number;
+  ink?: SpotlightInk;
+};
+
 export type CarouselCrop = { x: number; y: number; zoom: number };
 
 export type CarouselFieldOverride<T> = {
@@ -87,6 +104,20 @@ export type CarouselRec = {
   kicker?: string;
   credit?: string;
   role?: "story" | "pack";
+  template?: SpotlightSlideTemplate;
+  copySize?: number;
+  headingSize?: number;
+  kickerSize?: number;
+  headingInk?: SpotlightInk;
+  kickerInk?: SpotlightInk;
+  copyInk?: SpotlightInk;
+  headingStyle?: TypeStyle;
+  kickerStyle?: TypeStyle;
+  copyStyle?: TypeStyle;
+  packStyle?: TypeStyle;
+  postAlign?: PostAlign;
+  backdrop?: SlideBackdrop;
+  backdropColour?: string;
   image: string;
   photos: string[];
   crop: CarouselCrop;
@@ -231,6 +262,116 @@ export function padRecIndex(index: number, total: number) {
 export function spotlightSlideCount(index: number, recCount: number) {
   return padRecIndex(index, recCount + 2);
 }
+
+export function distinctKicker(kicker: string | undefined, title: string) {
+  const line = (kicker ?? "").replace(/\s+/g, " ").trim();
+  if (!line) return "";
+  if (line.toLowerCase() === title.replace(/\s+/g, " ").trim().toLowerCase()) return "";
+  return kicker ?? "";
+}
+
+export function spotlightTemplate(rec: Pick<CarouselRec, "template">): SpotlightSlideTemplate {
+  const value = rec.template;
+  if (value === "combined" || value === "copy" || value === "photo" || value === "overlay") return value;
+  return "combined";
+}
+
+export const COPY_SIZE_MIN = 28;
+export const COPY_SIZE_MAX = 64;
+export const COPY_SIZE_DEFAULT = 40;
+
+function clampTypeSize(value: unknown, min: number, max: number, fallback: number) {
+  if (typeof value === "number" && Number.isFinite(value)) {
+    return Math.min(max, Math.max(min, Math.round(value)));
+  }
+  return fallback;
+}
+
+export function spotlightCopySize(rec: Pick<CarouselRec, "copySize" | "template">) {
+  const fallback = spotlightTemplate(rec) === "copy" || spotlightTemplate(rec) === "overlay" ? COPY_SIZE_DEFAULT : 34;
+  return clampTypeSize(rec.copySize, COPY_SIZE_MIN, COPY_SIZE_MAX, fallback);
+}
+
+export const HEADING_SIZE_MIN = 36;
+export const HEADING_SIZE_MAX = 88;
+export const KICKER_SIZE_MIN = 16;
+export const KICKER_SIZE_MAX = 42;
+
+export function spotlightHeadingSize(rec: Pick<CarouselRec, "headingSize" | "template">) {
+  const fallback = spotlightTemplate(rec) === "combined" ? 64 : 56;
+  return clampTypeSize(rec.headingSize, HEADING_SIZE_MIN, HEADING_SIZE_MAX, fallback);
+}
+
+export function spotlightKickerSize(rec: Pick<CarouselRec, "kickerSize">) {
+  return clampTypeSize(rec.kickerSize, KICKER_SIZE_MIN, KICKER_SIZE_MAX, 26);
+}
+
+export function spotlightInk(
+  rec: Pick<CarouselRec, "headingInk" | "kickerInk" | "copyInk" | "template">,
+  role: "heading" | "kicker" | "body" | "pack",
+): SpotlightInk {
+  const stored = role === "heading" ? rec.headingInk : role === "kicker" ? rec.kickerInk : rec.copyInk;
+  if (stored === "snow" || stored === "jade" || stored === "night") return stored;
+  if (role === "kicker") return "jade";
+  return spotlightTemplate(rec) === "combined" ? "night" : "snow";
+}
+
+export function spotlightInkCss(ink: SpotlightInk) {
+  if (ink === "jade") return "#45A67F";
+  if (ink === "night") return "#2A2D35";
+  return "#EBEBF3";
+}
+
+const LINE_SPACES = [1, 1.15, 1.5, 2];
+
+export function spotlightTypeStyle(
+  rec: CarouselRec,
+  role: "heading" | "kicker" | "body" | "pack",
+): {
+  size: number;
+  bold: boolean;
+  italic: boolean;
+  underline: boolean;
+  align: TypeAlign;
+  lineSpace: number;
+  ink: SpotlightInk;
+} {
+  const stored =
+    role === "heading" ? rec.headingStyle
+    : role === "kicker" ? rec.kickerStyle
+    : role === "pack" ? rec.packStyle
+    : rec.copyStyle;
+  const size =
+    role === "heading" ? spotlightHeadingSize({ ...rec, headingSize: stored?.size ?? rec.headingSize })
+    : role === "kicker" ? spotlightKickerSize({ ...rec, kickerSize: stored?.size ?? rec.kickerSize })
+    : role === "pack" ? clampTypeSize(stored?.size, COPY_SIZE_MIN, HEADING_SIZE_MAX, 48)
+    : spotlightCopySize({ ...rec, copySize: stored?.size ?? rec.copySize });
+  const align = stored?.align === "left" || stored?.align === "centre" || stored?.align === "right" ? stored.align : "left";
+  const lineSpace = LINE_SPACES.includes(stored?.lineSpace ?? -1) ? stored!.lineSpace! : 1.15;
+  return {
+    size,
+    bold: Boolean(stored?.bold),
+    italic: Boolean(stored?.italic),
+    underline: Boolean(stored?.underline),
+    align,
+    lineSpace,
+    ink: stored?.ink ?? spotlightInk(rec, role),
+  };
+}
+
+export function spotlightPostAlign(rec: Pick<CarouselRec, "postAlign">): PostAlign {
+  return rec.postAlign === "centre" || rec.postAlign === "bottom" ? rec.postAlign : "top";
+}
+
+export function spotlightBackdrop(rec: Pick<CarouselRec, "backdrop">): SlideBackdrop {
+  return rec.backdrop === "colour" || rec.backdrop === "image" ? rec.backdrop : "night";
+}
+
+export const BACKDROP_COLOURS = [
+  { id: "jade", label: "Jade", value: "#45A67F" },
+  { id: "night", label: "Night Sky", value: "#2A2D35" },
+  { id: "canary", label: "Canary", value: "#F3BF4A" },
+] as const;
 
 export function exportFileSlug(title: string) {
   const slug = title
@@ -426,9 +567,23 @@ export function mergeCarouselDraft(saved: CarouselDraft | null | undefined, seed
       priceBasis: custom.priceBasis ? prev.priceBasis : fresh.priceBasis,
       priceNote: custom.priceNote ? prev.priceNote : fresh.priceNote,
       tip: custom.tip ? prev.tip : fresh.tip,
-      kicker: custom.kicker ? prev.kicker : (fresh.kicker ?? prev.kicker),
+      kicker: distinctKicker(custom.kicker ? prev.kicker : (fresh.kicker ?? prev.kicker), custom.title ? prev.title : fresh.title),
       credit: custom.credit ? prev.credit : (fresh.credit ?? prev.credit),
       role: custom.role ? prev.role : (fresh.role ?? prev.role),
+      template: prev.template ?? fresh.template,
+      copySize: prev.copySize ?? fresh.copySize,
+      headingSize: prev.headingSize ?? fresh.headingSize,
+      kickerSize: prev.kickerSize ?? fresh.kickerSize,
+      headingInk: prev.headingInk ?? fresh.headingInk,
+      kickerInk: prev.kickerInk ?? fresh.kickerInk,
+      copyInk: prev.copyInk ?? fresh.copyInk,
+      headingStyle: { ...fresh.headingStyle, ...prev.headingStyle },
+      kickerStyle: { ...fresh.kickerStyle, ...prev.kickerStyle },
+      copyStyle: { ...fresh.copyStyle, ...prev.copyStyle },
+      packStyle: { ...fresh.packStyle, ...prev.packStyle },
+      postAlign: prev.postAlign ?? fresh.postAlign,
+      backdrop: prev.backdrop ?? fresh.backdrop,
+      backdropColour: prev.backdropColour ?? fresh.backdropColour,
       image: custom.image ? prev.image : fresh.image,
       crop: prev.crop ?? fresh.crop,
       eventDate: custom.eventDate ? prev.eventDate : fresh.eventDate,
@@ -519,14 +674,17 @@ export function validateCarousel(draft: CarouselDraft, overflowIds: string[] = [
     if (!rec.title.trim()) {
       issues.push({ id: `${slide}-title`, level: "error", slide, message: `${label} needs a title.` });
     }
-    if (!rec.image) {
+    const template = spotlight ? spotlightTemplate(rec) : null;
+    const needsPhoto = !template || template !== "copy";
+    const needsCopy = !template || template !== "photo";
+    if (needsPhoto && !rec.image) {
       issues.push({ id: `${slide}-photo`, level: "error", slide, message: `${label} needs a photograph.` });
     }
-    if (!rec.description.trim()) {
+    if (needsCopy && !rec.description.trim()) {
       issues.push({ id: `${slide}-copy`, level: "error", slide, message: `${label} needs a complete social description.` });
     }
     const words = wordCount(rec.description);
-    if (words && (words < 8 || words > 32)) {
+    if (needsCopy && words && (words < 8 || words > 32)) {
       issues.push({
         id: `${slide}-words`,
         level: "warn",

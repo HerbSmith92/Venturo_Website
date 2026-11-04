@@ -39,6 +39,7 @@ function recShell(
     tip: "",
     role: "story",
     crop: { ...DEFAULT_CROP },
+    template: "combined",
     eventDate: "",
     eventStart: "",
     eventEnd: "",
@@ -115,18 +116,18 @@ export function seedSpotlightCarouselDraft(input: {
     const photo = photoById(input.photos, section.placements.find((row) => row.photoId)?.photoId);
     const image = photo?.url || photos[recs.length + 1] || coverImage;
     const pack = isPackSection(section) || section.type === "tip";
+    const title = pack ? "Before you set off" : heading || "A closer look";
     recs.push(
       recShell({
         id: section.id,
         sourceId: section.id,
-        title: pack ? "Before you set off" : heading || "A closer look",
+        title,
         description: pack
           ? socialExcerpt(body, 22) || "Confirm trail access, rates & accommodation before visiting."
           : socialExcerpt(body, 32),
         location: area,
         image,
         photos: photo?.url ? [photo.url, ...photos] : photos,
-        kicker: pack ? "Pack for the day" : heading && /stay|overnight|longer/i.test(heading) ? "An overnight escape" : "A closer look",
         tip: pack ? packLine(body) : "",
         role: pack ? "pack" : "story",
         credit: photo?.credit || "",
@@ -142,7 +143,6 @@ export function seedSpotlightCarouselDraft(input: {
         id: "spotlight-pack",
         sourceId: "spotlight-pack",
         title: "Before you set off",
-        kicker: "Pack for the day",
         tip: "Walking shoes • Water & snacks • Sun protection",
         description: "Confirm trail access, rates & accommodation availability before visiting.",
         location: area,
@@ -159,7 +159,6 @@ export function seedSpotlightCarouselDraft(input: {
         id: "spotlight-story",
         sourceId: "spotlight-story",
         title: listingName,
-        kicker: "The story",
         description: socialExcerpt(input.intro) || "Find your next adventure.",
         location: area,
         image: coverImage,
