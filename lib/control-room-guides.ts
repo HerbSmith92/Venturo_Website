@@ -57,6 +57,7 @@ export type GuideEditorRecord = {
   persona_ids: string[];
   scale_id: string | null;
   interest_ids: string[];
+  place_ids: string[];
   items: GuideDraftItem[];
   created_by: string;
   listing_id: string | null;
@@ -303,7 +304,7 @@ export async function loadGuideEditor(id: string): Promise<GuideEditorRecord | n
     .select(
       `
       id, title, slug, intro, body, shape, author_id, status, publish_at, expire_at, scale_id, created_by,
-      listing_id, story, photos, cover, carousel_draft, updated_at,
+      listing_id, story, photos, cover, carousel_draft, updated_at, place_ids,
       curated_guide_interests ( interest_id ),
       curated_guide_activity_kinds ( activity_kind_id ),
       curated_guide_personas ( persona_id ),
@@ -364,6 +365,7 @@ export async function loadGuideEditor(id: string): Promise<GuideEditorRecord | n
     cover?: unknown;
     carousel_draft?: unknown;
     updated_at?: string | null;
+    place_ids?: string[] | null;
     curated_guide_interests?: { interest_id: string }[];
     curated_guide_activity_kinds?: { activity_kind_id: string }[];
     curated_guide_personas?: { persona_id: string }[];
@@ -398,6 +400,7 @@ export async function loadGuideEditor(id: string): Promise<GuideEditorRecord | n
     kind_ids: (row.curated_guide_activity_kinds ?? []).map((item) => item.activity_kind_id),
     persona_ids: (row.curated_guide_personas ?? []).map((item) => item.persona_id),
     interest_ids: (row.curated_guide_interests ?? []).map((item) => item.interest_id),
+    place_ids: Array.isArray(row.place_ids) ? row.place_ids.filter(Boolean) : [],
     items,
     created_by: row.created_by ?? "",
     listing_id: row.listing_id ?? items[0]?.listing_id ?? null,
@@ -536,22 +539,32 @@ export async function loadGuidePlaces(): Promise<GuidePlace[]> {
 
   const { data, error } = await supabase
     .from("places")
-    .select("id, name, lat, lng")
+    .select("id, name, lat, lng, region")
     .eq("is_active", true)
-    .not("lat", "is", null)
-    .not("lng", "is", null)
     .order("name");
   if (error || !data) return [];
 
-  return (data as { id: string; name: string | null; lat: number | string; lng: number | string }[]).flatMap(
-    (row) => {
-      const lat = Number(row.lat);
-      const lng = Number(row.lng);
-      const name = row.name?.trim();
-      if (!row.id || !name || !Number.isFinite(lat) || !Number.isFinite(lng)) return [];
-      return [{ id: row.id, name, lat, lng }];
-    },
-  );
+  return (data as {
+    id: string;
+    name: string | null;
+    lat: number | string | null;
+    lng: number | string | null;
+    region: string | null;
+  }[]).flatMap((row) => {
+    const name = row.name?.trim();
+    if (!row.id || !name) return [];
+    const lat = row.lat == null || row.lat === "" ? null : Number(row.lat);
+    const lng = row.lng == null || row.lng === "" ? null : Number(row.lng);
+    return [
+      {
+        id: row.id,
+        name,
+        lat: lat != null && Number.isFinite(lat) ? lat : null,
+        lng: lng != null && Number.isFinite(lng) ? lng : null,
+        region: row.region?.trim() || "",
+      },
+    ];
+  });
 }
 
 function relationIds(rows: object[] | null | undefined, key: string) {
@@ -598,6 +611,7 @@ export async function searchGuideFillListings(input: {
   maxPrice?: number | null;
   lat?: number | null;
   lng?: number | null;
+  placeNames?: string[];
   audience?: GuideAudienceMatch;
 }): Promise<{ listings: GuideListingPreview[]; total: number; error?: string }> {
   const supabase = await createClient();
@@ -605,7 +619,8 @@ export async function searchGuideFillListings(input: {
     input.maxPrice != null && Number.isFinite(input.maxPrice) && input.maxPrice > 0
       ? input.maxPrice
       : null;
-  const hasPlace = input.lat != null && input.lng != null;
+  const placeNames = (input.placeNames ?? []).map((item) => item.trim()).filter(Boolean);
+  const hasPlace = placeNames.length > 0 || (input.lat != null && input.lng != null);
   const audience = input.audience ?? {};
   if (!supabase || (!maxPrice && !hasPlace && !guideHasAudience(audience))) {
     return { listings: [], total: 0 };
@@ -728,6 +743,7 @@ export async function searchGuideFillListings(input: {
     maxPrice,
     lat: input.lat,
     lng: input.lng,
+    placeNames,
     radiusKm: GUIDE_NEAR_KM,
     limit: GUIDE_FILL_LIMIT,
   });
@@ -741,6 +757,7 @@ export async function searchPricedGuideListings(input: {
   maxPrice: number;
   lat?: number | null;
   lng?: number | null;
+  placeNames?: string[];
   audience?: GuideAudienceMatch;
 }): Promise<{ listings: GuideListingPreview[]; total: number }> {
   return searchGuideFillListings(input);

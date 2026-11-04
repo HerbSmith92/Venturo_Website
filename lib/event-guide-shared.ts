@@ -6,6 +6,7 @@ import {
   parseEventPersonas,
 } from "@/lib/event-types";
 import { GUIDE_FILL_LIMIT, GUIDE_NEAR_KM, distanceKm, guideFillSummary } from "@/lib/guide-shared";
+import { placeMentioned } from "@/lib/place-match";
 
 export const SUGGESTED_EVENT_GUIDE_TITLES = [
   "What’s On This Weekend",
@@ -111,6 +112,8 @@ export function pickEventGuideMatches<
   T extends {
     title: string;
     fromPriceCents: number | null;
+    city?: string | null;
+    venueName?: string | null;
     latitude?: number | null;
     longitude?: number | null;
   },
@@ -120,6 +123,7 @@ export function pickEventGuideMatches<
     maxPriceCents?: number | null;
     lat?: number | null;
     lng?: number | null;
+    placeNames?: string[];
     radiusKm?: number;
     limit?: number;
   },
@@ -129,11 +133,18 @@ export function pickEventGuideMatches<
       ? input.maxPriceCents
       : null;
   const limit = input.limit ?? GUIDE_FILL_LIMIT;
+  const names = (input.placeNames ?? []).map((item) => item.trim()).filter(Boolean);
+  const hasNamedPlace = names.length > 0;
   const hasPlace = input.lat != null && input.lng != null;
   const radius = input.radiusKm ?? GUIDE_NEAR_KM;
   const matches = rows.flatMap((row) => {
     const price = row.fromPriceCents;
     if (maxPrice != null && (price == null || price > maxPrice)) return [];
+    if (hasNamedPlace) {
+      const hit = names.some((name) => placeMentioned(row.city, row.venueName, name));
+      if (!hit) return [];
+      return [{ row, price: price ?? Number.POSITIVE_INFINITY, km: Number.POSITIVE_INFINITY }];
+    }
     const lat = row.latitude;
     const lng = row.longitude;
     const km =
@@ -144,7 +155,7 @@ export function pickEventGuideMatches<
     return [{ row, price: price ?? Number.POSITIVE_INFINITY, km: km ?? Number.POSITIVE_INFINITY }];
   });
   matches.sort((a, b) => {
-    if (hasPlace && a.km !== b.km) return a.km - b.km;
+    if (!hasNamedPlace && hasPlace && a.km !== b.km) return a.km - b.km;
     if (a.price !== b.price) return a.price - b.price;
     return a.row.title.localeCompare(b.row.title);
   });

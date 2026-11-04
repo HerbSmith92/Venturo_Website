@@ -49,10 +49,15 @@ export async function GET(request: Request) {
     }
     const lat = coordinate(url.searchParams.get("lat"));
     const lng = coordinate(url.searchParams.get("lng"));
+    const placeNames = (url.searchParams.get("places") ?? "")
+      .split("|")
+      .map((item) => item.trim())
+      .filter(Boolean);
     const result = await searchEventGuideFill({
       maxPriceCents: maxPrice,
       lat: lat != null && lng != null ? lat : null,
       lng: lat != null && lng != null ? lng : null,
+      placeNames,
       audience: {
         interestLabels: labels(url.searchParams.get("interests")),
         personaLabels: labels(url.searchParams.get("personas")),

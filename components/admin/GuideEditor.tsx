@@ -5,6 +5,10 @@ import { useRouter } from "next/navigation";
 import { saveGuideEvents } from "@/app/admin/content-actions";
 import { applyGuideAction, duplicateCuratedGuide, saveCuratedGuide } from "@/app/admin/guide-actions";
 import { CarouselWorkspace } from "@/components/admin/carousel/CarouselWorkspace";
+import { GuideFieldLabel, GuideInfoBubble } from "@/components/admin/guide-desk/GuideFold";
+import { GuidePhotoGrid } from "@/components/admin/guide-desk/GuidePhotoGrid";
+import { GuidePlacePicker } from "@/components/admin/guide-desk/GuidePlacePicker";
+import { GuideSuggestedTitles } from "@/components/admin/guide-desk/GuideSuggestedTitles";
 import { StoryBuilder } from "@/components/admin/StoryBuilder";
 import { SpotlightArticle } from "@/components/SpotlightArticle";
 import { formatRand } from "@/lib/control-room-shared";
@@ -30,6 +34,7 @@ import {
   interestKeywordsFromIds,
   type EditorCatalog,
 } from "@/lib/listing-draft";
+import { joinGuideLabels } from "@/lib/guide-places";
 import { createClient } from "@/lib/supabase/client";
 import {
   emptySpotlightCover,
@@ -54,11 +59,6 @@ type GuideStepKey = (typeof GUIDE_STEPS)[number]["key"];
 
 function toggleId(ids: string[], id: string) {
   return ids.includes(id) ? ids.filter((item) => item !== id) : [...ids, id];
-}
-
-function joinLabels(labels: string[]) {
-  if (labels.length <= 1) return labels[0] ?? "";
-  return `${labels.slice(0, -1).join(", ")} & ${labels[labels.length - 1]}`;
 }
 
 function audienceLabelsFor(
@@ -121,13 +121,18 @@ export function GuideEditor({
   const [pickerInterestIds, setPickerInterestIds] = useState<string[]>(guide.interest_ids);
   const [pickerInterestQuery, setPickerInterestQuery] = useState("");
   const [filterOpen, setFilterOpen] = useState(false);
-  const [titlesOpen, setTitlesOpen] = useState(true);
   const savedPrice = parseUnderPriceTitle(guide.title === "Untitled Guide" ? "" : guide.title);
   const savedPlace = places.find((place) => place.name === savedPrice?.placeName) ?? null;
   const [priceOn, setPriceOn] = useState(Boolean(savedPrice));
   const [priceAmount, setPriceAmount] = useState(savedPrice?.amount ?? 200);
   const [amountText, setAmountText] = useState(String(savedPrice?.amount ?? 200));
-  const [placeId, setPlaceId] = useState(savedPlace?.id ?? "");
+  const [placeIds, setPlaceIds] = useState<string[]>(() =>
+    guide.place_ids?.length
+      ? guide.place_ids
+      : savedPlace
+        ? [savedPlace.id]
+        : [],
+  );
   const [fillKey, setFillKey] = useState(0);
   const [filling, setFilling] = useState(false);
   const [matchNote, setMatchNote] = useState("");
@@ -209,7 +214,8 @@ export function GuideEditor({
   draftRef.current = draft;
   const catalogRef = useRef(catalog);
   catalogRef.current = catalog;
-  const fillSnapshot = useRef({ audienceKey, fillKey, placeId, priceAmount, priceOn });
+  const placeKey = [...placeIds].sort().join(",");
+  const fillSnapshot = useRef({ audienceKey, fillKey, placeKey, priceAmount, priceOn });
 
   const pickerInterestKey = pickerInterestIds.join(",");
 
@@ -245,13 +251,14 @@ export function GuideEditor({
     const audienceOnly =
       previous.audienceKey !== audienceKey &&
       previous.fillKey === fillKey &&
-      previous.placeId === placeId &&
+      previous.placeKey === placeKey &&
       previous.priceAmount === priceAmount &&
       previous.priceOn === priceOn;
-    fillSnapshot.current = { audienceKey, fillKey, placeId, priceAmount, priceOn };
+    fillSnapshot.current = { audienceKey, fillKey, placeKey, priceAmount, priceOn };
     const firstPass = fillSkip.current;
     if (fillSkip.current) fillSkip.current = false;
-    const place = placesRef.current.find((item) => item.id === placeId) ?? null;
+    const chosen = placesRef.current.filter((item) => placeIds.includes(item.id));
+    const placeLabel = joinGuideLabels(chosen.map((item) => item.name)) || null;
     const amount = priceOn ? Math.round(priceAmount) : null;
     const hasAmount = amount != null && Number.isFinite(amount) && amount > 0;
     const audience = draftRef.current;
@@ -261,7 +268,7 @@ export function GuideEditor({
       scaleId: audience.scale_id,
       interestIds: audience.interest_ids,
     });
-    if (!hasAmount && !place && !hasAudience) return;
+    if (!hasAmount && !chosen.length && !hasAudience) return;
     if (priceOn && !hasAmount) return;
     const scrollToList = !audienceOnly;
 
@@ -271,10 +278,7 @@ export function GuideEditor({
       try {
         const params = new URLSearchParams({ fill: "1" });
         if (hasAmount) params.set("maxPrice", String(amount));
-        if (place) {
-          params.set("lat", String(place.lat));
-          params.set("lng", String(place.lng));
-        }
+        if (chosen.length) params.set("places", chosen.map((item) => item.name).join("|"));
         if (audience.kind_ids.length) params.set("kinds", audience.kind_ids.join(","));
         if (audience.persona_ids.length) params.set("personas", audience.persona_ids.join(","));
         if (audience.scale_id) params.set("scale", audience.scale_id);
@@ -297,8 +301,8 @@ export function GuideEditor({
           listings.length,
           total,
           hasAmount ? amount : null,
-          place?.name ?? null,
-          joinLabels(labels) || null,
+          placeLabel,
+          joinGuideLabels(labels) || null,
         );
         if (draftRef.current.shape === "spotlight") {
           if (!firstPass) {
@@ -308,7 +312,7 @@ export function GuideEditor({
                 ...current,
                 title:
                   hasAmount && amount != null
-                    ? underPriceTitle(amount, place?.name ?? null)
+                    ? underPriceTitle(amount, placeLabel)
                     : current.title,
                 items: listings.slice(0, 1).map((listing) => ({
                   listing_id: listing.id,
@@ -339,7 +343,7 @@ export function GuideEditor({
       cancelled = true;
       window.clearTimeout(handle);
     };
-  }, [audienceKey, fillKey, placeId, priceAmount, priceOn]);
+  }, [audienceKey, fillKey, placeIds, placeKey, priceAmount, priceOn]);
 
   function patch(partial: Partial<GuideDraft>) {
     setDraft((current) => ({ ...current, ...partial }));
@@ -515,6 +519,7 @@ export function GuideEditor({
         story,
         photos,
         cover,
+        place_ids: placeIds,
       });
       if (!result.ok) {
         setSaveError(result.error);
@@ -549,6 +554,7 @@ export function GuideEditor({
       story: nextStory,
       photos,
       cover,
+      place_ids: placeIds,
     });
     if (!result.ok) {
       setStorySave("failed");
@@ -638,7 +644,7 @@ export function GuideEditor({
 
   const isNew = guide.title === "Untitled Guide" && guide.items.length === 0;
   const heading = draft.title.trim() || "Untitled Guide";
-  const audienceSummary = joinLabels(audienceLabelsFor(draft, catalog)) || "None yet";
+  const audienceSummary = joinGuideLabels(audienceLabelsFor(draft, catalog)) || "None yet";
 
   const visibleSteps = GUIDE_STEPS.filter((step) => (step.key === "story" ? draft.shape === "spotlight" : true));
 
@@ -755,165 +761,107 @@ export function GuideEditor({
               placeholder="Top Things to Do This Weekend"
             />
           </label>
-          <div className="field-row">
-            <label className="field" id="field-author">
-              <span>Author</span>
-              <select
-                value={draft.author_id}
-                disabled={lockAuthor}
-                onChange={(event) => patch({ author_id: event.target.value })}
-              >
-                <option value="">Select author</option>
-                {authors.map((author) => (
-                  <option key={author.id} value={author.id}>
-                    {author.display_name}
-                    {author.tagline ? ` — ${author.tagline}` : ""}
-                  </option>
-                ))}
-              </select>
-            </label>
-            <div className="field" id="field-cover">
-              <span>Cover photo</span>
-              <div className="guide-desk-cover">
-                {photos.find((photo) => photo.id === cover.photoId)?.url || draft.items[0]?.listing?.image ? (
-                  <img
-                    src={photos.find((photo) => photo.id === cover.photoId)?.url ?? draft.items[0]?.listing?.image ?? FALLBACK_IMAGE}
-                    alt=""
-                  />
-                ) : (
-                  <span className="muted">No cover yet</span>
-                )}
-                <div>
-                  <input
-                    ref={photoRef}
-                    type="file"
-                    accept="image/jpeg,image/png,image/webp,image/gif"
-                    multiple
-                    hidden
-                    onChange={(event) => void onUploadPhotos(event.target.files)}
-                  />
-                  <button
-                    className="btn btn-secondary"
-                    type="button"
-                    disabled={photoPending}
-                    onClick={() => photoRef.current?.click()}
-                  >
-                    {photoPending ? "Uploading…" : "Add photos"}
-                  </button>
-                  <p className="muted">Extra photos stay with the guide. Click one to make it the cover.</p>
-                </div>
+          <label className="field" id="field-author">
+            <span>Author</span>
+            <select
+              value={draft.author_id}
+              disabled={lockAuthor}
+              onChange={(event) => patch({ author_id: event.target.value })}
+            >
+              <option value="">Select author</option>
+              {authors.map((author) => (
+                <option key={author.id} value={author.id}>
+                  {author.display_name}
+                  {author.tagline ? ` — ${author.tagline}` : ""}
+                </option>
+              ))}
+            </select>
+          </label>
+          <div className="field" id="field-cover">
+            <GuideFieldLabel info="The library sits under Publishing. Click a photo there to make it the cover.">
+              Cover photo
+            </GuideFieldLabel>
+            <div className="guide-desk-cover is-hero">
+              {photos.find((photo) => photo.id === cover.photoId)?.url || draft.items[0]?.listing?.image ? (
+                <img
+                  src={photos.find((photo) => photo.id === cover.photoId)?.url ?? draft.items[0]?.listing?.image ?? FALLBACK_IMAGE}
+                  alt=""
+                />
+              ) : (
+                <span className="muted">No cover yet. Add photos under Publishing.</span>
+              )}
+              <div>
+                <input
+                  ref={photoRef}
+                  type="file"
+                  accept="image/jpeg,image/png,image/webp,image/gif"
+                  multiple
+                  hidden
+                  onChange={(event) => void onUploadPhotos(event.target.files)}
+                />
+                <button
+                  className="btn btn-secondary"
+                  type="button"
+                  disabled={photoPending}
+                  onClick={() => photoRef.current?.click()}
+                >
+                  {photoPending ? "Uploading…" : "Add photos"}
+                </button>
               </div>
             </div>
           </div>
-          {photos.length > 0 ? (
-            <ul className="guide-desk-photos">
-              {photos.map((photo) => (
-                <li key={photo.id} className={cover.photoId === photo.id ? "is-cover" : undefined}>
-                  <button type="button" onClick={() => setCover((current) => ({ ...current, photoId: photo.id }))}>
-                    <img src={photo.url} alt="" />
-                    <span>
-                      {cover.photoId === photo.id ? "Cover" : photo.source === "upload" ? "Extra" : "Listing"}
-                    </span>
-                  </button>
-                  {photo.source === "upload" ? (
-                    <button className="cr-text-remove" type="button" onClick={() => removePhoto(photo.id)}>
-                      Remove
-                    </button>
-                  ) : null}
-                </li>
-              ))}
-            </ul>
-          ) : (
-            <p className="muted">Link an activity or add photos to choose a cover.</p>
-          )}
-          <button
-            className="cr-text-remove"
-            type="button"
-            onClick={() => setTitlesOpen((current) => !current)}
-          >
-            {titlesOpen ? "Hide suggested titles" : "Use a suggested title"}
-          </button>
-          {titlesOpen ? (
-            <div className="cr-chip-grid" style={{ marginTop: 12 }}>
-              {SUGGESTED_GUIDE_TITLES.map((title) => (
-                <button
-                  key={title}
-                  type="button"
-                  className={
-                    (title === UNDER_PRICE_TITLE ? priceOn : !priceOn && draft.title === title)
-                      ? "cr-tag active"
-                      : "cr-tag"
-                  }
-                  onClick={() => {
-                    if (title === UNDER_PRICE_TITLE) {
-                      setPriceOn(true);
-                      setPriceAmount(200);
-                      setAmountText("200");
-                      setPlaceId("");
-                      setFillKey((current) => current + 1);
-                      return;
-                    }
-                    setPriceOn(false);
-                    patch({ title });
-                    setFillKey((current) => current + 1);
-                  }}
-                >
-                  {title}
-                </button>
-              ))}
-            </div>
-          ) : null}
-          <p className="muted cr-step-help">
-            Amount, place &amp; audience find matching activities. Tick the ones to feature on this
-            Collection. A listing has to fit every audience group you turn on. Only prices ticked
-            Include in From are counted when an amount is set.
-          </p>
-          <div className="field-row">
-            {priceOn ? (
-              <label className="field">
-                <span>At most (R)</span>
-                <input
-                  type="number"
-                  min={1}
-                  step={50}
-                  value={amountText}
-                  aria-label="Maximum price in rand"
-                  onChange={(event) => setAmountText(event.target.value)}
-                  onBlur={() => {
-                    const amount = Math.round(Number(amountText));
-                    if (!Number.isFinite(amount) || amount <= 0) return;
-                    setAmountText(String(amount));
-                    setPriceAmount(amount);
-                    setFillKey((current) => current + 1);
-                  }}
-                />
-              </label>
-            ) : null}
+          <GuideSuggestedTitles
+            titles={SUGGESTED_GUIDE_TITLES}
+            activeTitle={priceOn ? UNDER_PRICE_TITLE : draft.title}
+            info="Amount, place & audience find matching activities. Tick the ones to feature on this Collection. A listing has to fit every audience group you turn on. Only prices ticked Include in From are counted when an amount is set."
+            onPick={(title) => {
+              if (title === UNDER_PRICE_TITLE) {
+                setPriceOn(true);
+                setPriceAmount(200);
+                setAmountText("200");
+                setFillKey((current) => current + 1);
+                return;
+              }
+              setPriceOn(false);
+              patch({ title });
+              setFillKey((current) => current + 1);
+            }}
+          />
+          {priceOn ? (
             <label className="field">
-              <span>In and around</span>
-              <select
-                value={placeId}
-                aria-label="Place"
-                onChange={(event) => {
-                  if (priceOn) {
-                    const amount = Math.round(Number(amountText));
-                    if (Number.isFinite(amount) && amount > 0) {
-                      setAmountText(String(amount));
-                      setPriceAmount(amount);
-                    }
-                  }
-                  setPlaceId(event.target.value);
+              <span>At most (R)</span>
+              <input
+                type="number"
+                min={1}
+                step={50}
+                value={amountText}
+                aria-label="Maximum price in rand"
+                onChange={(event) => setAmountText(event.target.value)}
+                onBlur={() => {
+                  const amount = Math.round(Number(amountText));
+                  if (!Number.isFinite(amount) || amount <= 0) return;
+                  setAmountText(String(amount));
+                  setPriceAmount(amount);
+                  setFillKey((current) => current + 1);
                 }}
-              >
-                <option value="">Anywhere</option>
-                {places.map((place) => (
-                  <option key={place.id} value={place.id}>
-                    {place.name}
-                  </option>
-                ))}
-              </select>
+              />
             </label>
-          </div>
+          ) : null}
+          <GuidePlacePicker
+            places={places}
+            selectedIds={placeIds}
+            onChange={(ids) => {
+              if (priceOn) {
+                const amount = Math.round(Number(amountText));
+                if (Number.isFinite(amount) && amount > 0) {
+                  setAmountText(String(amount));
+                  setPriceAmount(amount);
+                }
+              }
+              setPlaceIds(ids);
+              setFillKey((current) => current + 1);
+            }}
+          />
           <p className="muted">{filling ? "Finding listings…" : matchNote}</p>
           <label className="field" style={{ marginTop: 18 }}>
             <span>Short Intro (optional)</span>
@@ -928,8 +876,13 @@ export function GuideEditor({
 
         <section className="guide-desk-card" id="step-audience">
           <header className="guide-desk-card-head">
-            <h2><span>02</span> Audience</h2>
-            <p className="muted">{audienceSummary === "None yet" ? "Choose who this guide is for." : audienceSummary}</p>
+            <h2>
+              <span>02</span> Audience
+              <GuideInfoBubble label="How audience works">
+                Choose who this guide is for. A listing has to fit every audience group you turn on.
+              </GuideInfoBubble>
+            </h2>
+            <p className="muted">{audienceSummary}</p>
           </header>
           <div className="guide-desk-audience">
             <div>
@@ -1019,6 +972,11 @@ export function GuideEditor({
               {draft.shape === "spotlight"
                 ? "Activity"
                 : `Activities${draft.items.length ? ` · ${draft.items.length} featured` : ""}`}
+              <GuideInfoBubble label="How activities work">
+                {draft.shape === "roundup"
+                  ? "Tick matching activities to feature them. Directory details stay linked. Write-up sits under the name on the Guide. Instagram export stays on the activity."
+                  : "Directory details stay linked."}
+              </GuideInfoBubble>
             </h2>
             {draft.shape === "roundup" ? (
               <button
@@ -1035,18 +993,13 @@ export function GuideEditor({
               </button>
             ) : null}
           </header>
-          <p className="muted cr-step-help">
-            {draft.shape === "roundup"
-                  ? "Tick matching activities to feature them. Directory details stay linked. Write-up sits under the name on the Guide. Instagram export stays on the activity."
-                  : "Directory details stay linked."}
-          </p>
           {draft.shape === "roundup" && (matches.length > 0 || filling) ? (
             <div className="guide-desk-matches">
               <p className="cr-about-label">Matching activities</p>
               <p className="muted">
                 {filling
                   ? "Finding listings…"
-                  : `${matches.length} match. Tick to feature on this guide.`}
+                  : `${matches.length} match`}
               </p>
               <ul>
                 {matches.map((listing) => {
@@ -1312,12 +1265,14 @@ export function GuideEditor({
           id="step-events"
         >
           <header className="guide-desk-card-head">
-            <h2><span>04</span> Linked events</h2>
+            <h2>
+              <span>04</span> Linked events
+              <GuideInfoBubble label="How linked events work">
+                Activities stay in the list above. Tick the events this guide should open in the app.
+              </GuideInfoBubble>
+            </h2>
             <p className="muted">{linkedEventIds.length} events</p>
           </header>
-          <p className="muted cr-step-help">
-            Activities stay in the list above. Tick the events this guide should open in the app.
-          </p>
           <input type="hidden" name="guide_id" value={guide.id} />
           {events.length === 0 ? <p className="muted">No live events yet.</p> : null}
           <div className="cr-guide-event-list">
@@ -1342,6 +1297,14 @@ export function GuideEditor({
       </div>
 
       <aside className="guide-desk-rail">
+        <GuidePhotoGrid
+          photos={photos}
+          coverId={cover.photoId}
+          pending={photoPending}
+          onPickCover={(id) => setCover((current) => ({ ...current, photoId: id }))}
+          onRemove={removePhoto}
+          onAdd={() => photoRef.current?.click()}
+        />
         <section className="guide-desk-card" id="step-window">
           <h2>Publishing</h2>
           <p className="cr-about-label">Availability</p>
@@ -1420,7 +1383,11 @@ export function GuideEditor({
         intro={draft.intro}
         items={draft.shape === "spotlight" ? [] : draft.items}
         author={credited}
-        place={activity?.area || places.find((row) => row.id === placeId)?.name || "Joburg & nearby"}
+        place={
+          activity?.area ||
+          joinGuideLabels(places.filter((row) => placeIds.includes(row.id)).map((row) => row.name)) ||
+          "Joburg & nearby"
+        }
         savedDraft={guide.carousel_draft}
         events={draft.shape === "spotlight" ? [] : carouselEvents}
         spotlight={spotlightCarousel}

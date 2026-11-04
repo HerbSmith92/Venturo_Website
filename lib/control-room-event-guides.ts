@@ -90,6 +90,7 @@ export type EventGuideEditorRecord = {
   expire_at: string | null;
   max_price_cents: number | null;
   place_id: string | null;
+  place_ids: string[];
   interest_labels: string[];
   persona_labels: string[];
   energy_ranks: number[];
@@ -226,12 +227,12 @@ export async function loadEventGuideEditor(id: string): Promise<EventGuideEditor
   const supabase = await createClient();
   if (!supabase || !id) return null;
 
-  const { data, error } = await supabase
+  let { data, error } = await supabase
     .from("curated_event_guides")
     .select(
       `
       id, title, slug, intro, body, shape, author_id, status, publish_at, expire_at, max_price_cents, place_id,
-      interest_labels, persona_labels, energy_ranks, created_by,
+      place_ids, interest_labels, persona_labels, energy_ranks, created_by,
       curated_event_guide_items (
         event_id, sort_order, editorial_note,
         events ( ${EVENT_SELECT} )
@@ -240,6 +241,24 @@ export async function loadEventGuideEditor(id: string): Promise<EventGuideEditor
     )
     .eq("id", id)
     .maybeSingle();
+  if (error) {
+    const retry = await supabase
+      .from("curated_event_guides")
+      .select(
+        `
+      id, title, slug, intro, body, shape, author_id, status, publish_at, expire_at, max_price_cents, place_id,
+      interest_labels, persona_labels, energy_ranks, created_by,
+      curated_event_guide_items (
+        event_id, sort_order, editorial_note,
+        events ( ${EVENT_SELECT} )
+      )
+    `,
+      )
+      .eq("id", id)
+      .maybeSingle();
+    data = retry.data as typeof data;
+    error = retry.error;
+  }
   if (error || !data) return null;
 
   type ItemRow = {
@@ -262,6 +281,7 @@ export async function loadEventGuideEditor(id: string): Promise<EventGuideEditor
     expire_at: string | null;
     max_price_cents: number | null;
     place_id: string | null;
+    place_ids?: string[] | null;
     interest_labels: string[] | null;
     persona_labels: string[] | null;
     energy_ranks: number[] | null;
@@ -293,6 +313,11 @@ export async function loadEventGuideEditor(id: string): Promise<EventGuideEditor
     expire_at: row.expire_at,
     max_price_cents: row.max_price_cents,
     place_id: row.place_id,
+    place_ids: Array.isArray(row.place_ids)
+      ? row.place_ids.filter(Boolean)
+      : row.place_id
+        ? [row.place_id]
+        : [],
     interest_labels: row.interest_labels ?? [],
     persona_labels: row.persona_labels ?? [],
     energy_ranks: row.energy_ranks ?? [],
@@ -318,12 +343,14 @@ export async function searchEventGuideFill(input: {
   maxPriceCents?: number | null;
   lat?: number | null;
   lng?: number | null;
+  placeNames?: string[];
   audience?: EventGuideAudience;
 }): Promise<{ events: EventGuidePreview[]; total: number; error?: string }> {
   const supabase = await createClient();
   const audience = input.audience ?? { interestLabels: [], personaLabels: [], energyRanks: [] };
   const maxPrice = input.maxPriceCents;
-  const hasPlace = input.lat != null && input.lng != null;
+  const placeNames = (input.placeNames ?? []).map((item) => item.trim()).filter(Boolean);
+  const hasPlace = placeNames.length > 0 || (input.lat != null && input.lng != null);
   if (!supabase || (!maxPrice && !hasPlace && !eventGuideHasAudience(audience))) {
     return { events: [], total: 0 };
   }
@@ -344,6 +371,7 @@ export async function searchEventGuideFill(input: {
     maxPriceCents: maxPrice,
     lat: input.lat,
     lng: input.lng,
+    placeNames,
     radiusKm: GUIDE_NEAR_KM,
     limit: GUIDE_FILL_LIMIT,
   });

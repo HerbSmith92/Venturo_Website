@@ -51,6 +51,7 @@ export async function saveCuratedEventGuide(
     expire_at: string;
     max_price_cents: number | null;
     place_id: string;
+    place_ids?: string[];
     interest_labels: string[];
     persona_labels: string[];
     energy_ranks: number[];
@@ -78,7 +79,8 @@ export async function saveCuratedEventGuide(
       publish_at: fromZaLocalInput(draft.publish_at),
       expire_at: fromZaLocalInput(draft.expire_at),
       max_price_cents: draft.max_price_cents,
-      place_id: draft.place_id || null,
+      place_id: draft.place_id || draft.place_ids?.[0] || null,
+      place_ids: draft.place_ids ?? (draft.place_id ? [draft.place_id] : []),
       interest_labels: draft.interest_labels,
       persona_labels: draft.persona_labels,
       energy_ranks: draft.energy_ranks,

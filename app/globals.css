@@ -3868,6 +3868,9 @@ fieldset.field {
 .cr-step h2 {
   margin: 0;
   color: var(--night);
+  display: flex;
+  align-items: center;
+  gap: 8px;
 }
 
 .cr-step.is-open h2 {
@@ -3878,7 +3881,9 @@ fieldset.field {
   display: flex;
   align-items: center;
   gap: 12px;
-  width: 100%;
+  flex: 1;
+  min-width: 0;
+  width: auto;
   padding: 0;
   border: 0;
   background: transparent;
@@ -15275,11 +15280,158 @@ a.chip,
   align-items: center;
 }
 
+.guide-desk-cover.is-hero {
+  display: grid;
+  gap: 12px;
+  align-items: stretch;
+}
+
 .guide-desk-cover img {
   width: 72px;
   height: 56px;
   object-fit: cover;
   border-radius: 8px;
+}
+
+.guide-desk-cover.is-hero img {
+  width: 100%;
+  height: 280px;
+  border-radius: 12px;
+}
+
+.guide-desk-label {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.guide-desk-fold {
+  margin: 16px 0 12px;
+  padding: 12px 14px 14px;
+  border-radius: 16px;
+  background: color-mix(in srgb, var(--night) 78%, black);
+  border: 1px solid color-mix(in srgb, var(--snow) 14%, transparent);
+  border-top: 4px solid var(--canary);
+  color: var(--snow);
+}
+
+.guide-desk-fold > header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.guide-desk-fold-title,
+.guide-desk-fold-toggle {
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  cursor: pointer;
+}
+
+.guide-desk-fold-title em {
+  font-family: "Social Gothic Rough", "Arial Black", sans-serif;
+  font-style: normal;
+  font-size: 18px;
+  font-weight: 400;
+  letter-spacing: 0.02em;
+}
+
+.guide-desk-fold-toggle {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 12px;
+  flex: 1;
+  min-width: 0;
+  text-align: right;
+}
+
+.guide-desk-fold-toggle small {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  opacity: 0.72;
+  font-size: 13px;
+}
+
+.guide-desk-fold .cr-step-caret {
+  border-color: var(--snow);
+}
+
+.guide-desk-fold.is-open .cr-step-caret {
+  transform: rotate(45deg);
+  margin-top: -4px;
+}
+
+.guide-desk-fold-body {
+  margin-top: 14px;
+}
+
+.guide-desk-info summary {
+  cursor: pointer;
+  color: var(--snow);
+  list-style: none;
+}
+
+.guide-desk-info summary::-webkit-details-marker {
+  display: none;
+}
+
+.guide-desk-info {
+  position: relative;
+  flex: 0 0 auto;
+}
+
+.guide-desk-info summary {
+  width: 28px;
+  height: 28px;
+  border-radius: 999px;
+  border: 1px solid color-mix(in srgb, var(--snow) 22%, transparent);
+  display: grid;
+  place-items: center;
+  font-family: Nunito, system-ui, sans-serif;
+  font-size: 13px;
+  font-style: italic;
+}
+
+.guide-desk-info-panel {
+  position: absolute;
+  left: 0;
+  z-index: 8;
+  width: min(280px, 70vw);
+  margin-top: 8px;
+  padding: 12px 14px;
+  border-radius: 12px;
+  background: var(--night);
+  border: 1px solid color-mix(in srgb, var(--snow) 16%, transparent);
+  color: var(--snow);
+  font-family: Nunito, system-ui, sans-serif;
+  font-size: 13px;
+  font-style: normal;
+  font-weight: 300;
+  letter-spacing: 0;
+  line-height: 1.45;
+  text-transform: none;
+}
+
+.guide-desk-rail .guide-desk-info-panel,
+.guide-desk-card-head .guide-desk-info-panel {
+  left: auto;
+  right: 0;
+}
+
+.cr-step .guide-desk-info summary {
+  color: var(--night);
+  border-color: color-mix(in srgb, var(--night) 28%, transparent);
+}
+
+.guide-desk-places {
+  margin-top: 8px;
 }
 
 .guide-desk-photos {
@@ -15289,6 +15441,14 @@ a.chip,
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(88px, 1fr));
   gap: 8px;
+}
+
+.guide-desk-photos.is-rail {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.guide-desk-rail .guide-desk-photos img {
+  height: 88px;
 }
 
 .guide-desk-photos li {

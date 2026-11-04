@@ -1,3 +1,5 @@
+import { placeMentioned } from "@/lib/place-match";
+
 export const GUIDE_STATUSES = ["draft", "review", "changes", "published", "archived"] as const;
 export type GuideStatus = (typeof GUIDE_STATUSES)[number];
 
@@ -30,8 +32,9 @@ export const GUIDE_FILL_LIMIT = 24;
 export type GuidePlace = {
   id: string;
   name: string;
-  lat: number;
-  lng: number;
+  lat: number | null;
+  lng: number | null;
+  region: string;
 };
 
 const UNDER_PRICE_TITLE_RE = /^Under R(\d+) Adventures(?: in and around (.+))?$/;
@@ -87,10 +90,10 @@ export function guideFillSummary(
   if (total === 0) return `No live listings ${scoped}.`;
   const noun = total === 1 ? "live listing" : "live listings";
   if (shown < total) {
-    const order = placeName ? "nearest first" : rounded != null ? "lowest price first" : "best match first";
+    const order = rounded != null ? "lowest price first" : "best match first";
     const near = [
       rounded != null ? `under R${rounded}` : "",
-      placeName ? `within ${GUIDE_NEAR_KM} km of ${placeName}` : "",
+      placeName ? `in and around ${placeName}` : "",
       audience ? `for ${audience}` : "",
     ]
       .filter(Boolean)
@@ -192,6 +195,8 @@ export function pickGuideFillListings<
   T extends {
     name: string;
     price_from: number | string | null;
+    city?: string | null;
+    suburb?: string | null;
     latitude?: number | string | null;
     longitude?: number | string | null;
   },
@@ -201,6 +206,7 @@ export function pickGuideFillListings<
     maxPrice?: number | null;
     lat?: number | null;
     lng?: number | null;
+    placeNames?: string[];
     radiusKm?: number;
     limit?: number;
   },
@@ -210,6 +216,8 @@ export function pickGuideFillListings<
       ? input.maxPrice
       : null;
   const limit = input.limit ?? GUIDE_FILL_LIMIT;
+  const names = (input.placeNames ?? []).map((item) => item.trim()).filter(Boolean);
+  const hasNamedPlace = names.length > 0;
   const hasPlace = input.lat != null && input.lng != null;
   const radius = input.radiusKm ?? GUIDE_NEAR_KM;
   const matches = rows.flatMap((row) => {
@@ -222,6 +230,11 @@ export function pickGuideFillListings<
           : Number(raw);
     const hasPrice = price != null && Number.isFinite(price) && price >= 0;
     if (maxPrice != null && (!hasPrice || (price as number) > maxPrice)) return [];
+    if (hasNamedPlace) {
+      const hit = names.some((name) => placeMentioned(row.city, row.suburb, name));
+      if (!hit) return [];
+      return [{ row, price: hasPrice ? (price as number) : Number.POSITIVE_INFINITY, km: Number.POSITIVE_INFINITY }];
+    }
     const lat = row.latitude == null || row.latitude === "" ? null : Number(row.latitude);
     const lng = row.longitude == null || row.longitude === "" ? null : Number(row.longitude);
     const km =
@@ -232,7 +245,7 @@ export function pickGuideFillListings<
     return [{ row, price: hasPrice ? (price as number) : Number.POSITIVE_INFINITY, km: km ?? Number.POSITIVE_INFINITY }];
   });
   matches.sort((a, b) => {
-    if (hasPlace && a.km !== b.km) return a.km - b.km;
+    if (!hasNamedPlace && hasPlace && a.km !== b.km) return a.km - b.km;
     if (a.price !== b.price) return a.price - b.price;
     return a.row.name.localeCompare(b.row.name);
   });
@@ -246,6 +259,8 @@ export function pickPricedGuideListings<
   T extends {
     name: string;
     price_from: number | string | null;
+    city?: string | null;
+    suburb?: string | null;
     latitude?: number | string | null;
     longitude?: number | string | null;
   },
@@ -255,6 +270,7 @@ export function pickPricedGuideListings<
     maxPrice: number;
     lat?: number | null;
     lng?: number | null;
+    placeNames?: string[];
     radiusKm?: number;
     limit?: number;
   },

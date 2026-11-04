@@ -57,6 +57,7 @@ export async function saveCuratedGuide(
     story?: unknown;
     photos?: unknown;
     cover?: unknown;
+    place_ids?: string[];
   },
 ) {
   const access = await requireWritableGuide("curated_guides", guideId);
@@ -94,6 +95,7 @@ export async function saveCuratedGuide(
       story: draft.story ?? [],
       photos: draft.photos ?? [],
       cover: draft.cover ?? {},
+      place_ids: draft.place_ids ?? [],
     },
   });
 

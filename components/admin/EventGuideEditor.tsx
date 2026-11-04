@@ -4,6 +4,9 @@ import { useEffect, useMemo, useRef, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { saveCuratedEventGuide } from "@/app/admin/event-guide-actions";
 import { EventGuideActions } from "@/components/admin/EventGuideActions";
+import { GuideInfoBubble } from "@/components/admin/guide-desk/GuideFold";
+import { GuidePlacePicker } from "@/components/admin/guide-desk/GuidePlacePicker";
+import { GuideSuggestedTitles } from "@/components/admin/guide-desk/GuideSuggestedTitles";
 import {
   EVENT_ENERGY_SCALES,
   EVENT_INTERESTS,
@@ -21,6 +24,7 @@ import {
   type EventGuideDraft,
   type EventGuidePreview,
 } from "@/lib/event-guide-shared";
+import { joinGuideLabels } from "@/lib/guide-places";
 import { guideStatusLabel, toZaLocalInput, type GuidePlace } from "@/lib/guide-shared";
 
 const FALLBACK_IMAGE = "/brand/images/climbing.jpg";
@@ -49,11 +53,6 @@ function toggleLabel(labels: string[], label: string) {
 
 function toggleRank(ranks: number[], rank: number) {
   return ranks.includes(rank) ? ranks.filter((item) => item !== rank) : [...ranks, rank].sort((a, b) => a - b);
-}
-
-function joinLabels(labels: string[]) {
-  if (labels.length <= 1) return labels[0] ?? "";
-  return `${labels.slice(0, -1).join(", ")} & ${labels[labels.length - 1]}`;
 }
 
 function areaLabel(event: EventGuidePreview | null) {
@@ -87,13 +86,13 @@ export function EventGuideEditor({
   const [eventResults, setEventResults] = useState<EventGuidePreview[]>([]);
   const [searching, setSearching] = useState(false);
   const [pickerFor, setPickerFor] = useState<"new" | string | null>(null);
-  const [titlesOpen, setTitlesOpen] = useState(true);
-  const savedPlace = places.find((place) => place.id === guide.place_id) ?? null;
   const savedAmount = guide.max_price_cents != null ? Math.round(guide.max_price_cents / 100) : null;
   const [priceOn, setPriceOn] = useState(Boolean(savedAmount));
   const [priceAmount, setPriceAmount] = useState(savedAmount ?? 200);
   const [amountText, setAmountText] = useState(String(savedAmount ?? 200));
-  const [placeId, setPlaceId] = useState(savedPlace?.id ?? "");
+  const [placeIds, setPlaceIds] = useState<string[]>(() =>
+    guide.place_ids?.length ? guide.place_ids : guide.place_id ? [guide.place_id] : [],
+  );
   const [fillKey, setFillKey] = useState(0);
   const [filling, setFilling] = useState(false);
   const [matchNote, setMatchNote] = useState("");
@@ -131,7 +130,8 @@ export function EventGuideEditor({
   ].join("|");
   const draftRef = useRef(draft);
   draftRef.current = draft;
-  const fillSnapshot = useRef({ audienceKey, fillKey, placeId, priceAmount, priceOn });
+  const placeKey = [...placeIds].sort().join(",");
+  const fillSnapshot = useRef({ audienceKey, fillKey, placeKey, priceAmount, priceOn });
 
   const pickerEvents = useMemo(
     () => eventResults.filter((event) => !draft.items.some((item) => item.event_id === event.id)),
@@ -164,15 +164,16 @@ export function EventGuideEditor({
     const audienceOnly =
       previous.audienceKey !== audienceKey &&
       previous.fillKey === fillKey &&
-      previous.placeId === placeId &&
+      previous.placeKey === placeKey &&
       previous.priceAmount === priceAmount &&
       previous.priceOn === priceOn;
-    fillSnapshot.current = { audienceKey, fillKey, placeId, priceAmount, priceOn };
+    fillSnapshot.current = { audienceKey, fillKey, placeKey, priceAmount, priceOn };
     if (fillSkip.current) {
       fillSkip.current = false;
       return;
     }
-    const place = placesRef.current.find((item) => item.id === placeId) ?? null;
+    const chosen = placesRef.current.filter((item) => placeIds.includes(item.id));
+    const placeLabel = joinGuideLabels(chosen.map((item) => item.name)) || null;
     const amount = priceOn ? Math.round(priceAmount) : null;
     const hasAmount = amount != null && Number.isFinite(amount) && amount > 0;
     const audience = draftRef.current;
@@ -181,7 +182,7 @@ export function EventGuideEditor({
       personaLabels: audience.persona_labels,
       energyRanks: audience.energy_ranks,
     });
-    if (!hasAmount && !place && !hasAudience) return;
+    if (!hasAmount && !chosen.length && !hasAudience) return;
     if (priceOn && !hasAmount) return;
     const scrollToList = !audienceOnly;
 
@@ -191,10 +192,7 @@ export function EventGuideEditor({
       try {
         const params = new URLSearchParams({ fill: "1" });
         if (hasAmount) params.set("maxPrice", String(amount));
-        if (place) {
-          params.set("lat", String(place.lat));
-          params.set("lng", String(place.lng));
-        }
+        if (chosen.length) params.set("places", chosen.map((item) => item.name).join("|"));
         if (audience.interest_labels.length) params.set("interests", audience.interest_labels.join(","));
         if (audience.persona_labels.length) params.set("personas", audience.persona_labels.join(","));
         if (audience.energy_ranks.length) params.set("energy", audience.energy_ranks.join(","));
@@ -230,8 +228,8 @@ export function EventGuideEditor({
             events.length,
             total,
             hasAmount ? amount : null,
-            place?.name ?? null,
-            joinLabels(labels) || null,
+            placeLabel,
+            joinGuideLabels(labels) || null,
           ),
         );
         setOpenSteps((current) => ({ ...current, spots: true }));
@@ -251,7 +249,7 @@ export function EventGuideEditor({
       cancelled = true;
       window.clearTimeout(handle);
     };
-  }, [audienceKey, fillKey, placeId, priceAmount, priceOn]);
+  }, [audienceKey, fillKey, placeIds, placeKey, priceAmount, priceOn]);
 
   function patch(partial: Partial<EventGuideDraft>) {
     setDraft((current) => ({ ...current, ...partial }));
@@ -316,7 +314,8 @@ export function EventGuideEditor({
         publish_at: draft.publish_at,
         expire_at: draft.expire_at,
         max_price_cents: amount != null && amount > 0 ? amount * 100 : null,
-        place_id: placeId,
+        place_id: placeIds[0] ?? "",
+        place_ids: placeIds,
         interest_labels: draft.interest_labels,
         persona_labels: draft.persona_labels,
         energy_ranks: draft.energy_ranks,
@@ -337,7 +336,7 @@ export function EventGuideEditor({
   const isNew = guide.title === "Untitled Event Guide" && guide.items.length === 0;
   const heading = draft.title.trim() || "Untitled Event Guide";
   const audienceSummary =
-    joinLabels(
+    joinGuideLabels(
       eventGuideAudienceLabels({
         interestLabels: draft.interest_labels,
         personaLabels: draft.persona_labels,
@@ -428,135 +427,98 @@ export function EventGuideEditor({
                 </button>
               </h2>
               <label className="field">
-                <span>Guide Title</span>
+                <span>Guide title</span>
                 <input
                   value={draft.title}
                   onChange={(e) => patch({ title: e.target.value })}
                   placeholder="What’s On This Weekend"
                 />
               </label>
-              <div className="field-row">
-                <label className="field">
-                  <span>Shape</span>
-                  <select
-                    value={draft.shape}
-                    onChange={(event) => {
-                      const shape = event.target.value === "spotlight" ? "spotlight" : "roundup";
-                      patch({
-                        shape,
-                        items: shape === "spotlight" ? draft.items.slice(0, 1) : draft.items,
-                      });
-                    }}
-                  >
-                    <option value="roundup">Round-up</option>
-                    <option value="spotlight">Spotlight</option>
-                  </select>
-                </label>
-                <label className="field">
-                  <span>Author</span>
-                  <select
-                    value={draft.author_id}
-                    disabled={lockAuthor}
-                    onChange={(event) => patch({ author_id: event.target.value })}
-                  >
-                    <option value="">Venturo (no byline)</option>
-                    {authors.map((author) => (
-                      <option key={author.id} value={author.id}>
-                        {author.display_name}
-                        {author.tagline ? ` — ${author.tagline}` : ""}
-                      </option>
-                    ))}
-                  </select>
-                </label>
-              </div>
-              <button
-                className="cr-text-remove"
-                type="button"
-                onClick={() => setTitlesOpen((current) => !current)}
-              >
-                {titlesOpen ? "Hide suggested titles" : "Use a suggested title"}
-              </button>
-              {titlesOpen ? (
-                <div className="cr-chip-grid" style={{ marginTop: 12 }}>
-                  {SUGGESTED_EVENT_GUIDE_TITLES.map((title) => (
-                    <button
-                      key={title}
-                      type="button"
-                      className={
-                        (title === CHEAP_DATES_TITLE ? priceOn : !priceOn && draft.title === title)
-                          ? "cr-tag active"
-                          : "cr-tag"
-                      }
-                      onClick={() => {
-                        if (title === CHEAP_DATES_TITLE) {
-                          setPriceOn(true);
-                          setPriceAmount(200);
-                          setAmountText("200");
-                          patch({ title });
-                          setFillKey((current) => current + 1);
-                          return;
-                        }
-                        setPriceOn(false);
-                        patch({ title });
-                        setFillKey((current) => current + 1);
-                      }}
-                    >
-                      {title}
-                    </button>
+              <label className="field">
+                <span>Author</span>
+                <select
+                  value={draft.author_id}
+                  disabled={lockAuthor}
+                  onChange={(event) => patch({ author_id: event.target.value })}
+                >
+                  <option value="">Venturo (no byline)</option>
+                  {authors.map((author) => (
+                    <option key={author.id} value={author.id}>
+                      {author.display_name}
+                      {author.tagline ? ` — ${author.tagline}` : ""}
+                    </option>
                   ))}
-                </div>
-              ) : null}
-              <p className="muted cr-step-help">
-                Change the amount, the place, or the audience and matching upcoming events replace
-                Recommendations. An event has to fit every audience group you turn on. Notes on
-                events that stay are kept.
-              </p>
-              <div className="field-row">
-                {priceOn ? (
-                  <label className="field">
-                    <span>At most (R)</span>
-                    <input
-                      type="number"
-                      min={1}
-                      step={50}
-                      value={amountText}
-                      aria-label="Maximum price in rand"
-                      onChange={(event) => setAmountText(event.target.value)}
-                      onBlur={() => {
-                        const amount = Math.round(Number(amountText));
-                        if (!Number.isFinite(amount) || amount <= 0) return;
-                        setAmountText(String(amount));
-                        setPriceAmount(amount);
-                        setFillKey((current) => current + 1);
-                      }}
-                    />
-                  </label>
-                ) : null}
+                </select>
+              </label>
+              <label className="field">
+                <span>Shape</span>
+                <select
+                  value={draft.shape}
+                  onChange={(event) => {
+                    const shape = event.target.value === "spotlight" ? "spotlight" : "roundup";
+                    patch({
+                      shape,
+                      items: shape === "spotlight" ? draft.items.slice(0, 1) : draft.items,
+                    });
+                  }}
+                >
+                  <option value="roundup">Round-up</option>
+                  <option value="spotlight">Spotlight</option>
+                </select>
+              </label>
+              <GuideSuggestedTitles
+                titles={SUGGESTED_EVENT_GUIDE_TITLES}
+                activeTitle={priceOn ? CHEAP_DATES_TITLE : draft.title}
+                info="Change the amount, the place, or the audience and matching upcoming events replace Recommendations. An event has to fit every audience group you turn on. Notes on events that stay are kept."
+                onPick={(title) => {
+                  if (title === CHEAP_DATES_TITLE) {
+                    setPriceOn(true);
+                    setPriceAmount(200);
+                    setAmountText("200");
+                    patch({ title });
+                    setFillKey((current) => current + 1);
+                    return;
+                  }
+                  setPriceOn(false);
+                  patch({ title });
+                  setFillKey((current) => current + 1);
+                }}
+              />
+              {priceOn ? (
                 <label className="field">
-                  <span>In and around</span>
-                  <select
-                    value={placeId}
-                    aria-label="Place"
-                    onChange={(event) => {
-                      if (priceOn) {
-                        const amount = Math.round(Number(amountText));
-                        if (Number.isFinite(amount) && amount > 0) {
-                          setAmountText(String(amount));
-                          setPriceAmount(amount);
-                        }
-                      }
-                      setPlaceId(event.target.value);
+                  <span>At most (R)</span>
+                  <input
+                    type="number"
+                    min={1}
+                    step={50}
+                    value={amountText}
+                    aria-label="Maximum price in rand"
+                    onChange={(event) => setAmountText(event.target.value)}
+                    onBlur={() => {
+                      const amount = Math.round(Number(amountText));
+                      if (!Number.isFinite(amount) || amount <= 0) return;
+                      setAmountText(String(amount));
+                      setPriceAmount(amount);
+                      setFillKey((current) => current + 1);
                     }}
-                  >
-                    <option value="">Anywhere</option>
-                    {places.map((place) => (
-                      <option key={place.id} value={place.id}>
-                        {place.name}
-                      </option>
-                    ))}
-                  </select>
+                  />
                 </label>
-              </div>
+              ) : null}
+              <GuidePlacePicker
+                places={places}
+                selectedIds={placeIds}
+                onChange={(ids) => {
+                  if (priceOn) {
+                    const amount = Math.round(Number(amountText));
+                    if (Number.isFinite(amount) && amount > 0) {
+                      setAmountText(String(amount));
+                      setPriceAmount(amount);
+                    }
+                  }
+                  setPlaceIds(ids);
+                  setFillKey((current) => current + 1);
+                }}
+              />
               <p className="muted">{filling ? "Finding events…" : matchNote}</p>
               <label className="field" style={{ marginTop: 18 }}>
                 <span>Short Intro (optional)</span>
@@ -583,6 +545,9 @@ export function EventGuideEditor({
                   ) : null}
                   <i className="cr-step-caret" aria-hidden="true" />
                 </button>
+                <GuideInfoBubble label="How audience works">
+                  Choose who this guide is for. An event has to fit every audience group you turn on.
+                </GuideInfoBubble>
               </h2>
               <div className="cr-audience-well">
                 <div className="cr-audience-group">
@@ -644,11 +609,7 @@ export function EventGuideEditor({
                   </div>
                 </div>
               </div>
-              <p className="muted">
-                {filling
-                  ? "Finding events…"
-                  : matchNote || "Turn a place, amount, or audience on to narrow Recommendations."}
-              </p>
+              <p className="muted">{filling ? "Finding events…" : matchNote}</p>
             </section>
 
             <section className={stepOpen("window") ? "cr-step is-open" : "cr-step"} id="step-window">
@@ -667,11 +628,11 @@ export function EventGuideEditor({
                   ) : null}
                   <i className="cr-step-caret" aria-hidden="true" />
                 </button>
+                <GuideInfoBubble label="How the window works">
+                  Times are Africa/Johannesburg. Leave both empty for an evergreen list. Public pages
+                  still hide events that have already started.
+                </GuideInfoBubble>
               </h2>
-              <p className="muted cr-step-help">
-                Times are Africa/Johannesburg. Leave both empty for an evergreen list. Public pages
-                still hide events that have already started.
-              </p>
               <div className="field-row">
                 <label className="field">
                   <span>Publish</span>
@@ -712,10 +673,10 @@ export function EventGuideEditor({
                   ) : null}
                   <i className="cr-step-caret" aria-hidden="true" />
                 </button>
+                <GuideInfoBubble label="How recommendations work">
+                  Drag the handle to reorder. Title, time, area & from-price come from the event.
+                </GuideInfoBubble>
               </h2>
-              <p className="muted cr-step-help">
-                Drag the handle to reorder. Title, time, area &amp; from-price come from the event.
-              </p>
               <div className="cr-guide-items">
                 {draft.items.length === 0 && (
                   <p className="muted">
