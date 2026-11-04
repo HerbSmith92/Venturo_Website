@@ -10436,6 +10436,8 @@ button.listing-cost-toggle {
 .ig-cover,
 .ig-rec,
 .ig-author {
+  display: flex;
+  flex-direction: column;
   background: var(--night);
   color: var(--snow);
 }
@@ -10504,8 +10506,10 @@ button.listing-cost-toggle {
 }
 
 .ig-cover-photos {
-  position: absolute;
-  inset: 0;
+  position: relative;
+  flex: 1 1 auto;
+  min-height: 0;
+  width: 100%;
   z-index: 1;
   display: grid;
   overflow: hidden;
@@ -10524,6 +10528,7 @@ button.listing-cost-toggle {
 .ig-cover-photo {
   min-width: 0;
   min-height: 0;
+  height: 100%;
   overflow: hidden;
 }
 
@@ -10537,10 +10542,9 @@ button.listing-cost-toggle {
 .ig-cover-band,
 .ig-rec-band,
 .ig-author-band {
-  position: absolute;
-  left: 0;
-  right: 0;
-  bottom: 0;
+  position: relative;
+  flex: 0 0 auto;
+  width: 100%;
   z-index: 3;
 }
 
@@ -10637,8 +10641,10 @@ button.listing-cost-toggle {
 }
 
 .ig-rec-photo {
-  position: absolute;
-  inset: 0;
+  position: relative;
+  flex: 1 1 auto;
+  min-height: 0;
+  width: 100%;
   z-index: 1;
   overflow: hidden;
 }
@@ -10704,14 +10710,16 @@ button.listing-cost-toggle {
 }
 
 .ig-author-sky {
-  position: absolute;
-  inset: 0;
+  position: relative;
+  flex: 1 1 auto;
+  min-height: 0;
   z-index: 1;
   display: flex;
   flex-direction: column;
   align-items: center;
   padding: 248px 56px 0;
   background: var(--night);
+  overflow: hidden;
 }
 
 .ig-author-cover {
