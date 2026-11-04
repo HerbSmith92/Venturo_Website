@@ -4,6 +4,7 @@ import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { getCurrentUser } from "@/lib/auth";
 import { recordMemberActivity } from "@/lib/member-activity";
+import { bustPublicCatalog } from "@/lib/public-cache";
 import type { SaveKind } from "@/lib/saves";
 import { createClient } from "@/lib/supabase/server";
 
@@ -47,6 +48,25 @@ export async function toggleSave(formData: FormData) {
   }
   revalidatePath(next);
   revalidatePath("/account/saved");
+  redirect(next);
+}
+
+export async function toggleGuideLike(formData: FormData) {
+  const next = String(formData.get("next") ?? "/guides");
+  const user = await requireMember(next);
+  const kind = String(formData.get("kind") ?? "");
+  const guideId = String(formData.get("guide_id") ?? "");
+  if ((kind !== "activities" && kind !== "events") || !guideId) redirect(next);
+  const supabase = await createClient();
+  if (!supabase) redirect(next);
+  const { error } = await supabase.rpc("toggle_guide_like", {
+    p_kind: kind,
+    p_guide_id: guideId,
+  });
+  if (!error) await recordMemberActivity(user.id, "like", "web");
+  revalidatePath("/guides");
+  revalidatePath(next);
+  bustPublicCatalog();
   redirect(next);
 }
 

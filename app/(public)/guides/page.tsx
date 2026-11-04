@@ -1,8 +1,16 @@
 import { GuideCard } from "@/components/GuideCard";
+import { GuideSortNav } from "@/components/GuideSortNav";
+import { parseGuideSort, sortGuideCards } from "@/lib/guide-engagement";
 import { liveGuides } from "@/lib/guides";
 
-export default async function GuidesIndexPage() {
-  const guides = await liveGuides();
+export default async function GuidesIndexPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ sort?: string }>;
+}) {
+  const { sort: sortParam } = await searchParams;
+  const sort = parseGuideSort(sortParam);
+  const guides = sortGuideCards(await liveGuides(), sort);
 
   return (
     <main>
@@ -23,11 +31,14 @@ export default async function GuidesIndexPage() {
         {guides.length === 0 ? (
           <p className="notice">No live guides right now. The directory is still open.</p>
         ) : (
-          <div className="guide-grid">
-            {guides.map((guide) => (
-              <GuideCard key={`${guide.about ?? "activities"}-${guide.id}`} guide={guide} />
-            ))}
-          </div>
+          <>
+            <GuideSortNav sort={sort} />
+            <div className="guide-grid">
+              {guides.map((guide) => (
+                <GuideCard key={`${guide.about ?? "activities"}-${guide.id}`} guide={guide} />
+              ))}
+            </div>
+          </>
         )}
       </section>
     </main>

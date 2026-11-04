@@ -55,12 +55,37 @@ import type { SpotlightCover, SpotlightPhoto, SpotlightSection } from "@/lib/spo
 
 type SlideKey = "cover" | "author" | string;
 
+function uniquifyRecs(recs: CarouselRec[]): CarouselRec[] {
+  const seen = new Set<string>();
+  return recs.map((rec, index) => {
+    let id = rec.id || rec.sourceId || `rec-${index}`;
+    if (seen.has(id)) id = `${id}-${index}`;
+    seen.add(id);
+    return id === rec.id ? rec : { ...rec, id };
+  });
+}
+
 function hydrateCarousel(savedDraft: unknown, seed: CarouselDraft, title: string): CarouselDraft {
   const next = mergeCarouselDraft(parseCarouselDraft(savedDraft), seed);
+  const recs = uniquifyRecs(next.recs);
   if (seed.kind === "spotlight" && next.cover.headline.trim() === title.trim()) {
-    return { ...next, cover: { ...next.cover, headline: seed.cover.headline } };
+    return { ...next, recs, cover: { ...next.cover, headline: seed.cover.headline } };
   }
-  return next;
+  return { ...next, recs };
+}
+
+function thumbStamp(draft: CarouselDraft, key: SlideKey) {
+  if (key === "cover") {
+    const crop = draft.cover.crop;
+    return `cover:${draft.cover.image}:${draft.cover.headline}:${crop.x}:${crop.y}:${crop.zoom}:${draft.cover.layout}`;
+  }
+  if (key === "author") {
+    return `author:${draft.author.photo}:${draft.author.cover}:${draft.author.name}:${draft.author.bio}`;
+  }
+  const rec = draft.recs.find((row) => row.id === key);
+  if (!rec) return key;
+  const crop = rec.crop;
+  return `${rec.id}:${rec.image}:${rec.title}:${rec.template}:${rec.backdrop}:${crop.x}:${crop.y}:${crop.zoom}:${rec.description}`;
 }
 
 function LiveSlide({
@@ -374,15 +399,18 @@ export function CarouselWorkspace({
   }
 
   function removePost(id: string) {
+    const rec = draft.recs.find((row) => row.id === id);
+    if (!rec) return;
     commit((prev) => {
       const recs = prev.recs.filter((row) => row.id !== id);
       return {
         ...prev,
         recs,
+        omitted: [...new Set([...(prev.omitted ?? []), rec.id, rec.sourceId].filter(Boolean))],
         cover: { ...prev.cover, headline: countHeadline(recs.length, prev.cover.headline) },
       };
     });
-    setSlide("cover");
+    if (slide === id) setSlide("cover");
   }
 
   async function closeDesk() {
@@ -484,47 +512,60 @@ export function CarouselWorkspace({
       ) : (
         <div className="carousel-desk-body">
           <aside className="carousel-thumbs">
-            {keys.map((key) => (
-              <button
-                key={key}
-                type="button"
-                className={`carousel-thumb${slide === key ? " is-on" : ""}`}
-                draggable={key !== "cover" && key !== "author"}
-                onDragStart={() => {
-                  dragRec.current = key;
-                }}
-                onDragOver={(event) => {
-                  if (key !== "cover" && key !== "author") event.preventDefault();
-                }}
-                onDrop={() => {
-                  if (dragRec.current && key !== "cover" && key !== "author") reorder(dragRec.current, key);
-                  dragRec.current = null;
-                }}
-                onClick={() => setSlide(key)}
-              >
-                <div className="carousel-thumb-scale">
-                  <LiveSlide draft={draft} slide={key} />
-                </div>
-                <span className="carousel-thumb-label">
-                  {key === "cover" ? "Cover" : key === "author" ? "Author" : recTitle(draft, key)}
-                </span>
-              </button>
-            )).flatMap((thumb, index) =>
-              keys[index] === "author"
-                ? [
+            {keys.map((key) => {
+              const post = key !== "cover" && key !== "author";
+              return (
+                <div key={key} className={`carousel-thumb-wrap${slide === key ? " is-on" : ""}`}>
+                  {key === "author" ? (
                     <button
-                      key="add-post"
                       type="button"
                       className="carousel-thumb-add"
                       disabled={!canAddPost}
                       onClick={addPost}
                     >
                       + Add post
-                    </button>,
-                    thumb,
-                  ]
-                : [thumb],
-            )}
+                    </button>
+                  ) : null}
+                  <button
+                    type="button"
+                    className={`carousel-thumb${slide === key ? " is-on" : ""}`}
+                    draggable={post}
+                    onDragStart={() => {
+                      dragRec.current = key;
+                    }}
+                    onDragOver={(event) => {
+                      if (post) event.preventDefault();
+                    }}
+                    onDrop={() => {
+                      if (dragRec.current && post) reorder(dragRec.current, key);
+                      dragRec.current = null;
+                    }}
+                    onClick={() => setSlide(key)}
+                  >
+                    <div className="carousel-thumb-scale">
+                      <LiveSlide key={thumbStamp(draft, key)} draft={draft} slide={key} />
+                    </div>
+                    <span className="carousel-thumb-label">
+                      {key === "cover" ? "Cover" : key === "author" ? "Author" : recTitle(draft, key)}
+                    </span>
+                  </button>
+                  {post ? (
+                    <button
+                      type="button"
+                      className="carousel-thumb-remove"
+                      aria-label={`Remove ${recTitle(draft, key)}`}
+                      onClick={(event) => {
+                        event.preventDefault();
+                        event.stopPropagation();
+                        removePost(key);
+                      }}
+                    >
+                      ×
+                    </button>
+                  ) : null}
+                </div>
+              );
+            })}
           </aside>
 
           <div className="carousel-stage">
@@ -552,7 +593,7 @@ export function CarouselWorkspace({
                 onChange={(patch, keysToMark) => patchRec(rec.id, patch, keysToMark)}
                 onReset={(field) => resetRecField(rec.id, field)}
                 onAddEvent={(event) => commit((prev) => ({ ...prev, recs: [...prev.recs, seedRecFromEvent(event)] }))}
-                onRemove={rec.kind === "custom" ? () => removePost(rec.id) : undefined}
+                onRemove={() => removePost(rec.id)}
               />
             ) : null}
             {slide === "author" ? (

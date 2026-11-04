@@ -22,6 +22,8 @@ export type EventGuideCardData = {
   authorId?: string | null;
   authorSlug?: string | null;
   publishAt: string | null;
+  viewCount?: number;
+  likeCount?: number;
 };
 
 export type EventGuideRecommendation = {
@@ -44,6 +46,8 @@ export type PublicEventGuide = {
   shape: "roundup" | "spotlight";
   author: GuideAuthorPublic | null;
   items: EventGuideRecommendation[];
+  viewCount: number;
+  likeCount: number;
 };
 
 type TicketRow = {
@@ -80,6 +84,8 @@ type GuideRow = {
   status?: string;
   publish_at?: string | null;
   expire_at?: string | null;
+  view_count?: number | null;
+  like_count?: number | null;
   guide_authors?: GuideAuthor | GuideAuthor[] | null;
   curated_event_guide_items?: {
     sort_order: number | null;
@@ -135,7 +141,7 @@ function mapItem(event: EventEmbed, editorialNote: string | null): EventGuideRec
 }
 
 const ITEM_SELECT = `
-  id, title, slug, intro, body, shape, status, publish_at, expire_at,
+  id, title, slug, intro, body, shape, status, publish_at, expire_at, view_count, like_count,
   guide_authors ( id, display_name, slug, tagline, bio, photo_url, photo_storage_key, cover_url, cover_storage_key, instagram_url, tiktok_url, facebook_url, website_url, user_id ),
   curated_event_guide_items (
     sort_order, editorial_note, event_id,
@@ -175,15 +181,38 @@ function liveRows(rows: GuideRow[]) {
   });
 }
 
+const ITEM_SELECT_LEGACY = `
+  id, title, slug, intro, body, shape, status, publish_at, expire_at,
+  guide_authors ( id, display_name, slug, tagline, bio, photo_url, photo_storage_key, cover_url, cover_storage_key, instagram_url, tiktok_url, facebook_url, website_url, user_id ),
+  curated_event_guide_items (
+    sort_order, editorial_note, event_id,
+    events (
+      id, slug, title, status, visibility, starts_at, ends_at, timezone,
+      venue_name, city, listing_image_url, banner_url, story_image_url,
+      event_ticket_types ( kind, price_cents, listed, members_only )
+    )
+  )
+`;
+
 export async function liveEventGuides(limit = 48): Promise<EventGuideCardData[]> {
   const supabase = createAnonClient();
   if (!supabase) return [];
-  const { data, error } = await supabase
+  let { data, error } = await supabase
     .from("curated_event_guides")
     .select(ITEM_SELECT)
     .eq("status", "published")
     .order("publish_at", { ascending: false, nullsFirst: false })
     .limit(limit);
+  if (error) {
+    const retry = await supabase
+      .from("curated_event_guides")
+      .select(ITEM_SELECT_LEGACY)
+      .eq("status", "published")
+      .order("publish_at", { ascending: false, nullsFirst: false })
+      .limit(limit);
+    data = retry.data as typeof data;
+    error = retry.error;
+  }
   if (error || !data) return [];
   return liveRows(data as GuideRow[]).map(({ row, items }) => ({
     id: row.id,
@@ -198,18 +227,30 @@ export async function liveEventGuides(limit = 48): Promise<EventGuideCardData[]>
     authorId: authorFromEmbed(row.guide_authors)?.id ?? null,
     authorSlug: authorFromEmbed(row.guide_authors)?.slug ?? null,
     publishAt: row.publish_at ?? null,
+    viewCount: row.view_count ?? 0,
+    likeCount: row.like_count ?? 0,
   }));
 }
 
 export async function getPublicEventGuideBySlug(slug: string): Promise<PublicEventGuide | null> {
   const supabase = await createClient();
   if (!supabase || !slug) return null;
-  const { data, error } = await supabase
+  let { data, error } = await supabase
     .from("curated_event_guides")
     .select(ITEM_SELECT)
     .eq("slug", slug)
     .eq("status", "published")
     .maybeSingle();
+  if (error) {
+    const retry = await supabase
+      .from("curated_event_guides")
+      .select(ITEM_SELECT_LEGACY)
+      .eq("slug", slug)
+      .eq("status", "published")
+      .maybeSingle();
+    data = retry.data as typeof data;
+    error = retry.error;
+  }
   if (error || !data) return null;
   const mapped = liveRows([data as GuideRow])[0];
   if (!mapped) return null;
@@ -222,5 +263,7 @@ export async function getPublicEventGuideBySlug(slug: string): Promise<PublicEve
     shape: mapped.row.shape === "spotlight" ? "spotlight" : "roundup",
     author: authorFromEmbed(mapped.row.guide_authors),
     items: mapped.items,
+    viewCount: mapped.row.view_count ?? 0,
+    likeCount: mapped.row.like_count ?? 0,
   };
 }

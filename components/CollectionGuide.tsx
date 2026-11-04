@@ -2,7 +2,9 @@ import { GuideAuthorCard } from "@/components/GuideAuthorCard";
 import { GuideBrowse } from "@/components/GuideBrowse";
 import { EventGuideRecommendationBlock } from "@/components/EventGuideRecommendation";
 import { GuideRecommendationBlock } from "@/components/GuideRecommendation";
+import { GuideLikeForm } from "@/components/GuideLikeForm";
 import { SaveForm } from "@/components/SaveForm";
+import { formatGuideTally, type GuideKind } from "@/lib/guide-engagement";
 import type { GuideAuthorPublic } from "@/lib/guide-authors";
 import type { EventGuideRecommendation } from "@/lib/event-guides";
 import type { GuideCardData, GuideRecommendation } from "@/lib/guides";
@@ -33,6 +35,8 @@ export function CollectionGuide({
   linkedEvents,
   paid = false,
   save,
+  like,
+  viewCount = 0,
 }: {
   title: string;
   intro: string | null;
@@ -46,6 +50,8 @@ export function CollectionGuide({
   linkedEvents?: VenturoEvent[];
   paid?: boolean;
   save?: { targetId: string; saved: boolean; next: string };
+  like?: { kind: GuideKind; guideId: string; liked: boolean; likeCount: number; next: string };
+  viewCount?: number;
 }) {
   const dateLabel = guideDate(publishedAt);
   const items = listingItems ?? [];
@@ -61,7 +67,21 @@ export function CollectionGuide({
           </p>
           <h1>{title}</h1>
           {intro ? <p className="guide-collection-intro">{intro}</p> : null}
-          {save ? <SaveForm kind="guide" targetId={save.targetId} saved={save.saved} next={save.next} /> : null}
+          <p className="guide-collection-meta muted">{formatGuideTally(viewCount, "view", "views")}</p>
+          {save || like ? (
+            <div className="guide-collection-actions">
+              {like ? (
+                <GuideLikeForm
+                  kind={like.kind}
+                  guideId={like.guideId}
+                  liked={like.liked}
+                  likeCount={like.likeCount}
+                  next={like.next}
+                />
+              ) : null}
+              {save ? <SaveForm kind="guide" targetId={save.targetId} saved={save.saved} next={save.next} /> : null}
+            </div>
+          ) : null}
         </header>
 
         <div className={moreGuides.length > 0 ? "guide-layout" : undefined}>

@@ -151,6 +151,7 @@ export type CarouselDraft = {
   recs: CarouselRec[];
   author: CarouselAuthor;
   acknowledged: string[];
+  omitted?: string[];
 };
 
 export type CarouselIssue = {
@@ -580,6 +581,7 @@ export function seedCarouselDraft(input: {
     recs,
     author: seedAuthor(input.author),
     acknowledged: [],
+    omitted: [],
   };
 }
 
@@ -628,9 +630,12 @@ export function mergeCarouselDraft(saved: CarouselDraft | null | undefined, seed
     };
   }
 
+  const omitted = [...new Set(saved.omitted ?? [])];
+  const skipped = new Set(omitted);
   const used = new Set<string>();
   const recs: CarouselRec[] = [];
   for (const prev of saved.recs) {
+    if (skipped.has(prev.id) || skipped.has(prev.sourceId)) continue;
     const fresh = seed.recs.find((row) => row.id === prev.id || row.sourceId === prev.sourceId);
     if (fresh) {
       recs.push(mergeRec(fresh, prev));
@@ -642,6 +647,7 @@ export function mergeCarouselDraft(saved: CarouselDraft | null | undefined, seed
   }
   for (const fresh of seed.recs) {
     if (used.has(fresh.id) || used.has(fresh.sourceId)) continue;
+    if (skipped.has(fresh.id) || skipped.has(fresh.sourceId)) continue;
     recs.push(fresh);
   }
   return {
@@ -659,6 +665,7 @@ export function mergeCarouselDraft(saved: CarouselDraft | null | undefined, seed
     recs,
     author: mergeAuthor(saved.author, seed.author),
     acknowledged: saved.acknowledged ?? [],
+    omitted,
   };
 }
 

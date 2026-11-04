@@ -1,3 +1,4 @@
+import { formatGuideTally } from "@/lib/guide-engagement";
 import type { GuideCardData } from "@/lib/guides";
 
 function eyebrow(guide: GuideCardData) {
@@ -14,6 +15,8 @@ export function GuideCard({ guide }: { guide: GuideCardData }) {
     (guide.shape === "spotlight"
       ? "A closer look at one worth leaving the house for."
       : `${guide.itemCount} ${guide.itemCount === 1 ? "spot" : "spots"} worth getting out for.`);
+  const views = guide.viewCount ?? 0;
+  const likes = guide.likeCount ?? 0;
 
   return (
     <a className="guide-card" href={`/guides/${guide.slug}`}>
@@ -25,6 +28,10 @@ export function GuideCard({ guide }: { guide: GuideCardData }) {
         <h3>{guide.title}</h3>
         {guide.authorName ? <p className="muted">By {guide.authorName}</p> : null}
         <p className="muted">{intro}</p>
+        <p className="guide-card-meta muted">
+          {formatGuideTally(views, "view", "views")}
+          {likes > 0 ? ` · ${formatGuideTally(likes, "like", "likes")}` : ""}
+        </p>
         <span className="guide-card-cta">
           {guide.shape === "spotlight" ? "Read the Guide →" : "Explore the List →"}
         </span>

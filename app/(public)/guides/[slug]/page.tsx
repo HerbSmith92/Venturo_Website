@@ -1,7 +1,10 @@
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { CollectionGuide } from "@/components/CollectionGuide";
+import { GuideViewBeacon } from "@/components/GuideViewBeacon";
 import { SpotlightArticle } from "@/components/SpotlightArticle";
+import type { GuideKind } from "@/lib/guide-engagement";
+import { hasLikedGuide } from "@/lib/guide-likes";
 import { getCurrentUser } from "@/lib/auth";
 import { getEventById } from "@/lib/events";
 import { getPublicEventGuideBySlug } from "@/lib/event-guides";
@@ -60,9 +63,13 @@ export default async function GuideDetailPage({
   const body = listingGuide?.body ?? eventGuide?.body ?? null;
   const author = listingGuide?.author ?? eventGuide?.author ?? null;
   const nextPath = `/guides/${guide.slug}`;
+  const kind: GuideKind = listingGuide ? "activities" : "events";
+  const viewCount = listingGuide?.viewCount ?? eventGuide?.viewCount ?? 0;
+  const likeCount = listingGuide?.likeCount ?? eventGuide?.likeCount ?? 0;
 
-  const [saved, eventIds, otherGuides, listing, moreByAuthor] = await Promise.all([
+  const [saved, liked, eventIds, otherGuides, listing, moreByAuthor] = await Promise.all([
     user && listingGuide ? isSaved(user.id, "guide", guideId) : Promise.resolve(false),
+    hasLikedGuide(kind, guideId),
     listingGuide ? listGuideEventIds(guideId) : Promise.resolve([] as string[]),
     liveGuides(8),
     listingGuide?.listingId ? getPublicListingById(listingGuide.listingId) : Promise.resolve(null),
@@ -90,6 +97,7 @@ export default async function GuideDetailPage({
       : null;
     return (
       <main>
+        <GuideViewBeacon kind="activities" id={listingGuide.id} />
         <SpotlightArticle
           title={listingGuide.title}
           intro={listingGuide.intro ?? ""}
@@ -103,6 +111,14 @@ export default async function GuideDetailPage({
           updatedAt={listingGuide.updatedAt}
           saved={saved}
           saveTargetId={listingGuide.id}
+          like={{
+            kind: "activities",
+            guideId: listingGuide.id,
+            liked,
+            likeCount,
+            next: nextPath,
+          }}
+          viewCount={viewCount}
           shareUrl={`${siteUrl()}/guides/${listingGuide.slug}`}
           moreByAuthor={moreByAuthor
             .filter((item) => item.id !== listingGuide.id)
@@ -113,19 +129,24 @@ export default async function GuideDetailPage({
   }
 
   return (
-    <CollectionGuide
-      title={title}
-      intro={intro}
-      body={body}
-      about={listingGuide ? "activities" : "events"}
-      publishedAt={listingGuide?.publishedAt ?? null}
-      author={author}
-      listingItems={listingGuide?.items}
-      eventItems={eventGuide?.items}
-      moreGuides={moreGuides}
-      linkedEvents={linkedEvents.filter((event): event is NonNullable<typeof event> => Boolean(event))}
-      paid={paid}
-      save={listingGuide ? { targetId: guideId, saved, next: nextPath } : undefined}
-    />
+    <>
+      <GuideViewBeacon kind={kind} id={guideId} />
+      <CollectionGuide
+        title={title}
+        intro={intro}
+        body={body}
+        about={kind}
+        publishedAt={listingGuide?.publishedAt ?? null}
+        author={author}
+        listingItems={listingGuide?.items}
+        eventItems={eventGuide?.items}
+        moreGuides={moreGuides}
+        linkedEvents={linkedEvents.filter((event): event is NonNullable<typeof event> => Boolean(event))}
+        paid={paid}
+        save={listingGuide ? { targetId: guideId, saved, next: nextPath } : undefined}
+        like={{ kind, guideId, liked, likeCount, next: nextPath }}
+        viewCount={viewCount}
+      />
+    </>
   );
 }

@@ -1,7 +1,9 @@
 "use client";
 
 import { useMemo, useState } from "react";
+import { GuideLikeForm } from "@/components/GuideLikeForm";
 import { SaveForm } from "@/components/SaveForm";
+import { formatGuideTally, type GuideKind } from "@/lib/guide-engagement";
 import type { GuideAuthorPublic } from "@/lib/guide-authors";
 import { authorSocialHref } from "@/lib/guide-authors";
 import { SpotlightSectionView } from "@/components/spotlight/SpotlightSectionView";
@@ -148,6 +150,8 @@ export function SpotlightArticle({
   updatedAt,
   saved = false,
   saveTargetId,
+  like,
+  viewCount = 0,
   shareUrl,
   moreByAuthor = [],
   compact = false,
@@ -164,6 +168,8 @@ export function SpotlightArticle({
   updatedAt?: string | null;
   saved?: boolean;
   saveTargetId?: string;
+  like?: { kind: GuideKind; guideId: string; liked: boolean; likeCount: number; next: string };
+  viewCount?: number;
   shareUrl?: string;
   moreByAuthor?: { title: string; href: string }[];
   compact?: boolean;
@@ -225,13 +231,25 @@ export function SpotlightArticle({
                   {minutes} min read
                   {dateLabel ? ` · ${dateLabel}` : ""}
                   {updatedLabel ? ` · Updated ${updatedLabel}` : ""}
+                  {` · ${formatGuideTally(viewCount, "view", "views")}`}
                 </p>
               </div>
             </a>
           ) : (
-            <p className="muted">{minutes} min read</p>
+            <p className="muted">
+              {minutes} min read · {formatGuideTally(viewCount, "view", "views")}
+            </p>
           )}
           <div className="spotlight-actions">
+            {like ? (
+              <GuideLikeForm
+                kind={like.kind}
+                guideId={like.guideId}
+                liked={like.liked}
+                likeCount={like.likeCount}
+                next={like.next}
+              />
+            ) : null}
             {saveTargetId ? (
               <SaveForm kind="guide" targetId={saveTargetId} saved={saved} next={`/guides/${slug}`} />
             ) : null}

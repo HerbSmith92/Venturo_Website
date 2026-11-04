@@ -39,6 +39,8 @@ export type GuideCardData = {
   authorId?: string | null;
   authorSlug?: string | null;
   publishAt?: string | null;
+  viewCount?: number;
+  likeCount?: number;
 };
 
 export type GuideRecommendation = {
@@ -69,6 +71,8 @@ export type PublicGuide = {
   cover: SpotlightCover;
   publishedAt: string | null;
   updatedAt: string | null;
+  viewCount: number;
+  likeCount: number;
 };
 
 type MediaRow = {
@@ -116,6 +120,8 @@ type GuideRow = {
   cover?: unknown;
   published_snapshot?: Record<string, unknown> | null;
   updated_at?: string | null;
+  view_count?: number | null;
+  like_count?: number | null;
   guide_authors?: GuideAuthor | GuideAuthor[] | null;
   curated_guide_items?: {
     sort_order: number | null;
@@ -234,7 +240,7 @@ const GUIDE_ITEMS_SELECT = `
 `;
 
 const GUIDE_SELECT = `
-  id, title, slug, intro, body, shape, status, publish_at, expire_at, listing_id, story, photos, cover, published_snapshot, updated_at,
+  id, title, slug, intro, body, shape, status, publish_at, expire_at, listing_id, story, photos, cover, published_snapshot, updated_at, view_count, like_count,
   guide_authors ( id, display_name, slug, tagline, bio, photo_url, photo_storage_key, cover_url, cover_storage_key, instagram_url, tiktok_url, facebook_url, website_url, user_id ),
   ${GUIDE_ITEMS_SELECT}
 `;
@@ -307,6 +313,8 @@ async function fetchLiveGuides(limit?: number): Promise<GuideCardData[]> {
         authorId: author?.id ?? null,
         authorSlug: author?.slug ?? null,
         publishAt: row.publish_at ?? null,
+        viewCount: row.view_count ?? 0,
+        likeCount: row.like_count ?? 0,
       },
     ];
   });
@@ -384,6 +392,8 @@ export async function getPublicGuideBySlug(slug: string): Promise<PublicGuide | 
     cover,
     publishedAt: row.publish_at ?? row.updated_at ?? null,
     updatedAt: row.updated_at ?? null,
+    viewCount: row.view_count ?? 0,
+    likeCount: row.like_count ?? 0,
   };
 }
 
