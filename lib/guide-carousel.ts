@@ -728,16 +728,16 @@ export function validateCarousel(draft: CarouselDraft, overflowIds: string[] = [
     const slide = rec.id;
     const label = rec.title || `Recommendation ${index + 1}`;
     if (!rec.title.trim()) {
-      issues.push({ id: `${slide}-title`, level: "error", slide, message: `${label} needs a title.` });
+      issues.push({ id: `${slide}-title`, level: "warn", slide, message: `${label} needs a title.` });
     }
     const template = spotlight ? spotlightTemplate(rec) : null;
     const needsPhoto = !template || template !== "copy";
     const needsCopy = !template || template !== "photo";
     if (needsPhoto && !rec.image) {
-      issues.push({ id: `${slide}-photo`, level: "error", slide, message: `${label} needs a photograph.` });
+      issues.push({ id: `${slide}-photo`, level: "warn", slide, message: `${label} needs a photograph.` });
     }
     if (needsCopy && !rec.description.trim()) {
-      issues.push({ id: `${slide}-copy`, level: "error", slide, message: `${label} needs a complete social description.` });
+      issues.push({ id: `${slide}-copy`, level: "warn", slide, message: `${label} needs a complete social description.` });
     }
     const words = wordCount(rec.description);
     if (needsCopy && words && (words < 8 || words > 32)) {
