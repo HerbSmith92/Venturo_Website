@@ -5,7 +5,7 @@ import { OtpCodeBoxes } from "@/components/OtpCodeBoxes";
 import { HostPayoutForm } from "@/components/portal/HostPayoutForm";
 import { formatCents } from "@/lib/event-types";
 import { formatCount, formatWhen } from "@/lib/overview/metrics";
-import { payoutDueLabel, type EventPayoutSummary } from "@/lib/event-payouts";
+import { payoutDueLabel, type EventPayoutSummary } from "@/lib/event-payout-display";
 import { PORTAL_SETTINGS } from "@/lib/portal";
 import type { VenturoEvent } from "@/lib/event-types";
 
