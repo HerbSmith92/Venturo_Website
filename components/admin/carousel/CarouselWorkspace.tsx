@@ -55,6 +55,23 @@ import type { SpotlightCover, SpotlightPhoto, SpotlightSection } from "@/lib/spo
 
 type SlideKey = "cover" | "author" | string;
 
+function carouselPhotoLibrary(
+  draft: CarouselDraft,
+  spotlight?: { photos: SpotlightPhoto[]; listing: SpotlightListingDetails | null },
+) {
+  return [
+    ...new Set(
+      [
+        ...(spotlight?.photos.map((photo) => photo.url) ?? []),
+        ...(spotlight?.listing?.media.map((item) => item.url) ?? []),
+        draft.cover.image,
+        ...(draft.cover.collage ?? []),
+        ...draft.recs.flatMap((row) => [row.image, ...(row.photos ?? [])]),
+      ].filter(Boolean),
+    ),
+  ];
+}
+
 function uniquifyRecs(recs: CarouselRec[]): CarouselRec[] {
   const seen = new Set<string>();
   return recs.map((rec, index) => {
@@ -296,7 +313,7 @@ export function CarouselWorkspace({
   }, [draft, overflow, compactAuthorAck]);
   const blocking = issues.filter((issue) => issue.level === "error");
   const rec = draft.recs.find((row) => row.id === slide) ?? null;
-  const allPhotos = [...new Set(draft.recs.flatMap((row) => row.photos))];
+  const allPhotos = carouselPhotoLibrary(draft, spotlight);
   const slug = exportFileSlug(title);
   const keys: SlideKey[] = ["cover", ...draft.recs.map((row) => row.id), "author"];
   const weekendLeft = issues.filter((issue) => issue.id.endsWith("-avail")).length;
@@ -388,7 +405,7 @@ export function CarouselWorkspace({
 
   function addPost() {
     if (!canAddPost) return;
-    const photos = [...new Set([draft.cover.image, ...draft.recs.flatMap((row) => row.photos)])].filter(Boolean);
+    const photos = carouselPhotoLibrary(draft, spotlight);
     const next = createCarouselPost(photos, draft.cover.geoLabel.replace(/^Near\s+/i, "").replace(/\.$/, ""), draft.kind === "spotlight");
     commit((prev) => ({
       ...prev,
@@ -589,6 +606,7 @@ export function CarouselWorkspace({
                 rec={rec}
                 seed={seed.recs.find((row) => row.id === rec.id)}
                 events={events}
+                photos={allPhotos}
                 spotlight={draft.kind === "spotlight"}
                 onChange={(patch, keysToMark) => patchRec(rec.id, patch, keysToMark)}
                 onReset={(field) => resetRecField(rec.id, field)}
@@ -915,6 +933,7 @@ function RecInspector({
   rec,
   seed,
   events,
+  photos,
   spotlight,
   onChange,
   onReset,
@@ -924,6 +943,7 @@ function RecInspector({
   rec: CarouselRec;
   seed?: CarouselRec;
   events: CarouselEventSource[];
+  photos: string[];
   spotlight?: boolean;
   onChange: (patch: Partial<CarouselRec>, custom: (keyof CarouselRec)[]) => void;
   onReset: (field: keyof CarouselRec) => void;
@@ -1163,8 +1183,13 @@ function RecInspector({
         <>
       <p>Photograph</p>
       <div className="carousel-photos">
-        {rec.photos.map((src) => (
-          <button key={src} type="button" className={rec.image === src ? "is-on" : ""} onClick={() => onChange({ image: src }, ["image"])}>
+        {(photos.length ? photos : rec.photos).map((src) => (
+          <button
+            key={src}
+            type="button"
+            className={rec.image === src ? "is-on" : ""}
+            onClick={() => onChange({ image: src, photos: [...new Set([...(rec.photos ?? []), src])] }, ["image"])}
+          >
             <img src={src} alt="" />
           </button>
         ))}
