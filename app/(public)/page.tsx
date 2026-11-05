@@ -27,10 +27,13 @@ export default async function HomePage() {
         listings={mixListingsByInterest(features.listings, 8)}
         events={features.events.slice(0, 8)}
         communities={features.communities.slice(0, 8)}
+        guides={features.guides.slice(0, 8)}
         appStoreHref={copy.appStoreUrl || stores.appStore}
         playStoreHref={playStoreHref}
         device={device}
         showMemberPrice={user?.plan === "paid"}
+        signedIn={Boolean(user)}
+        firstName={user?.firstName ?? ""}
       />
     </>
   );
