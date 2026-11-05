@@ -35,7 +35,7 @@ export function CoverSlide({
       <div className={`ig-cover-photos ${collage ? "is-collage" : "is-hero"}`}>
         {photos.map((src, index) => (
           <div className="ig-cover-photo" key={`${src}-${index}`}>
-            <img src={exportPhotoSrc(src)} alt="" style={cropStyle(cropFor(index))} />
+            <img src={exportPhotoSrc(src)} alt="" decoding="sync" loading="eager" style={cropStyle(cropFor(index))} />
           </div>
         ))}
       </div>

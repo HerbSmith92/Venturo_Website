@@ -194,11 +194,20 @@ export async function deliverPushCampaign(draft: PushDraft, createdBy: string): 
 
   const devices = await loadDevices(service);
   if (devices.error) return { error: devices.error };
+  if (devices.rows.length === 0) {
+    return { error: emptyDeviceMessage() };
+  }
 
   const matchedAudience = await filterAudience(service, devices.rows, draft.audience);
   if (matchedAudience.error) return { error: matchedAudience.error };
+  if (matchedAudience.rows.length === 0) {
+    return { error: emptyAudienceMessage(draft.audience) };
+  }
   const matchedPlace = await filterPlace(service, matchedAudience.rows, destination.place);
   if (matchedPlace.error) return { error: matchedPlace.error };
+  if (matchedPlace.rows.length === 0) {
+    return { error: emptyPlaceMessage(destination.place) };
+  }
   const matchedNotice = await filterNotice(service, matchedPlace.rows, draft);
   if (matchedNotice.error) return { error: matchedNotice.error };
   const matched = matchedNotice.rows;
@@ -603,6 +612,27 @@ async function filterPlace(service: Service, rows: DeviceRow[], place: PlaceScop
   return { rows: rows.filter((row) => allowed.has(row.user_id)) };
 }
 
+function emptyDeviceMessage() {
+  return "No Venturo Application phones have registered. Open the app while signed in so this phone can register. Place uses each member's home area, not the phone's current GPS.";
+}
+
+function emptyAudienceMessage(audience: PushAudience) {
+  if (audience === "paid") return "Registered phones are on free accounts. Choose Everyone with the app, or a paid member.";
+  if (audience === "free") return "Registered phones are on paid accounts. Choose Everyone with the app, or a free member.";
+  if (audience === "hosts") return "No registered phones belong to an event host.";
+  return emptyDeviceMessage();
+}
+
+function emptyPlaceMessage(place: PlaceScope) {
+  if (place.kind === "everywhere") {
+    return "No phones matched. Open the Venturo Application while signed in so the phone can register.";
+  }
+  if (place.kind === "region") {
+    return `No registered phones have a home area in ${place.label}. This uses the home area on the member's profile, not where the phone is right now.`;
+  }
+  return `No registered phones have a home area within ${PLACE_REACH_KM} km of ${place.label}. This uses the home area on the member's profile, not where the phone is right now. Johannesburg on the phone map does not count until that profile's home area sits inside the reach.`;
+}
+
 function emptyMatchMessage(draft: PushDraft, place: PlaceScope) {
   const where =
     place.kind === "everywhere"
@@ -619,10 +649,7 @@ function emptyMatchMessage(draft: PushDraft, place: PlaceScope) {
   if (draft.notice === "saved") {
     return `No one ${where} has favourited a listing, event, or guide.`;
   }
-  if (place.kind === "everywhere") {
-    return "No phones matched. Open the Venturo Application while signed in so the phone can register.";
-  }
-  return `No phones within ${PLACE_REACH_KM} km of ${place.label} matched. A member receives this when their home area is inside that reach.`;
+  return emptyPlaceMessage(place);
 }
 
 async function filterNotice(service: Service, rows: DeviceRow[], draft: PushDraft) {
@@ -861,4 +888,95 @@ function chunks<T>(items: T[], size: number) {
     batches.push(items.slice(index, index + size));
   }
   return batches;
+}
+
+/** Inbox row plus Expo push for a known set of member accounts. */
+export async function notifyMemberUsers(input: {
+  userIds: string[];
+  title: string;
+  body: string;
+  linkPath: string;
+  kind: "guide" | "event";
+  id: string;
+  slug: string;
+  notice: "custom" | "community";
+}) {
+  const service = createServiceClient();
+  if (!service) return;
+  const userIds = [...new Set(input.userIds.filter(Boolean))];
+  if (!userIds.length) return;
+
+  const devices: DeviceRow[] = [];
+  for (const batch of chunks(userIds, 100)) {
+    const loaded = await service
+      .from("push_devices")
+      .select("id, user_id, token")
+      .eq("app", "member")
+      .in("user_id", batch);
+    if (!loaded.error && loaded.data) devices.push(...(loaded.data as DeviceRow[]));
+  }
+
+  const { data: campaign, error: insertError } = await service
+    .from("push_campaigns")
+    .insert({
+      title: input.title.slice(0, 80),
+      body: input.body.slice(0, 240),
+      audience: "everyone",
+      app: "member",
+      link_path: input.linkPath,
+      place_label: "Everywhere",
+      opens_kind: input.kind,
+      opens_id: input.id,
+      opens_label: input.title.slice(0, 80),
+      notice_kind: input.notice,
+      status: "sent",
+      device_count: devices.length,
+    })
+    .select("id")
+    .single();
+  if (insertError || !campaign) return;
+
+  const inbox = userIds.map((userId) => ({
+    campaign_id: campaign.id,
+    user_id: userId,
+    title: input.title.slice(0, 80),
+    body: input.body.slice(0, 240),
+    link_path: input.linkPath,
+  }));
+  let inboxCount = 0;
+  for (const batch of chunks(inbox, 500)) {
+    const inserted = await service.from("push_inbox").insert(batch).select("id");
+    if (inserted.error) {
+      await service
+        .from("push_campaigns")
+        .update({ status: "failed", error: inserted.error.message, inbox_count: inboxCount })
+        .eq("id", campaign.id);
+      return;
+    }
+    inboxCount += inserted.data?.length ?? 0;
+  }
+
+  const push = await pushTokens(devices, {
+    title: input.title.slice(0, 80),
+    body: input.body.slice(0, 240),
+    path: input.linkPath,
+    kind: input.kind,
+    id: input.id,
+    slug: input.slug,
+    when: "",
+    campaignId: campaign.id,
+  });
+  if (push.dropTokenIds.length > 0) {
+    await service.from("push_devices").update({ token: null }).in("id", push.dropTokenIds);
+  }
+  await service
+    .from("push_campaigns")
+    .update({
+      inbox_count: inboxCount,
+      pushed_count: push.pushed,
+      failed_count: push.failed,
+      error: push.error,
+      status: push.error && push.pushed === 0 && push.attempted > 0 ? "failed" : "sent",
+    })
+    .eq("id", campaign.id);
 }

@@ -30,7 +30,7 @@ export function AuthorSlide({
     <div className={`cr-ig-frame ig-author${compact ? " is-compact" : ""}${author.cover ? " has-cover" : ""}`} ref={frameRef}>
       <div className="ig-author-sky">
         {author.cover ? (
-          <img className="ig-author-cover" src={exportPhotoSrc(author.cover)} alt="" />
+          <img className="ig-author-cover" src={exportPhotoSrc(author.cover)} alt="" decoding="sync" loading="eager" />
         ) : null}
         <header className="ig-author-head">
           <img src="/brand/logos/venturo-horizontal-simple-light.svg" alt="" />
@@ -39,7 +39,7 @@ export function AuthorSlide({
         <div className="ig-author-identity">
           <div className="ig-author-portrait">
             {author.photo ? (
-              <img src={exportPhotoSrc(author.photo)} alt="" />
+              <img src={exportPhotoSrc(author.photo)} alt="" decoding="sync" loading="eager" />
             ) : (
               <span>{initials(author.name) || "?"}</span>
             )}

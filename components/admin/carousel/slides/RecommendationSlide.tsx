@@ -51,7 +51,7 @@ export function RecommendationSlide({
         <p>{padRecIndex(index, total)}</p>
       </header>
       <div className="ig-rec-photo">
-        <img src={exportPhotoSrc(rec.image)} alt="" style={cropStyle(rec.crop)} />
+        <img src={exportPhotoSrc(rec.image)} alt="" decoding="sync" loading="eager" style={cropStyle(rec.crop)} />
       </div>
       <div className="ig-rec-band">
         <GuideExportWave />

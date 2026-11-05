@@ -1,8 +1,8 @@
 "use client";
 
 import { useEffect, useMemo, useRef, useState, type Ref } from "react";
-import { toBlob } from "html-to-image";
 import JSZip from "jszip";
+import { captureIgSlide, downloadBlob } from "@/lib/capture-ig-slide";
 import { GuideExportActivityCard } from "@/components/admin/guide-export/GuideExportActivityCard";
 import { GuideExportAuthorCard } from "@/components/admin/guide-export/GuideExportAuthorCard";
 import { GuideExportIntroCard } from "@/components/admin/guide-export/GuideExportIntroCard";
@@ -15,83 +15,6 @@ import {
 } from "@/components/admin/guide-export/types";
 import type { GuideAuthor } from "@/lib/guide-authors";
 import type { GuideDraftItem } from "@/lib/guide-shared";
-
-function downloadBlob(blob: Blob, filename: string) {
-  const url = URL.createObjectURL(blob);
-  const link = document.createElement("a");
-  link.href = url;
-  link.download = filename;
-  link.rel = "noopener";
-  document.body.appendChild(link);
-  link.click();
-  link.remove();
-  window.setTimeout(() => URL.revokeObjectURL(url), 4000);
-}
-
-function blobToDataUrl(blob: Blob) {
-  return new Promise<string>((resolve, reject) => {
-    const reader = new FileReader();
-    reader.onload = () => resolve(String(reader.result));
-    reader.onerror = () => reject(reader.error);
-    reader.readAsDataURL(blob);
-  });
-}
-
-function waitForImage(img: HTMLImageElement) {
-  if (img.complete && img.naturalWidth > 0) return Promise.resolve();
-  return new Promise<void>((resolve) => {
-    const done = () => resolve();
-    img.addEventListener("load", done, { once: true });
-    img.addEventListener("error", done, { once: true });
-  });
-}
-
-async function inlineImages(node: HTMLElement) {
-  const images = Array.from(node.querySelectorAll("img"));
-  await Promise.all(
-    images.map(async (img) => {
-      const src = img.currentSrc || img.getAttribute("src") || "";
-      if (!src || src.startsWith("data:")) return;
-      const response = await fetch(src, { credentials: "same-origin", cache: "force-cache" });
-      if (!response.ok) return;
-      const blob = await response.blob();
-      if (!blob.type.startsWith("image/")) return;
-      img.src = await blobToDataUrl(blob);
-      await waitForImage(img);
-    }),
-  );
-}
-
-const CAPTURE_STYLE = {
-  transform: "none",
-  left: "0",
-  top: "0",
-  opacity: "1",
-  position: "relative",
-  width: `${IG_POST_WIDTH}px`,
-  height: `${IG_POST_HEIGHT}px`,
-};
-
-async function captureFrame(node: HTMLElement) {
-  if (document.fonts?.ready) await document.fonts.ready;
-  await inlineImages(node);
-  const photo = node.querySelector<HTMLImageElement>(".cr-ig-bg img");
-  if (photo && photo.naturalWidth === 0) {
-    throw new Error("Photo did not load");
-  }
-  const blob = await toBlob(node, {
-    cacheBust: false,
-    pixelRatio: 1,
-    skipAutoScale: true,
-    canvasWidth: IG_POST_WIDTH,
-    canvasHeight: IG_POST_HEIGHT,
-    width: IG_POST_WIDTH,
-    height: IG_POST_HEIGHT,
-    style: CAPTURE_STYLE,
-  });
-  if (!blob) throw new Error("Empty export");
-  return blob;
-}
 
 export function GuideExportModal({
   open,
@@ -205,7 +128,7 @@ export function GuideExportModal({
     setBusy("one");
     setError(null);
     try {
-      const blob = await captureFrame(node);
+      const blob = await captureIgSlide(node);
       rememberFile(blob, `${slug}-${String(index + 1).padStart(2, "0")}.png`);
     } catch (err) {
       console.error(err);
@@ -224,7 +147,7 @@ export function GuideExportModal({
       for (let i = 0; i < slides.length; i += 1) {
         const node = bankRefs.current[i];
         if (!node) throw new Error("Missing frame");
-        const blob = await captureFrame(node);
+        const blob = await captureIgSlide(node);
         zip.file(`${slug}-${String(i + 1).padStart(2, "0")}.png`, blob);
       }
       const blob = await zip.generateAsync({ type: "blob" });

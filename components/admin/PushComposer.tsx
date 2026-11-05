@@ -192,7 +192,8 @@ export function PushComposer({
       <p className="muted">{KIND_HELP[notice]}</p>
       <p className="muted">
         Johannesburg reaches home areas within 32 km, including Sandton, Randburg, Soweto, Midrand & Krugersdorp.
-        It does not reach Centurion, Pretoria, or Cape Town. All of Gauteng does include Pretoria.
+        It does not reach Centurion, Pretoria, or Cape Town. All of Gauteng does include Pretoria. This is the
+        home area on the member's profile, not where the phone is standing.
       </p>
       {error ? <p className="error">{error}</p> : null}
       {sent ? (

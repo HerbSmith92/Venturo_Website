@@ -4,8 +4,8 @@ import { useMemo, useState } from "react";
 import { GuideLikeForm } from "@/components/GuideLikeForm";
 import { SaveForm } from "@/components/SaveForm";
 import { formatGuideTally, type GuideKind } from "@/lib/guide-engagement";
+import { AuthorSocialLinks } from "@/components/GuideAuthorCard";
 import type { GuideAuthorPublic } from "@/lib/guide-authors";
-import { authorSocialHref, instagramHandle } from "@/lib/guide-authors";
 import { SpotlightSectionView } from "@/components/spotlight/SpotlightSectionView";
 import {
   coverPhoto,
@@ -178,8 +178,6 @@ export function SpotlightArticle({
   const gallery = galleryPhotos(photos);
   const minutes = estimateReadMinutes(intro, story);
   const [lightbox, setLightbox] = useState<number | null>(null);
-  const instagram = author ? authorSocialHref(author.instagramUrl, "instagram") : null;
-  const instagramLabel = author ? instagramHandle(author.instagramUrl) : "";
   const dateLabel = useMemo(() => {
     if (!publishedAt) return null;
     return new Intl.DateTimeFormat("en-ZA", {
@@ -297,13 +295,7 @@ export function SpotlightArticle({
                 </h2>
                 {author.tagline ? <p className="spotlight-author-tag">{author.tagline}</p> : null}
                 {author.bio ? <p>{author.bio}</p> : null}
-                {instagram && instagramLabel ? (
-                  <p>
-                    <a href={instagram} rel="noreferrer" target="_blank">
-                      {instagramLabel}
-                    </a>
-                  </p>
-                ) : null}
+                <AuthorSocialLinks author={author} />
                 {moreByAuthor.length > 0 ? (
                   <p>
                     <a href={author.slug ? `/authors/${author.slug}` : "/authors"}>More guides by this author</a>

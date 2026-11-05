@@ -107,7 +107,7 @@ function Frame({
     >
       {showPhoto ? (
         <div className="ig-spot-photo">
-          <img src={exportPhotoSrc(image)} alt="" style={cropStyle(crop)} />
+          <img src={exportPhotoSrc(image)} alt="" decoding="sync" loading="eager" style={cropStyle(crop)} />
         </div>
       ) : null}
       {imageBack ? <div className="ig-spot-scrim" /> : null}
@@ -259,14 +259,18 @@ export function SpotlightAuthorSlide({
   return (
     <div className={`cr-ig-frame ig-spot ig-spot-author${cover ? " has-cover" : ""}`} ref={frameRef} style={{ ["--cr-ig-accent" as string]: JADE }}>
       <div className="ig-spot-author-sky">
-        {cover ? <img className="ig-spot-author-cover" src={exportPhotoSrc(cover)} alt="" /> : null}
+        {cover ? <img className="ig-spot-author-cover" src={exportPhotoSrc(cover)} alt="" decoding="sync" loading="eager" /> : null}
         <header className="ig-spot-head">
           <img src="/brand/logos/venturo-horizontal-simple-light.svg" alt="" />
           <h2>{header}</h2>
         </header>
         {listingName?.trim() && author.kicker ? <p className="ig-spot-author-kicker">{author.kicker}</p> : null}
         <div className="ig-spot-portrait">
-          {author.photo ? <img src={exportPhotoSrc(author.photo)} alt="" /> : <span>{initials(author.name) || "?"}</span>}
+          {author.photo ? (
+            <img src={exportPhotoSrc(author.photo)} alt="" decoding="sync" loading="eager" />
+          ) : (
+            <span>{initials(author.name) || "?"}</span>
+          )}
         </div>
         <h3>{author.name || "Assign an author"}</h3>
         {author.tagline || author.bio ? <p className="ig-spot-tagline">{author.tagline || author.bio}</p> : null}

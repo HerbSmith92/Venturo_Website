@@ -42,6 +42,7 @@ export async function GET(request: Request) {
     headers: {
       "Content-Type": contentType,
       "Cache-Control": "private, max-age=3600",
+      "Cross-Origin-Resource-Policy": "same-origin",
     },
   });
 }

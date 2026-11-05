@@ -47,7 +47,14 @@ export default async function PushNotificationsPage({
 
       <p className="muted" style={{ marginTop: -8, marginBottom: 24 }}>
         Push ready means the phone allowed notifications. Every matched phone still keeps the message in the app.
+        Place uses each member's home area, not the phone's current GPS.
       </p>
+      {desk.stats.phones === 0 ? (
+        <p className="notice" style={{ marginBottom: 24 }}>
+          No Venturo Application phones have registered yet. Open the signed-in app on the phone so it can
+          register. Until Phones is at least 1, a place such as Johannesburg cannot match.
+        </p>
+      ) : null}
 
       <PushComposer
         disabled={!desk.serviceRoleReady || missingTable}

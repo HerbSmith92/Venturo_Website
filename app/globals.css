@@ -15065,6 +15065,14 @@ a.chip,
   text-underline-offset: 3px;
 }
 
+.spotlight-author .guide-author-socials {
+  margin-top: 10px;
+}
+
+.spotlight-author .guide-author-icon {
+  text-decoration: none;
+}
+
 .spotlight-gallery-grid button {
   padding: 0;
   border: 0;
