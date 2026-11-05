@@ -387,7 +387,7 @@ function HeadingRow({
   if (heading.action === "sign-out") {
     return (
       <form action="/auth/sign-out" method="post">
-        <input type="hidden" name="next" value="/admin/login" />
+        <input type="hidden" name="next" value="/" />
         <button className="cr-leaf" type="submit" title="Log Out">
           <MenuIcon name="logout" />
           <span className="v-label">Log Out</span>
