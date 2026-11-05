@@ -795,7 +795,7 @@ export function CreateEventWizard({
       {step === "bank" ? (
         <StudioSection title="Bank Details">
           <p className="muted">
-            One account for every paid event. We pay this bank 3 working days after the event.
+            One account for every paid event. We pay this bank 2 working days after the event, by hand.
           </p>
           {payout && !replacingBank ? (
             <>

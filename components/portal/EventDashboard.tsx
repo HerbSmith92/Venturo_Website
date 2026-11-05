@@ -36,10 +36,12 @@ export function EventDashboard({
   event,
   data,
   canEdit,
+  hostReport,
 }: {
   event: VenturoEvent;
   data: EventDashboardData;
   canEdit: boolean;
+  hostReport?: { happened: boolean } | null;
 }) {
   const [previewOpen, setPreviewOpen] = useState(false);
   const [qrOpen, setQrOpen] = useState(false);
@@ -259,6 +261,24 @@ export function EventDashboard({
           ) : null}
         </div>
       </header>
+
+      {event.endsAt && new Date(event.endsAt).getTime() < Date.now() && event.status !== "cancelled" ? (
+        <div className="studio-card" style={{ marginBottom: 22 }}>
+          <h3>How Did It Go?</h3>
+          <p className="muted">
+            {hostReport
+              ? hostReport.happened
+                ? "You confirmed this event happened."
+                : "You said this event did not happen."
+              : "Tell us if the event happened. Guests get a review request too."}
+          </p>
+          <p>
+            <a className="btn btn-primary" href={`/portal/events/${event.id}/follow-up`}>
+              {hostReport ? "Update report" : "Send report"}
+            </a>
+          </p>
+        </div>
+      ) : null}
 
       {error ? <p className="error">{error}</p> : null}
       {notice ? <p className="notice">{notice}</p> : null}

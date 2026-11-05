@@ -4,8 +4,9 @@ import { useState } from "react";
 import { OtpCodeBoxes } from "@/components/OtpCodeBoxes";
 import { HostPayoutForm } from "@/components/portal/HostPayoutForm";
 import { formatCents } from "@/lib/event-types";
+import { formatCount, formatWhen } from "@/lib/overview/metrics";
+import { payoutDueLabel, type EventPayoutSummary } from "@/lib/event-payouts";
 import { PORTAL_SETTINGS } from "@/lib/portal";
-import type { EventPayoutSummary } from "@/lib/event-payouts";
 import type { VenturoEvent } from "@/lib/event-types";
 
 type ExistingPayout = {
@@ -74,14 +75,49 @@ export function EventPayment({
     }
   }
 
+  const bankLast4 = existingPayout?.accountNumberLast4 ?? null;
+  const extras = [
+    summary.complimentaryCount ? `${formatCount(summary.complimentaryCount)} complimentary` : null,
+    summary.freeCount ? `${formatCount(summary.freeCount)} free RSVP` : null,
+  ].filter(Boolean);
+
   return (
     <section>
       <p className="eyebrow">Payment</p>
-      <h2>How Money Moves</h2>
+      <h2>{summary.ended ? "Payout report" : "How Money Moves"}</h2>
       <p className="lede muted">
-        Guests pay with Paystack on the website. We pay this event out <strong>3 working days</strong>{" "}
-        after it ends. Apple Pay &amp; Samsung Pay are not supported payment methods for tickets here.
+        {summary.ended
+          ? `This event ended ${summary.endsAt ? formatWhen(summary.endsAt) : "already"}. We pay you 2 working days after it ends. Venturo sends that payout by hand.`
+          : "Guests pay with Paystack on the website. We pay this event out 2 working days after it ends. Venturo sends that payout by hand. Apple Pay & Samsung Pay are not supported payment methods for tickets here."}
       </p>
+
+      <div className="studio-card" style={{ marginBottom: 22 }}>
+        <h3>{summary.ended ? "What we pay you" : "So far (not yet due)"}</h3>
+        <div className="event-dash-stats portal-stat-grid">
+          <article className="portal-stat">
+            <p className="eyebrow">Tickets bought</p>
+            <strong>{formatCount(summary.ticketsBought)}</strong>
+            {extras.length ? <p className="muted">{extras.join(" · ")}</p> : null}
+          </article>
+          <article className="portal-stat">
+            <p className="eyebrow">{summary.ended ? "Amount we pay you" : "Host keep so far"}</p>
+            <strong>{formatCents(summary.ended ? summary.owedCents : summary.hostKeepCents)}</strong>
+          </article>
+          <article className="portal-stat">
+            <p className="eyebrow">Fees kept by Venturo</p>
+            <strong>{formatCents(summary.venturoFeesCents)}</strong>
+          </article>
+          <article className="portal-stat">
+            <p className="eyebrow">Due</p>
+            <strong>{payoutDueLabel(summary)}</strong>
+          </article>
+          <article className="portal-stat">
+            <p className="eyebrow">Bank</p>
+            <strong>{bankLast4 ? `···· ${bankLast4}` : "Not set"}</strong>
+            {existingPayout?.accountHolder ? <p className="muted">{existingPayout.accountHolder}</p> : null}
+          </article>
+        </div>
+      </div>
 
       <div className="event-dash-stats portal-stat-grid">
         <article className="portal-stat">
@@ -102,7 +138,7 @@ export function EventPayment({
         <h3>Payment Options</h3>
         <ul className="stack-list">
           <li>Paystack takes ticket payments for {event.title}.</li>
-          <li>Payouts land 3 working days after the event.</li>
+          <li>Payouts land 2 working days after the event. Venturo sends them by hand.</li>
           <li>One bank for every paid event. Change it below.</li>
         </ul>
       </div>

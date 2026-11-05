@@ -6,6 +6,7 @@ import { ticketQrPayload } from "@/lib/ticket-code";
 import { redirect } from "next/navigation";
 
 type EventJoin = {
+  id?: string | null;
   slug: string | null;
   title: string | null;
   starts_at: string | null;
@@ -109,6 +110,7 @@ export default async function MyTicketsPage({
           event?.story_image_url ||
           "/brand/images/climbing.jpg",
         slug: event?.slug ?? null,
+        eventId: (row.event_id as string | null) ?? event?.id ?? null,
         directions: event ? directionsFor(event) : null,
         cancelled: event?.status === "cancelled",
       };

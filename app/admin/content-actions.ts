@@ -4,6 +4,7 @@ import { revalidatePath } from "next/cache";
 import { bustPublicCatalog } from "@/lib/public-cache";
 import { redirect } from "next/navigation";
 import { requireStaff } from "@/lib/auth";
+import { notifyCommunityFollowers } from "@/lib/follow-notifications";
 import { createClient } from "@/lib/supabase/server";
 
 const COMMUNITY_STATUSES = ["draft", "requested", "published", "archived", "suspended"] as const;
@@ -154,6 +155,7 @@ export async function approveCommunityEvent(communityId: string, eventId: string
     .eq("community_id", communityId)
     .eq("event_id", eventId);
   if (error) return { ok: false as const, error: error.message };
+  await notifyCommunityFollowers(communityId, eventId);
   const { data: community } = await supabase.from("communities").select("slug").eq("id", communityId).maybeSingle();
   revalidatePath("/admin/communities");
   revalidatePath(`/admin/communities/${communityId}`);

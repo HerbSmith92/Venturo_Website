@@ -5,6 +5,7 @@ import { bustPublicCatalog } from "@/lib/public-cache";
 import { redirect } from "next/navigation";
 import { requireAdmin, requireGuideWriter } from "@/lib/auth";
 import { requireWritableGuide } from "@/lib/guide-access";
+import { notifyAuthorFollowers } from "@/lib/follow-notifications";
 import { fromZaLocalInput, isGuideAction } from "@/lib/guide-shared";
 import { createClient } from "@/lib/supabase/server";
 
@@ -127,6 +128,10 @@ export async function applyGuideAction(formData: FormData) {
 
   if (error) {
     redirect(`/admin/guides/${id}?error=${encodeURIComponent(error.message)}`);
+  }
+
+  if (action === "publish") {
+    await notifyAuthorFollowers(id);
   }
 
   revalidateGuides(id);

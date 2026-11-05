@@ -1,6 +1,7 @@
 import { revalidatePath } from "next/cache";
 import { NextResponse } from "next/server";
 import { getStaffSession } from "@/lib/auth";
+import { notifyApprovedEventCommunities } from "@/lib/follow-notifications";
 import { bustPublicCatalog } from "@/lib/public-cache";
 import { isStaff } from "@/lib/roles";
 import { createClient } from "@/lib/supabase/server";
@@ -39,6 +40,10 @@ export async function POST(request: Request) {
 
   if (error) {
     return NextResponse.json({ error: error.message }, { status: 400 });
+  }
+
+  if (body.action === "approve") {
+    await notifyApprovedEventCommunities(body.eventId);
   }
 
   revalidatePath("/");

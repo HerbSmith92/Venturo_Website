@@ -40,7 +40,7 @@ export const EVENT_MENU_ITEMS = [
     id: "payment",
     slug: "payment",
     label: "Payment",
-    lede: "Paystack for tickets. Payouts 3 working days after the event.",
+    lede: "Paystack for tickets. Payouts 2 working days after the event, sent by hand.",
   },
   {
     id: "marketing",

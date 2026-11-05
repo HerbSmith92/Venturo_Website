@@ -16,6 +16,7 @@ export type WalletTicket = {
   place: string;
   imageUrl: string;
   slug: string | null;
+  eventId: string | null;
   directions: string | null;
   cancelled: boolean;
 };
@@ -184,11 +185,18 @@ export function TicketWallet({
               {ticket.past ? "Download keepsake" : "Download ticket"}
             </button>
             {ticket.past ? (
-              ticket.slug ? (
-                <a className="passport-text-link" href={`/events/${ticket.slug}`}>
-                  View event
-                </a>
-              ) : null
+              <>
+                {ticket.eventId && !ticket.cancelled ? (
+                  <a className="passport-text-link" href={`/account/reviews/event/${ticket.eventId}`}>
+                    Write a review
+                  </a>
+                ) : null}
+                {ticket.slug ? (
+                  <a className="passport-text-link" href={`/events/${ticket.slug}`}>
+                    View event
+                  </a>
+                ) : null}
+              </>
             ) : (
               <>
                 {ticket.directions ? (

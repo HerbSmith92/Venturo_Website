@@ -135,7 +135,7 @@ export function HostPayoutForm({
         </p>
       ) : (
         <p className="notice">
-          Paid tickets use this account. We pay it 3 working days after the event.
+          Paid tickets use this account. We pay it 2 working days after the event, by hand.
         </p>
       )}
       <div className="field-row">
