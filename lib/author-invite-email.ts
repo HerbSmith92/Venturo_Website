@@ -11,7 +11,7 @@ function escapeHtml(value: string) {
     .replace(/"/g, "&quot;");
 }
 
-export async function sendAuthorInviteEmail(email: string, joinUrl: string) {
+export async function sendAuthorInviteEmail(email: string, joinUrl: string, authorName?: string) {
   const apiKey = process.env.RESEND_API_KEY?.trim();
   if (!apiKey) {
     return { ok: false as const, error: "Add RESEND_API_KEY to send invite emails." };
@@ -32,7 +32,11 @@ export async function sendAuthorInviteEmail(email: string, joinUrl: string) {
             </tr>
             <tr>
               <td style="padding-top:16px;font-family:Nunito,'Trebuchet MS',sans-serif;font-weight:200;font-size:16px;line-height:1.55;color:#EBEBF3;">
-                Pick a username, we email you a one-time code, then you fill in your own Author card &amp; start your Guides.
+                ${
+                  authorName
+                    ? `Take over ${escapeHtml(authorName)}. Pick a username, we email you a one-time code, then you can start your Guides.`
+                    : "Pick a username, we email you a one-time code, then you fill in your own Author card &amp; start your Guides."
+                }
               </td>
             </tr>
             <tr>
@@ -54,7 +58,9 @@ export async function sendAuthorInviteEmail(email: string, joinUrl: string) {
 
   const text = [
     "Write with Venturo",
-    "Pick a username, we email you a one-time code, then you fill in your own Author card & start your Guides.",
+    authorName
+      ? `Take over ${authorName}. Pick a username, we email you a one-time code, then you can start your Guides.`
+      : "Pick a username, we email you a one-time code, then you fill in your own Author card & start your Guides.",
     joinUrl,
     "This link lasts 14 days. Venturo still publishes.",
   ].join("\n\n");

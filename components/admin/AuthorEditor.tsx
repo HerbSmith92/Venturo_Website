@@ -3,6 +3,7 @@
 import { useMemo, useRef, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { deleteGuideAuthor, saveGuideAuthor, saveGuideAuthorAsset } from "@/app/admin/author-actions";
+import { AuthorInvitePanel } from "@/components/admin/AuthorInvitePanel";
 import { GuideAuthorCard } from "@/components/GuideAuthorCard";
 import type { AuthorLatestGuide, GuideAuthor } from "@/lib/guide-authors";
 import type { GuideStaffOption } from "@/lib/control-room-authors";
@@ -324,10 +325,22 @@ export function AuthorEditor({
           </div>
         </article>
 
+        {canLinkStaff && !author.user_id ? (
+          <article className="author-studio-card">
+            <h2>
+              <span>03</span> Invite this writer
+            </h2>
+            <AuthorInvitePanel
+              authorId={author.id}
+              takeoverName={draft.display_name.trim() || author.display_name}
+            />
+          </article>
+        ) : null}
+
         {canLinkStaff ? (
           <article className="author-studio-card">
             <h2>
-              <span>03</span> Staff login
+              <span>{canLinkStaff && !author.user_id ? "04" : "03"}</span> Staff login
             </h2>
             <p className="muted">Optional. Link an existing staff login so they write as this card.</p>
             <div className="author-studio-account">

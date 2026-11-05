@@ -23,6 +23,8 @@ export type GuideAuthorInviteRow = {
   created_at: string;
   expires_at: string;
   claimed_at: string | null;
+  authorId: string | null;
+  authorName: string | null;
 };
 
 export async function loadGuideAuthors(): Promise<GuideAuthor[]> {
@@ -52,16 +54,28 @@ async function publishedCountsByAuthor() {
   return counts;
 }
 
-async function loadGuideAuthorInvites(): Promise<GuideAuthorInviteRow[]> {
+async function loadGuideAuthorInvites(): Promise<
+  Omit<GuideAuthorInviteRow, "authorName">[]
+> {
   const admin = createServiceClient();
   if (!admin) return [];
   const { data, error } = await admin
     .from("guide_author_invites")
-    .select("id, email, token, created_at, expires_at, claimed_at")
+    .select("id, email, token, created_at, expires_at, claimed_at, author_id")
     .order("created_at", { ascending: false })
     .limit(50);
   if (error || !data) return [];
-  return data as GuideAuthorInviteRow[];
+  return (data as { id: string; email: string | null; token: string; created_at: string; expires_at: string; claimed_at: string | null; author_id: string | null }[]).map(
+    (row) => ({
+      id: row.id,
+      email: row.email,
+      token: row.token,
+      created_at: row.created_at,
+      expires_at: row.expires_at,
+      claimed_at: row.claimed_at,
+      authorId: row.author_id,
+    }),
+  );
 }
 
 export async function loadGuideAuthorsDashboard(): Promise<{
@@ -75,6 +89,7 @@ export async function loadGuideAuthorsDashboard(): Promise<{
     loadGuideAuthorInvites(),
   ]);
   const staffById = new Map(staff.map((person) => [person.id, person]));
+  const authorById = new Map(authors.map((author) => [author.id, author]));
   return {
     authors: authors.map((author) => {
       const linked = author.user_id ? staffById.get(author.user_id) : undefined;
@@ -85,7 +100,10 @@ export async function loadGuideAuthorsDashboard(): Promise<{
         publishedCount: counts.get(author.id) ?? 0,
       };
     }),
-    invites,
+    invites: invites.map((invite) => ({
+      ...invite,
+      authorName: invite.authorId ? authorById.get(invite.authorId)?.display_name ?? null : null,
+    })),
   };
 }
 

@@ -117,7 +117,7 @@ async function requestOrigin() {
   return host ? `${proto}://${host}` : "";
 }
 
-async function mintGuideAuthorInvite(email?: string) {
+async function mintGuideAuthorInvite(email?: string, authorId?: string) {
   await requireAdmin();
   const supabase = await createClient();
   if (!supabase) {
@@ -125,6 +125,7 @@ async function mintGuideAuthorInvite(email?: string) {
   }
   const { data, error } = await supabase.rpc("admin_create_guide_author_invite", {
     p_email: email?.trim().toLowerCase() || null,
+    p_author_id: authorId || null,
   });
   const row = (typeof data === "string" ? JSON.parse(data) : data) as {
     token?: string;
@@ -141,18 +142,18 @@ async function mintGuideAuthorInvite(email?: string) {
   };
 }
 
-export async function createGuideAuthorInvite() {
-  return mintGuideAuthorInvite();
+export async function createGuideAuthorInvite(authorId?: string) {
+  return mintGuideAuthorInvite(undefined, authorId);
 }
 
-export async function emailGuideAuthorInvite(email: string) {
+export async function emailGuideAuthorInvite(email: string, authorId?: string, authorName?: string) {
   const trimmed = email.trim().toLowerCase();
   if (!trimmed || !trimmed.includes("@")) {
     return { ok: false as const, error: "Enter a valid email." };
   }
-  const invite = await mintGuideAuthorInvite(trimmed);
+  const invite = await mintGuideAuthorInvite(trimmed, authorId);
   if (!invite.ok) return invite;
-  const sent = await sendAuthorInviteEmail(trimmed, invite.url);
+  const sent = await sendAuthorInviteEmail(trimmed, invite.url, authorName);
   if (!sent.ok) {
     return { ok: true as const, url: invite.url, expiresAt: invite.expiresAt, emailed: false, error: sent.error };
   }

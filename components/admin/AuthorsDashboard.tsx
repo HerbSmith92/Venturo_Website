@@ -320,9 +320,12 @@ export function AuthorsDashboard({
               return (
                 <article key={invite.id} className="authors-board-invite">
                   <div>
-                    <h2>{invite.email || "Invite link"}</h2>
+                    <h2>{invite.authorName || invite.email || "Invite link"}</h2>
                     <p className="muted">
-                      {state} · {claimed ? "Used" : `Expires ${formatClock(invite.expires_at)}`}
+                      {state}
+                      {invite.authorName ? " · Takes over this card" : ""}
+                      {invite.email && invite.authorName ? ` · ${invite.email}` : ""}
+                      {claimed ? " · Used" : ` · Expires ${formatClock(invite.expires_at)}`}
                     </p>
                   </div>
                   {!claimed && !expired ? (

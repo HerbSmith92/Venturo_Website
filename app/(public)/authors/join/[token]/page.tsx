@@ -11,6 +11,7 @@ type InvitePeek = {
   claimed: boolean;
   expired: boolean;
   email: string | null;
+  display_name?: string | null;
 };
 
 export default async function AuthorJoinPage({
@@ -32,14 +33,16 @@ export default async function AuthorJoinPage({
   const staffSession = user && isStaff(user.role);
   const next = `/authors/join/${token}`;
   const closed = invite.expired || invite.claimed;
+  const takeoverName = invite.display_name?.trim() || "";
 
   return (
     <main className="shell section">
       <p className="eyebrow">Guides</p>
       <h1>Write with Venturo</h1>
       <p className="lede muted">
-        Pick a username, we email you an 8-digit code, then you fill in your own Author card &amp;
-        start your Guides. Venturo still publishes them.
+        {takeoverName
+          ? `Take over ${takeoverName}. Pick a username, we email you an 8-digit code, then you can start your Guides. Venturo still publishes them.`
+          : "Pick a username, we email you an 8-digit code, then you fill in your own Author card & start your Guides. Venturo still publishes them."}
       </p>
       {error ? <p className="error">{error}</p> : null}
       {invite.expired ? (

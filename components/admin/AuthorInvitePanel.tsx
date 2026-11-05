@@ -3,13 +3,20 @@
 import { useState, useTransition } from "react";
 import { createGuideAuthorInvite, emailGuideAuthorInvite } from "@/app/admin/author-actions";
 
-export function AuthorInvitePanel() {
+export function AuthorInvitePanel({
+  authorId,
+  takeoverName,
+}: {
+  authorId?: string;
+  takeoverName?: string;
+}) {
   const [pending, startTransition] = useTransition();
   const [email, setEmail] = useState("");
   const [url, setUrl] = useState("");
   const [copied, setCopied] = useState(false);
   const [message, setMessage] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const takeover = Boolean(authorId);
 
   function onCopyLink() {
     setError(null);
@@ -17,7 +24,7 @@ export function AuthorInvitePanel() {
     startTransition(async () => {
       const result = url
         ? { ok: true as const, url }
-        : await createGuideAuthorInvite();
+        : await createGuideAuthorInvite(authorId);
       if (!result.ok) {
         setError(result.error);
         return;
@@ -39,7 +46,7 @@ export function AuthorInvitePanel() {
     setMessage(null);
     setCopied(false);
     startTransition(async () => {
-      const result = await emailGuideAuthorInvite(email);
+      const result = await emailGuideAuthorInvite(email, authorId, takeoverName);
       if (!result.ok) {
         setError(result.error);
         return;
@@ -54,11 +61,12 @@ export function AuthorInvitePanel() {
   }
 
   return (
-    <div className="cr-panel" style={{ marginBottom: 28 }}>
-      <h2>Invite a writer</h2>
+    <div className="cr-panel" style={{ marginBottom: takeover ? 0 : 28 }}>
+      {takeover ? null : <h2>Invite a writer</h2>}
       <p className="muted">
-        They open the link, pick a username, get a one-time code by email, then fill in their own
-        Author card. You still publish.
+        {takeover
+          ? `They open the link, pick a username, get a one-time code, then take over this Author card. You still publish.`
+          : "They open the link, pick a username, get a one-time code by email, then fill in their own Author card. You still publish."}
       </p>
       {error ? <p className="error">{error}</p> : null}
       {message ? <p className="notice">{message}</p> : null}
