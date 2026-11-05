@@ -404,7 +404,7 @@
     },
     {
       "type": "p",
-      "text": "Approved refunds for transactions processed through PayFast will normally be processed using the applicable PayFast refund process."
+      "text": "Approved refunds for transactions processed through Paystack will normally be processed using the applicable Paystack refund process."
     },
     {
       "type": "p",

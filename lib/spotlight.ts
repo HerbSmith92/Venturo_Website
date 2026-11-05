@@ -475,9 +475,9 @@ export function createSpotlightBlock(type: SpotlightBlockType): SpotlightBlock {
 }
 
 export function spotlightPriceLabel(value: number | string | null | undefined) {
-  if (value === null || value === undefined || value === "") return "";
+  if (value === null || value === undefined || value === "") return "Price to follow";
   const amount = typeof value === "number" ? value : Number(value);
-  if (!Number.isFinite(amount)) return "";
+  if (!Number.isFinite(amount)) return "Price to follow";
   if (amount === 0) return "Free";
   return `From R ${amount.toFixed(2)}`;
 }

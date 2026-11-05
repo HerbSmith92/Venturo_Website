@@ -82,6 +82,15 @@ export function AccountNav({
       ],
     },
     {
+      label: "Made For You",
+      items: [
+        { href: "/account/going-out", label: "For You", icon: "compass" },
+        { href: "/account/going-out", label: "Going Out", icon: "users" },
+        { href: "/account/interests", label: "Interests", icon: "compass" },
+        { href: "/account/activity", label: "Activity Level", icon: "pulse" },
+      ],
+    },
+    {
       label: "Documents",
       items: [
         { href: "/terms", label: "Terms & Conditions", icon: "book" },
@@ -89,14 +98,6 @@ export function AccountNav({
         { href: "/refunds", label: "Refunds & Cancellations", icon: "card" },
         { href: "/copyright", label: "Copyright", icon: "flag" },
         { href: "/community-guidelines", label: "Community Guidelines", icon: "users" },
-      ],
-    },
-    {
-      label: "Made For You",
-      items: [
-        { href: "/account/going-out", label: "Going Out", icon: "users" },
-        { href: "/account/interests", label: "Interests", icon: "compass" },
-        { href: "/account/activity", label: "Activity Level", icon: "pulse" },
       ],
     },
   ];
@@ -289,6 +290,12 @@ export function AccountNav({
           </div>
         </div>
       </div>
+      <form action="/auth/sign-out" method="post" className="account-rail-group">
+        <button className="v-item" type="submit" title="Sign Out">
+          <MenuIcon name="logout" />
+          <span className="v-label">Sign Out</span>
+        </button>
+      </form>
     </nav>
   );
 }

@@ -10,13 +10,14 @@ import { portalMarketingInvitesHref } from "@/lib/portal";
 import { PortalBarChart } from "@/components/portal/PortalBarChart";
 import type { VenturoEvent } from "@/lib/event-types";
 
-function dashboardStatusLabel(status: VenturoEvent["status"]) {
-  if (status === "approved") return "Approved & Live";
-  if (status === "review") return "In Review";
-  if (status === "rejected") return "Rejected";
-  if (status === "cancelled") return "Cancelled";
-  if (status === "draft") return "Draft";
-  return status;
+function dashboardStatusLabel(event: VenturoEvent) {
+  const ended = event.endsAt ? new Date(event.endsAt).getTime() < Date.now() : false;
+  if (event.status === "approved") return ended ? "Approved · Event ended" : "Approved";
+  if (event.status === "review") return "In Review";
+  if (event.status === "rejected") return "Rejected";
+  if (event.status === "cancelled") return "Cancelled";
+  if (event.status === "draft") return "Draft";
+  return event.status;
 }
 
 function formatCount(n: number) {
@@ -126,7 +127,7 @@ export function EventDashboard({
         <div>
           <p className="eyebrow">Event Dashboard</p>
           <h2>How This One Is Tracking</h2>
-          <span className={`status-pill ${event.status}`}>{dashboardStatusLabel(event.status)}</span>
+          <span className={`status-pill ${event.status}`}>{dashboardStatusLabel(event)}</span>
           {event.status === "review" ? (
             <p className="notice">
               With Venturo for a check. We&apos;ll write here if something needs a change.

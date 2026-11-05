@@ -15,7 +15,6 @@ import {
   formatEventWhen,
   formatEventWindow,
   remainingTickets,
-  memberPriceCentsFromDiscount,
   slugifyTitle,
   unitPriceCents,
   type EventStatus,
@@ -135,14 +134,13 @@ function mapTicket(row: TicketTypeRow): EventTicketType {
   };
 }
 
-function memberCentsForTicket(ticket: EventTicketType, platformMemberDiscountPct: number) {
+function memberCentsForTicket(ticket: EventTicketType) {
   if (ticket.memberPriceCents !== null) return ticket.memberPriceCents;
   if (ticket.memberDiscountKind !== "none" || ticket.membersOnly) return ticket.memberPriceCents;
-  if (ticket.kind === "free" || ticket.priceCents <= 0 || platformMemberDiscountPct <= 0) return null;
-  return memberPriceCentsFromDiscount(ticket.priceCents, "percent", platformMemberDiscountPct);
+  return null;
 }
 
-function mapEvent(row: EventRow, platformMemberDiscountPct = 0): VenturoEvent {
+function mapEvent(row: EventRow): VenturoEvent {
   const ticketTypes = [...(row.event_ticket_types ?? [])]
     .sort((a, b) => a.sort_order - b.sort_order)
     .map(mapTicket);
@@ -156,7 +154,7 @@ function mapEvent(row: EventRow, platformMemberDiscountPct = 0): VenturoEvent {
   const hasPaid = paidPrices.length > 0;
   const publicPrices = hasPaid ? paidPrices : hasFree ? [0] : publicTickets.map((t) => t.priceCents);
   const memberPrices = visibleTickets
-    .map((ticket) => memberCentsForTicket(ticket, platformMemberDiscountPct))
+    .map((ticket) => memberCentsForTicket(ticket))
     .filter((price): price is number => price !== null);
   const membersOnly =
     visibleTickets.length > 0 &&
@@ -261,9 +259,8 @@ async function fetchUpcomingPublicEvents(): Promise<VenturoEvent[]> {
     .order("starts_at", { ascending: true })
     .limit(40);
   if (error || !data) return [];
-  const fees = await getPlatformFees();
   return (data as EventRow[])
-    .map((row) => mapEvent(row, fees.memberDiscountPct))
+    .map((row) => mapEvent(row))
     .flatMap((event) => {
       const next = nextOccurrence(event.startsAt, event.endsAt, event.repeatEvery, event.repeatUntil, now);
       return next ? [{ ...event, startsAt: next.startsAt, endsAt: next.endsAt }] : [];
@@ -323,8 +320,7 @@ export async function listPublicEvents(options?: {
 
   const { data, error } = await query;
   if (error || !data) return [];
-  const fees = await getPlatformFees();
-  let events = (data as EventRow[]).map((row) => mapEvent(row, fees.memberDiscountPct));
+  let events = (data as EventRow[]).map((row) => mapEvent(row));
   if (when === "past") {
     events = events.filter(
       (event) => !nextOccurrence(event.startsAt, event.endsAt, event.repeatEvery, event.repeatUntil, now),
@@ -388,8 +384,7 @@ export async function getEventBySlug(slug: string): Promise<VenturoEvent | null>
     .maybeSingle();
 
   if (error || !data) return null;
-  const fees = await getPlatformFees();
-  return mapEvent(data as EventRow, fees.memberDiscountPct);
+  return mapEvent(data as EventRow);
 }
 
 export async function listEventsByIds(ids: string[]): Promise<VenturoEvent[]> {
@@ -398,8 +393,7 @@ export async function listEventsByIds(ids: string[]): Promise<VenturoEvent[]> {
   if (!supabase) return [];
   const { data, error } = await supabase.from("events").select(EVENT_SELECT).in("id", ids);
   if (error || !data) return [];
-  const fees = await getPlatformFees();
-  return (data as EventRow[]).map((row) => mapEvent(row, fees.memberDiscountPct));
+  return (data as EventRow[]).map((row) => mapEvent(row));
 }
 
 export async function getEventById(id: string): Promise<VenturoEvent | null> {
@@ -413,8 +407,7 @@ export async function getEventById(id: string): Promise<VenturoEvent | null> {
     .maybeSingle();
 
   if (error || !data) return null;
-  const fees = await getPlatformFees();
-  return mapEvent(data as EventRow, fees.memberDiscountPct);
+  return mapEvent(data as EventRow);
 }
 
 export async function listAccessibleEvents(userId: string): Promise<VenturoEvent[]> {

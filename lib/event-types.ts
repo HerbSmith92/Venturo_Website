@@ -399,25 +399,9 @@ export function remainingTickets(ticket: EventTicketType) {
   return Math.max(0, ticket.quantity - ticket.soldCount);
 }
 
-export function unitPriceCents(
-  ticket: EventTicketType,
-  paidMember: boolean,
-  platformMemberDiscountPct = 0,
-) {
+export function unitPriceCents(ticket: EventTicketType, paidMember: boolean) {
   if (paidMember && ticket.memberPriceCents !== null) return ticket.memberPriceCents;
   if (ticket.membersOnly) return ticket.memberPriceCents ?? ticket.priceCents;
-  if (
-    paidMember &&
-    ticket.memberDiscountKind === "none" &&
-    ticket.kind !== "free" &&
-    ticket.priceCents > 0 &&
-    platformMemberDiscountPct > 0
-  ) {
-    return (
-      memberPriceCentsFromDiscount(ticket.priceCents, "percent", platformMemberDiscountPct) ??
-      ticket.priceCents
-    );
-  }
   return ticket.priceCents;
 }
 
@@ -453,6 +437,7 @@ export function eventAddressText(
   >,
 ) {
   return [event.addressLine1, event.addressLine2, event.city, event.postalCode, event.country]
+    .map((part) => (part ?? "").replace(/^[,\s]+|[,\s]+$/g, "").trim())
     .filter(Boolean)
     .join(", ");
 }

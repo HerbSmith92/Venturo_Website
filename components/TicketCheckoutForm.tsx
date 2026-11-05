@@ -47,7 +47,9 @@ export function TicketCheckoutForm({
   inviteToken = "",
   initialBasket,
   occurrenceStartsAt = "",
-  needsConsent = false,
+  occurrenceLabel = "",
+  venueLabel = "",
+  needsConsent = true,
 }: {
   eventSlug: string;
   tickets: EventTicketType[];
@@ -59,6 +61,8 @@ export function TicketCheckoutForm({
   initialBasket?: string;
   occurrenceStartsAt?: string;
   occurrenceEndsAt?: string;
+  occurrenceLabel?: string;
+  venueLabel?: string;
   needsConsent?: boolean;
 }) {
   const [qty, setQty] = useState<Record<string, number>>(() =>
@@ -86,7 +90,7 @@ export function TicketCheckoutForm({
         .map((ticket) => ({
           ticket,
           quantity: qty[ticket.id] ?? 0,
-          unitCents: unitPriceCents(ticket, priceAsMember, fees.memberDiscountPct),
+          unitCents: unitPriceCents(ticket, priceAsMember),
         }))
         .filter((line) => line.quantity > 0),
     [tickets, qty, priceAsMember],
@@ -353,6 +357,11 @@ export function TicketCheckoutForm({
     return (
       <form className="ticket-basket" onSubmit={(event) => void pay(event)}>
         <p className="eyebrow">Your Basket</p>
+        {occurrenceLabel || venueLabel ? (
+          <p className="muted">
+            {[occurrenceLabel, venueLabel].filter(Boolean).join(" · ")}
+          </p>
+        ) : null}
         {lines.map((line) => {
           const left = remainingTickets(line.ticket);
           return (
@@ -444,7 +453,7 @@ export function TicketCheckoutForm({
     <div className="ticket-picker">
       {tickets.map((ticket) => {
         const left = remainingTickets(ticket);
-        const unit = unitPriceCents(ticket, priceAsMember, fees.memberDiscountPct);
+        const unit = unitPriceCents(ticket, priceAsMember);
         const list = ticket.priceCents;
         const quantity = qty[ticket.id] ?? 0;
         const memberLocked = ticket.membersOnly && !paidMember;
@@ -512,7 +521,11 @@ export function TicketCheckoutForm({
       })}
       {error ? <p className="error">{error}</p> : null}
       <button className="btn btn-primary" type="button" onClick={buy}>
-        Buy
+        {lines.length === 0
+          ? "Choose tickets"
+          : lines.every((line) => line.unitCents === 0)
+            ? "Reserve free ticket"
+            : "Buy tickets"}
       </button>
     </div>
   );

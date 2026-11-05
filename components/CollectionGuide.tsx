@@ -67,7 +67,9 @@ export function CollectionGuide({
           </p>
           <h1>{title}</h1>
           {intro ? <p className="guide-collection-intro">{intro}</p> : null}
-          <p className="guide-collection-meta muted">{formatGuideTally(viewCount, "view", "views")}</p>
+          {viewCount > 0 ? (
+            <p className="guide-collection-meta muted">{formatGuideTally(viewCount, "view", "views")}</p>
+          ) : null}
           {save || like ? (
             <div className="guide-collection-actions">
               {like ? (

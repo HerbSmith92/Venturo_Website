@@ -28,10 +28,13 @@ export function GuideCard({ guide }: { guide: GuideCardData }) {
         <h3>{guide.title}</h3>
         {guide.authorName ? <p className="muted">By {guide.authorName}</p> : null}
         <p className="muted">{intro}</p>
-        <p className="guide-card-meta muted">
-          {formatGuideTally(views, "view", "views")}
-          {likes > 0 ? ` · ${formatGuideTally(likes, "like", "likes")}` : ""}
-        </p>
+        {views > 0 || likes > 0 ? (
+          <p className="guide-card-meta muted">
+            {views > 0 ? formatGuideTally(views, "view", "views") : null}
+            {views > 0 && likes > 0 ? " · " : null}
+            {likes > 0 ? formatGuideTally(likes, "like", "likes") : null}
+          </p>
+        ) : null}
         <span className="guide-card-cta">
           {guide.shape === "spotlight" ? "Read the Guide →" : "Explore the List →"}
         </span>

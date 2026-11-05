@@ -80,7 +80,7 @@ export function EventPayment({
       <h2>How Money Moves</h2>
       <p className="lede muted">
         Guests pay with Paystack on the website. We pay this event out <strong>3 working days</strong>{" "}
-        after it ends. Apple Pay &amp; Samsung Pay are not ticket rails here.
+        after it ends. Apple Pay &amp; Samsung Pay are not supported payment methods for tickets here.
       </p>
 
       <div className="event-dash-stats portal-stat-grid">

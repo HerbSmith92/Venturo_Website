@@ -18,7 +18,8 @@ export default async function RegisterCommunityPage() {
       <p className="eyebrow">Community</p>
       <h1>Register a Community</h1>
       <p className="lede muted">
-        Community Details, Founder Details, then Contact &amp; Socials. Submit adds it under Communities.
+        Community Details, Founder Details, then Contact &amp; Socials. Submit adds it under
+        Communities. Logo, cover &amp; category can be finished with staff after review.
       </p>
       <RegisterCommunityForm
         founderName={[firstName, profile.lastName].filter(Boolean).join(" ")}

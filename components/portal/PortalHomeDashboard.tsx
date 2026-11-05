@@ -145,9 +145,9 @@ export function PortalHomeDashboard({
 
       <section className="portal-active">
         <p className="eyebrow">On The Go</p>
-        <h2>Active Events</h2>
+        <h2>Live &amp; Upcoming</h2>
         {data.events.length === 0 ? (
-          <p className="muted">None hosted yet. Create one above &amp; it lands here.</p>
+          <p className="muted">No approved events in this window. Drafts sit below until they go live.</p>
         ) : (
           <div className="portal-event-list">
             {data.events.map((row) => (
@@ -156,6 +156,17 @@ export function PortalHomeDashboard({
           </div>
         )}
       </section>
+      {data.drafts.length > 0 ? (
+        <section className="portal-active">
+          <p className="eyebrow">Still In The Works</p>
+          <h2>Drafts &amp; In Review</h2>
+          <div className="portal-event-list">
+            {data.drafts.map((row) => (
+              <EventBlock key={row.event.id} row={row} />
+            ))}
+          </div>
+        </section>
+      ) : null}
     </main>
   );
 }

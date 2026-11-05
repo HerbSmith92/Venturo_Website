@@ -45,9 +45,25 @@ export default async function EventsPage({
     if (!needle) return true;
     return `${event.title} ${event.city ?? ""} ${event.category ?? ""}`.toLowerCase().includes(needle);
   });
+  const feed =
+    when === "calendar"
+      ? events
+      : events.filter((event, index, rows) => rows.findIndex((item) => item.id === event.id) === index);
   const showRows = when === "upcoming" && category === "all" && !needle && !price;
-  const comingUp = events.slice(0, 6);
-  const hot = events
+  const eventQuery = (next: { category?: string; when?: string; price?: string }) => {
+    const search = new URLSearchParams();
+    const nextWhen = next.when ?? when;
+    const nextCategory = next.category ?? category;
+    const nextPrice = next.price ?? price;
+    if (nextWhen && nextWhen !== "upcoming") search.set("when", nextWhen);
+    if (nextCategory && nextCategory !== "all") search.set("category", nextCategory);
+    if (nextPrice) search.set("price", nextPrice);
+    if (params.q) search.set("q", params.q);
+    const query = search.toString();
+    return query ? `/events?${query}` : "/events";
+  };
+  const comingUp = feed.slice(0, 6);
+  const hot = feed
     .filter(
       (event) =>
         event.memberFromPriceCents !== null &&
@@ -95,9 +111,9 @@ export default async function EventsPage({
         </form>
         <div className="section-head">
           <div>
-            <p className="eyebrow">Around South Africa</p>
+            <p className="eyebrow">What&apos;s On</p>
             <h2>
-              {when === "past" ? "Past Events" : when === "weekend" ? "This Weekend" : "Upcoming Adventures"}
+              {when === "past" ? "Past Events" : when === "weekend" ? "This Weekend" : when === "calendar" ? "Agenda" : "Upcoming Adventures"}
             </h2>
           </div>
         </div>
@@ -113,32 +129,32 @@ export default async function EventsPage({
             <a
               key={id}
               className={`chip${when === id ? " active" : ""}`}
-              href={`/events?when=${id}${category !== "all" ? `&category=${encodeURIComponent(category)}` : ""}${price ? `&price=${price}` : ""}`}
+              href={eventQuery({ when: id })}
             >
               {label}
             </a>
           ))}
           <a
             className={`chip${price === "free" ? " active" : ""}`}
-            href={`/events?when=${when}&price=free${category !== "all" ? `&category=${encodeURIComponent(category)}` : ""}`}
+            href={eventQuery({ price: "free" })}
           >
             Free
           </a>
           <a
             className={`chip${price === "paid" ? " active" : ""}`}
-            href={`/events?when=${when}&price=paid${category !== "all" ? `&category=${encodeURIComponent(category)}` : ""}`}
+            href={eventQuery({ price: "paid" })}
           >
             Paid
           </a>
-          <a className={`chip${when === "calendar" ? " active" : ""}`} href="/events?when=calendar">
-            Calendar
+          <a className={`chip${when === "calendar" ? " active" : ""}`} href={eventQuery({ when: "calendar" })}>
+            Agenda
           </a>
         </div>
 
         <div className="chips events-interest-chips" style={{ marginBottom: 28 }} role="list">
           <a
             className={`chip chip-light${category === "all" ? " active" : ""}`}
-            href="/events"
+            href={eventQuery({ category: "all" })}
             aria-current={category === "all" ? "page" : undefined}
             style={chipStyle(COLORS.sapphire, category === "all")}
           >
@@ -151,7 +167,7 @@ export default async function EventsPage({
               <a
                 key={item}
                 className={`chip chip-light${on ? " active" : ""}`}
-                href={`/events?category=${encodeURIComponent(item)}`}
+                href={eventQuery({ category: item })}
                 aria-current={on ? "page" : undefined}
                 style={chipStyle(fill, on)}
               >
@@ -161,7 +177,19 @@ export default async function EventsPage({
           })}
         </div>
 
-        {events.length === 0 ? (
+        {events.length === 0 && needle ? (
+          <div className="plan">
+            <h3>No matches for “{params.q?.trim()}”</h3>
+            <p className="muted">
+              Nothing on this list uses that wording. Clear the search, try another date, or browse every upcoming plan.
+            </p>
+            <div className="hero-actions" style={{ marginTop: 16 }}>
+              <a className="btn btn-primary" href="/events">
+                Clear search
+              </a>
+            </div>
+          </div>
+        ) : events.length === 0 ? (
           <div className="plan">
             <h3>The Calendar Is Warming Up</h3>
             <p className="muted">
@@ -230,7 +258,7 @@ export default async function EventsPage({
           </>
         ) : (
           <div className="grid">
-            {events.map((event) => (
+            {feed.map((event) => (
               <EventCard
                 key={`${event.id}-${event.startsAt}`}
                 event={event}

@@ -23,7 +23,10 @@ export default async function GetTheAppPage() {
       <section className="section">
         <p className="eyebrow">Get the App</p>
         <h1>Download Venturo</h1>
-        <p className="lede">Pick the store on your phone. Membership discounts live in the app.</p>
+        <p className="lede">
+          Pick the store on your phone. Member prices also show on the website after you sign in.
+          Some partner deals still need the app to redeem.
+        </p>
         <div className="hero-actions" style={{ marginTop: 24 }}>
           {links.map((link) => (
             <a

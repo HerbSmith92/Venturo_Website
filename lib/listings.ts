@@ -38,19 +38,24 @@ export const CATEGORIES: {
   id: CategoryId | "all";
   label: string;
   colour: string;
+  ink: string;
 }[] = [
-  { id: "all", label: "All", colour: "#7CC3E9" }, // Sky Blue — readable on Night Sky, distinct from Team
-  { id: "team", label: "Team", colour: "#F3BF4A" },
-  { id: "thrills", label: "Thrills", colour: "#FF9E6B" },
-  { id: "adventure", label: "Adventure", colour: "#45A67F" },
-  { id: "romance", label: "Romance", colour: "#D54732" },
-  { id: "family", label: "Family", colour: "#DC729E" },
-  { id: "workshop", label: "Workshop", colour: "#FF2EFF" },
-  { id: "markets", label: "Markets", colour: "#971A21" },
-  { id: "digital", label: "Digital", colour: "#7CC3E9" },
-  { id: "nightlife", label: "Nightlife", colour: "#5E589E" },
-  { id: "third-party", label: "Third Party", colour: "#14001A" },
+  { id: "all", label: "All", colour: "#2A2D35", ink: "#EBEBF3" },
+  { id: "team", label: "Team", colour: "#F3BF4A", ink: "#2A2D35" },
+  { id: "thrills", label: "Thrills", colour: "#D54732", ink: "#EBEBF3" },
+  { id: "adventure", label: "Adventure", colour: "#45A67F", ink: "#EBEBF3" },
+  { id: "romance", label: "Romance", colour: "#DC729E", ink: "#2A2D35" },
+  { id: "family", label: "Family", colour: "#7CC3E9", ink: "#2A2D35" },
+  { id: "workshop", label: "Workshops & Education", colour: "#5E589E", ink: "#EBEBF3" },
+  { id: "markets", label: "Markets", colour: "#971A21", ink: "#EBEBF3" },
+  { id: "digital", label: "Digital", colour: "#2A2D35", ink: "#EBEBF3" },
+  { id: "nightlife", label: "Nightlife", colour: "#14001A", ink: "#EBEBF3" },
+  { id: "third-party", label: "Third Party", colour: "#2A2D35", ink: "#EBEBF3" },
 ];
+
+export const PUBLIC_CATEGORIES = CATEGORIES.filter(
+  (category) => category.id !== "digital" && category.id !== "third-party",
+);
 
 const CATEGORY_IDS = new Set(CATEGORIES.map((item) => item.id));
 
@@ -134,7 +139,7 @@ function mapLiveRow(row: LiveRow): Listing {
     area,
     city,
     category,
-    vibe: vibe.length > 72 ? `${vibe.slice(0, 69)}…` : vibe || "Open the directory",
+    vibe: vibe.length > 72 ? `${vibe.slice(0, 69)}…` : vibe || "Summary to follow",
     energy: "Medium",
     fromPrice: fromListed,
     memberFromPrice:
@@ -278,8 +283,8 @@ export async function homeTasteRows(
   });
 
   const rows: HomeTasteRow[] = [];
-  for (const category of CATEGORIES) {
-    if (category.id === "all" || category.id === "third-party") continue;
+  for (const category of PUBLIC_CATEGORIES) {
+    if (category.id === "all") continue;
     const items = pool
       .filter((listing) => listing.category === category.id)
       .slice(0, limitPerCategory);
@@ -364,7 +369,7 @@ export async function searchDirectory(query: DirectoryQuery) {
 }
 
 export function formatFromPrice(rand: number | null | undefined) {
-  if (rand == null) return "";
+  if (rand == null) return "Price to follow";
   if (rand === 0) return "Free";
   return `From R ${rand.toFixed(2)}`;
 }

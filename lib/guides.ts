@@ -51,7 +51,7 @@ export type GuideRecommendation = {
   category: CategoryId;
   vibe: string;
   image: string;
-  fromPrice: number;
+  fromPrice: number | null;
   memberFromPrice: number | null;
   editorialNote: string | null;
 };
@@ -151,13 +151,15 @@ function coverUrl(media: MediaRow[] | undefined) {
 }
 
 function memberFrom(row: ListingEmbed) {
-  const fromListed = asNumber(row.price_from) ?? 0;
+  const fromListed = asNumber(row.price_from);
   const active = (row.price_options ?? []).filter((item) => item.is_active !== false);
   const memberPrices = active
     .map((item) => asNumber(item.member_price))
     .filter((n): n is number => n !== null);
   const memberFromPrice = memberPrices.length ? Math.min(...memberPrices) : null;
-  return memberFromPrice !== null && memberFromPrice < fromListed ? memberFromPrice : null;
+  return memberFromPrice !== null && fromListed != null && memberFromPrice < fromListed
+    ? memberFromPrice
+    : null;
 }
 
 function listingBlurb(description: string | null | undefined, shortDescription: string | null | undefined) {
@@ -204,7 +206,7 @@ function mapRecommendation(
     category,
     vibe,
     image: coverUrl(listing.listing_media),
-    fromPrice: asNumber(listing.price_from) ?? 0,
+    fromPrice: asNumber(listing.price_from),
     memberFromPrice: memberFrom(listing),
     editorialNote: item.editorial_note,
   };

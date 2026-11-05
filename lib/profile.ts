@@ -121,7 +121,12 @@ export async function loadProfileCatalog(): Promise<ProfileCatalog> {
     scales: ((scales.data ?? []) as { rank: number; title: string; subtitle: string | null }[]).map(
       (row) => ({ rank: Number(row.rank), title: row.title, subtitle: row.subtitle }),
     ),
-    interests: ((interests.data ?? []) as InterestRow[]).map((row) => {
+    interests: ((interests.data ?? []) as InterestRow[])
+      .filter((row) => {
+        const title = row.title.toLowerCase();
+        return !title.includes("coffee date") && !title.includes("rooftop dinner");
+      })
+      .map((row) => {
       const kind = Array.isArray(row.activity_kinds) ? row.activity_kinds[0] : row.activity_kinds;
       return {
         id: row.id,

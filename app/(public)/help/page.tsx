@@ -11,6 +11,9 @@ export default async function HelpPage() {
           {copy.helpBody}
         </p>
         <p>
+          Task-based answers live on <a href="/support">Support</a> — tickets, refunds, memberships, hosts &amp; claims.
+        </p>
+        <p>
           <a className="btn btn-primary" href={`mailto:${copy.helpEmail}`}>
             {copy.helpEmail}
           </a>

@@ -135,6 +135,7 @@ export async function submitClaim(formData: FormData) {
   const listingName = String(formData.get("listing_name") ?? "").trim();
   const listingSlug = String(formData.get("listing_slug") ?? "").trim();
   const listingId = String(formData.get("listing_id") ?? "").trim();
+  const listingArea = String(formData.get("listing_area") ?? "").trim();
   const evidence = String(formData.get("evidence") ?? "").trim();
   if (!listingName || evidence.length < 8) {
     redirect("/directory/claim?error=Tell+us+how+you+can+prove+this+is+your+business.");
@@ -146,7 +147,7 @@ export async function submitClaim(formData: FormData) {
     listing_name: listingName,
     listing_slug: listingSlug || null,
     user_id: user.id,
-    evidence,
+    evidence: listingArea ? `${evidence}\n\nArea: ${listingArea}` : evidence,
   });
   if (error) redirect(`/directory/claim?error=${encodeURIComponent(error.message)}`);
   revalidatePath("/admin/claims");

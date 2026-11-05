@@ -217,7 +217,7 @@ export function EventGuests({
           <div className="studio-card" style={{ marginTop: 22 }}>
             <h3>Invite RSVP</h3>
             <p className="muted">
-              They open the link, accept, &amp; we mint a complimentary ticket. Copy the link—we do
+              They open the link, accept, &amp; we create a complimentary ticket. Copy the link—we do
               not send email yet.
             </p>
             <ul className="campaign-list">

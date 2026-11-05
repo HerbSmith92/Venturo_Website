@@ -44,9 +44,9 @@ export function GuideRecommendationBlock({
                 ? `Members ${formatFromPrice(item.memberFromPrice)}`
                 : "Paid members save"}
             </p>
-          ) : item.fromPrice != null ? (
+          ) : (
             <p className="card-meta">{formatFromPrice(item.fromPrice)}</p>
-          ) : null}
+          )}
         </div>
       </Link>
     </article>

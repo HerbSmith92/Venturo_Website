@@ -46,11 +46,12 @@ export async function POST(request: Request) {
   }
 
   try {
+    const appCheckout = body.source === "app";
     const consented = await hasMemberConsent(user.id);
-    if (!consented && !bodyHasConsent(body)) {
+    if (!bodyHasConsent(body) && !(appCheckout && consented)) {
       return NextResponse.json({ error: CONSENT_REQUIRED }, { status: 400 });
     }
-    if (!consented) await recordMemberConsent(user.id, "checkout");
+    if (bodyHasConsent(body)) await recordMemberConsent(user.id, "checkout");
 
     const origin = new URL(request.url).origin;
     const order = await createTicketOrder({

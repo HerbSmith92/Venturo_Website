@@ -17,6 +17,15 @@ export default function ListYourBusinessPage() {
             </a>
           </article>
           <article className="plan">
+            <h2>My Business Is Not Listed</h2>
+            <p className="muted">
+              Send the name, place &amp; proof. Control Room reviews it before anything goes live.
+            </p>
+            <a className="btn btn-secondary" href="/directory/claim#not-listed">
+              Add An Unlisted Business
+            </a>
+          </article>
+          <article className="plan">
             <h2>Create An Event</h2>
             <p className="muted">Draft the night, submit it, and open the door with Companion when it is live.</p>
             <a className="btn btn-secondary" href="/events/create">

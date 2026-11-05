@@ -75,8 +75,20 @@ export default async function DirectoryPage({
           price={query.price ?? ""}
           sort={query.sort ?? ""}
           category={category}
+          lat={query.lat}
+          lng={query.lng}
         />
-        <CategoryChips active={category} />
+        <CategoryChips
+          active={category}
+          params={{
+            q: query.q,
+            place: query.place,
+            price: query.price,
+            sort: query.sort,
+            lat: query.lat,
+            lng: query.lng,
+          }}
+        />
         {listings.length === 0 ? (
           <p className="notice">Nothing matches that search. Try a wider place or clear the price.</p>
         ) : browsing ? (

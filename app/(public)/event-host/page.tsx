@@ -45,7 +45,7 @@ const STEPS = [
   {
     n: "03",
     title: "We Check, Then Live",
-    body: "A Control Room yes, then curious locals can book. Free profiles already buy tickets.",
+    body: "The team reviews the event. After approval, curious locals can book. Free profiles already buy tickets.",
   },
 ];
 
@@ -59,7 +59,7 @@ export default async function EventHostPage() {
   const feeNote =
     feeBits.length === 0
       ? "Platform fees are R 0.00 right now. You keep the ticket total. When a rate is set, you choose who pays it on each event."
-      : `${feeBits.join(" & ")}. You choose on each event whether that comes off your payout or is added at checkout.${fees.memberDiscountPct > 0 ? ` Paid members save ${fees.memberDiscountPct}% when a ticket has no discount of its own.` : ""}`;
+      : `${feeBits.join(" & ")}. You choose on each event whether that comes off your payout or is added at checkout.${fees.memberDiscountPct > 0 ? ` Set a Percentage or Rand member deal on a ticket if you want paid members to save. No Deal keeps the public price.` : ""}`;
 
   const hostHref = user && canHost(user) ? PORTAL_HOME : hostSubscribeHref("/account/host");
 

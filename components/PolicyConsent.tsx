@@ -36,6 +36,13 @@ export function PolicyConsent({
           I acknowledge the <a href="/privacy_policy" target="_blank" rel="noreferrer">Privacy Policy</a>.
         </span>
       </label>
+      <p className="muted">
+        Ticket refunds follow the{" "}
+        <a href="/refunds" target="_blank" rel="noreferrer">
+          Refund Policy
+        </a>
+        .
+      </p>
     </fieldset>
   );
 }

@@ -173,6 +173,13 @@ export function TicketTypeCard({
                 <option value="percent">Percentage</option>
                 <option value="amount">Rand</option>
               </select>
+              {fees.memberDiscountPct > 0 && ticket.discountKind === "none" ? (
+                <p className="muted" style={{ margin: "8px 0 0" }}>
+                  No Deal keeps the public price for everyone. Paid members do not get a silent
+                  platform cut. Choose Percentage or Rand to set a member price
+                  {` · a ${fees.memberDiscountPct}% platform rate is available if you want one`}.
+                </p>
+              ) : null}
             </label>
             <label className="field">
               <span>Qty Available</span>

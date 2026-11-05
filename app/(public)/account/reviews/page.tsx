@@ -24,7 +24,11 @@ export default async function AccountReviewsPage() {
     <>
         <p className="eyebrow">My Venturo</p>
         <h1>Reviews</h1>
-        {rows.length === 0 ? <p className="muted">You have not written a review yet.</p> : null}
+        {rows.length === 0 ? (
+          <p className="muted">
+            You have not written a Venturo review yet. Activity pages still show Google ratings where we have them. Write a Venturo review from a listing you have visited, when that listing offers the form.
+          </p>
+        ) : null}
         <ul className="stack-list">
           {rows.map((row) => {
             const listing = Array.isArray(row.directory_listings)

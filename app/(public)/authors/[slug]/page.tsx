@@ -34,9 +34,8 @@ export default async function AuthorPage({ params }: { params: Promise<{ slug: s
         <div className="author-profile">
           <GuideAuthorCard author={author} />
           <div>
-            <p className="eyebrow">{countLabel}</p>
-            <h1>{author.name}</h1>
-            {author.tagline ? <p className="lede">{author.tagline}</p> : null}
+            <p className="eyebrow">Guides</p>
+            <h1>{countLabel}</h1>
             <p className="muted">Every live Guide with this name on it.</p>
           </div>
         </div>

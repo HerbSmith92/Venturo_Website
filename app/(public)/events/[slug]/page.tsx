@@ -17,7 +17,6 @@ import {
 import { listOccurrences, repeatPhrase } from "@/lib/event-repeat";
 import { formatEventWhen } from "@/lib/event-types";
 import { ticketsSoldForOccurrence } from "@/lib/orders";
-import { hasMemberConsent } from "@/lib/policy-consent";
 import { loadMemberProfile } from "@/lib/profile";
 import { isSaved } from "@/lib/saves";
 import { notFound } from "next/navigation";
@@ -41,7 +40,6 @@ export default async function EventDetailPage({
     loadAttendancePreview(event.id),
   ]);
   const profile = user ? await loadMemberProfile(user.id) : null;
-  const consented = user ? await hasMemberConsent(user.id) : false;
   const canView =
     event.status === "approved" ||
     event.status === "cancelled" ||
@@ -239,9 +237,15 @@ export default async function EventDetailPage({
             <p className="eyebrow">Tickets</p>
             <h2>Claim Your Spot</h2>
             <p className="muted">
-              {event.membersOnly
-                ? "This event is for Venturo members. Subscribe on the website, then come back for your ticket."
-                : "Public tickets are open to every profile. Exclusive member tickets need a membership. Subscribe on the website, or in the app."}
+              {past
+                ? "Tickets are closed because this date has passed."
+                : event.membersOnly
+                  ? user?.plan === "paid"
+                    ? "This event is for Venturo members. Your membership is active."
+                    : "This event is for Venturo members. Subscribe on the website, then come back for your ticket."
+                  : user?.plan === "paid"
+                    ? "Public tickets are open. Exclusive member tickets use your membership price."
+                    : "Public tickets are open to every profile. Exclusive member tickets need a membership."}
             </p>
             {event.status === "cancelled" ? (
               <p className="error">This event is cancelled. Tickets are closed.</p>
@@ -265,7 +269,9 @@ export default async function EventDetailPage({
                 initialBasket={query.basket}
                 occurrenceStartsAt={selected?.startsAt ?? ""}
                 occurrenceEndsAt={selected?.endsAt ?? ""}
-                needsConsent={!consented}
+                occurrenceLabel={windowLabel}
+                venueLabel={place}
+                needsConsent
               />
             )}
           </aside>

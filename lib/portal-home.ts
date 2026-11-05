@@ -90,15 +90,20 @@ export type PortalHomeData = {
   views: number;
   revenueCents: number;
   events: EventHomeSeries[];
+  drafts: EventHomeSeries[];
 };
 
 function isActiveEvent(event: VenturoEvent, now = Date.now()) {
-  if (event.status === "cancelled" || event.status === "rejected") return false;
+  if (event.status !== "approved") return false;
   if (event.endsAt) {
     const end = new Date(event.endsAt).getTime();
     if (!Number.isNaN(end) && end < now) return false;
   }
   return true;
+}
+
+function isDraftEvent(event: VenturoEvent) {
+  return event.status === "draft" || event.status === "review";
 }
 
 function emptySeries(days: string[]): DayPoint[] {
@@ -179,6 +184,7 @@ export async function getPortalHome(
       if (!b.startsAt) return -1;
       return new Date(a.startsAt).getTime() - new Date(b.startsAt).getTime();
     });
+  const drafts = allEvents.filter((event) => isDraftEvent(event));
 
   const blankEvent = (event: VenturoEvent): EventHomeSeries => ({
     event,
@@ -197,6 +203,7 @@ export async function getPortalHome(
     views: 0,
     revenueCents: 0,
     events: active.map(blankEvent),
+    drafts: drafts.map(blankEvent),
   };
 
   const ids = allEvents.map((event) => event.id);
@@ -292,5 +299,6 @@ export async function getPortalHome(
         revenueSeries,
       };
     }),
+    drafts: drafts.map(blankEvent),
   };
 }

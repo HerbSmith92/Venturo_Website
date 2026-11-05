@@ -240,13 +240,14 @@ export function SpotlightArticle({
                   {minutes} min read
                   {dateLabel ? ` · ${dateLabel}` : ""}
                   {updatedLabel ? ` · Updated ${updatedLabel}` : ""}
-                  {` · ${formatGuideTally(viewCount, "view", "views")}`}
+                  {viewCount > 0 ? ` · ${formatGuideTally(viewCount, "view", "views")}` : ""}
                 </p>
               </div>
             </a>
           ) : (
             <p className="muted">
-              {minutes} min read · {formatGuideTally(viewCount, "view", "views")}
+              {minutes} min read
+              {viewCount > 0 ? ` · ${formatGuideTally(viewCount, "view", "views")}` : ""}
             </p>
           )}
           <div className="spotlight-actions">

@@ -173,7 +173,18 @@ export function RegisterCommunityForm({
             Add area
           </button>
           <div className="community-setup-actions">
-            <button className="btn btn-primary" type="button" onClick={() => show(nextIncomplete("details"))}>
+            <button
+              className="btn btn-primary"
+              type="button"
+              onClick={() => {
+                if (!detailsDone) {
+                  setError("Add the community name and what it is about.");
+                  return;
+                }
+                setError(null);
+                show(nextIncomplete("details"));
+              }}
+            >
               Next
             </button>
           </div>
@@ -209,7 +220,18 @@ export function RegisterCommunityForm({
             </label>
           </div>
           <div className="community-setup-actions">
-            <button className="btn btn-primary" type="button" onClick={() => show(nextIncomplete("founder"))}>
+            <button
+              className="btn btn-primary"
+              type="button"
+              onClick={() => {
+                if (!founderDone) {
+                  setError("Add the founder's name.");
+                  return;
+                }
+                setError(null);
+                show(nextIncomplete("founder"));
+              }}
+            >
               Next
             </button>
           </div>

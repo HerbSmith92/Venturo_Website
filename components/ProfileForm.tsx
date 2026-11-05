@@ -444,6 +444,9 @@ export function ProfileForm({
               >
                 {showPassword ? "Cancel Password Change" : "Change Password"}
               </button>
+              <p className="muted" style={{ margin: "8px 0 0" }}>
+                Sign-in on the website is a one-time email code. A password is optional extra, not required to log in.
+              </p>
             </div>
             {error && <p className="error">{error}</p>}
             {detailsSaved && <p className="notice">Details saved.</p>}

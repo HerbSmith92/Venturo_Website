@@ -100,7 +100,7 @@ function mapToListing(row: ScoreableRow): Listing {
   });
   const image = media.find((item) => item.public_url)?.public_url ?? FALLBACK_IMAGE;
 
-  const fromListed = asNumber(row.price_from) ?? 0;
+  const fromListed = asNumber(row.price_from);
   const activePrices = (row.price_options ?? []).filter((item) => item.is_active !== false);
   const memberPrices = activePrices
     .map((item) => asNumber(item.member_price))
@@ -118,11 +118,13 @@ function mapToListing(row: ScoreableRow): Listing {
     area,
     city,
     category,
-    vibe: vibe.length > 72 ? `${vibe.slice(0, 69)}…` : vibe || "Open the directory",
+    vibe: vibe.length > 72 ? `${vibe.slice(0, 69)}…` : vibe || "Summary to follow",
     energy: "Medium",
     fromPrice: fromListed,
     memberFromPrice:
-      memberFromPrice !== null && memberFromPrice < fromListed ? memberFromPrice : null,
+      memberFromPrice !== null && fromListed != null && memberFromPrice < fromListed
+        ? memberFromPrice
+        : null,
     image,
     featured: Boolean(row.is_featured),
     latitude: null,
