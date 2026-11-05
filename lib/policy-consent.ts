@@ -3,6 +3,7 @@ import { createServiceClient } from "@/lib/supabase/admin";
 /** Effective date on the published Terms & Privacy Policy. */
 export const TERMS_VERSION = "2025-10-01";
 export const PRIVACY_VERSION = "2025-10-01";
+export const HOST_TERMS_VERSION = "2026-11-05";
 export const CONSENT_COOKIE = "venturo_policy_consent";
 
 export const CONSENT_REQUIRED =
@@ -58,4 +59,20 @@ export async function recordMemberConsent(userId: string, source: string) {
     { onConflict: "user_id,policy,version", ignoreDuplicates: true },
   );
   if (error) console.error("member consent", error.message);
+}
+
+export async function recordHostTermsConsent(userId: string, source: string) {
+  const service = createServiceClient();
+  if (!service) return;
+  const { error } = await service.from("member_consents").upsert(
+    {
+      user_id: userId,
+      policy: "host-terms",
+      version: HOST_TERMS_VERSION,
+      source,
+      accepted_at: new Date().toISOString(),
+    },
+    { onConflict: "user_id,policy,version", ignoreDuplicates: true },
+  );
+  if (error) console.error("host terms consent", error.message);
 }

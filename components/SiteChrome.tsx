@@ -65,6 +65,7 @@ export function SiteFooter() {
           <a href="/terms">Terms &amp; Conditions</a>
           <a href="/privacy_policy">Privacy Policy</a>
           <a href="/refunds">Refund Policy</a>
+          <a href="/host-terms">Host Terms</a>
         </nav>
       </div>
       </div>

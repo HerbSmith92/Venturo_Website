@@ -36,6 +36,7 @@ import {
 import { platformTicketDefaults, ticketMemberCents } from "@/lib/event-fees";
 import { companionEventHref } from "@/lib/companion";
 import { PORTAL_SETTINGS_BANK } from "@/lib/portal";
+import { HostTermsConsent } from "@/components/PolicyConsent";
 
 type TicketDraft = {
   id?: string;
@@ -150,6 +151,7 @@ export function EventStudio({
   const [error, setError] = useState<string | null>(null);
   const [notice, setNotice] = useState<string | null>(null);
   const [pending, setPending] = useState<"save" | "live" | null>(null);
+  const [acceptHostTerms, setAcceptHostTerms] = useState(false);
   const [uploading, setUploading] = useState<EventImageKind | null>(null);
   const [previewOpen, setPreviewOpen] = useState(false);
   const showDetails = !focus || focus === "full" || focus === "manage";
@@ -348,6 +350,10 @@ export function EventStudio({
   async function save(kind: "save" | "live") {
     setError(null);
     setNotice(null);
+    if (kind === "live" && !acceptHostTerms) {
+      setError("Read the Host Terms and Conditions before you submit.");
+      return;
+    }
     setPending(kind);
     try {
       const response = await fetch(
@@ -355,7 +361,11 @@ export function EventStudio({
         {
           method: kind === "live" ? "POST" : "PATCH",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ ...body(), stay }),
+          body: JSON.stringify({
+            ...body(),
+            stay,
+            ...(kind === "live" ? { acceptHostTerms: true } : {}),
+          }),
         },
       );
       const payload = (await response.json()) as {
@@ -426,7 +436,7 @@ export function EventStudio({
             <button
               className="btn btn-primary"
               type="button"
-              disabled={pending !== null}
+              disabled={pending !== null || !acceptHostTerms}
               onClick={() => void save("live")}
             >
               {pending === "live" ? "Please Wait" : "Submit To Review"}
@@ -437,6 +447,9 @@ export function EventStudio({
 
       {error && <p className="error">{error}</p>}
       {notice && <p className="notice">{notice}</p>}
+      {event.status !== "approved" ? (
+        <HostTermsConsent accepted={acceptHostTerms} onChange={setAcceptHostTerms} />
+      ) : null}
 
       <div className="studio-layout">
         <div className="studio-main">

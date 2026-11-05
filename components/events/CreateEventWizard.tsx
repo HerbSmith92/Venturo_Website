@@ -17,6 +17,7 @@ import { StudioSection } from "@/components/events/StudioSection";
 import { EventReviewPreview } from "@/components/events/EventReviewPreview";
 import { TicketTypeCard } from "@/components/events/TicketTypeCard";
 import { HostPayoutForm } from "@/components/portal/HostPayoutForm";
+import { HostTermsConsent } from "@/components/PolicyConsent";
 import { platformTicketDefaults, ticketMemberCents, type TicketFeeDraft } from "@/lib/event-fees";
 import {
   EVENT_AGE_OPTIONS,
@@ -175,6 +176,7 @@ export function CreateEventWizard({
   const [replacingBank, setReplacingBank] = useState(false);
   const [bankPending, setBankPending] = useState(false);
   const [pending, setPending] = useState(false);
+  const [acceptHostTerms, setAcceptHostTerms] = useState(false);
   const [uploading, setUploading] = useState<EventImageKind | null>(null);
 
   useEffect(() => {
@@ -394,6 +396,10 @@ export function CreateEventWizard({
       setError("Add the payout bank before paid tickets can go on sale.");
       return;
     }
+    if (!acceptHostTerms) {
+      setError("Read the Host Terms and Conditions before you submit.");
+      return;
+    }
     void submitForReview();
   }
 
@@ -406,7 +412,7 @@ export function CreateEventWizard({
       const response = await fetch(`/api/events/${id}/live`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ ...buildBody(ticketRows()), stay: "portal" }),
+        body: JSON.stringify({ ...buildBody(ticketRows()), stay: "portal", acceptHostTerms: true }),
       });
       const payload = (await response.json()) as { error?: string };
       if (!response.ok) throw new Error(payload.error ?? "Could not submit for review.");
@@ -858,6 +864,7 @@ export function CreateEventWizard({
             listingImageUrl={publicImageUrl(listingImageUrl)}
             tickets={ticketRows()}
           />
+          <HostTermsConsent accepted={acceptHostTerms} onChange={setAcceptHostTerms} />
         </StudioSection>
       ) : null}
 
@@ -876,7 +883,7 @@ export function CreateEventWizard({
           className="btn btn-primary"
           type={bankFormOpen ? "submit" : "button"}
           form={bankFormOpen ? "host-payout-form" : undefined}
-          disabled={pending || bankPending || Boolean(uploading)}
+          disabled={pending || bankPending || Boolean(uploading) || (step === "review" && !acceptHostTerms)}
           onClick={bankFormOpen ? undefined : () => void continueForward()}
         >
           {pending || bankPending ? "Please Wait" : continueLabel}

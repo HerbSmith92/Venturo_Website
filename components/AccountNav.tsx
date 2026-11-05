@@ -98,6 +98,7 @@ export function AccountNav({
         { href: "/refunds", label: "Refunds & Cancellations", icon: "card" },
         { href: "/copyright", label: "Copyright", icon: "flag" },
         { href: "/community-guidelines", label: "Community Guidelines", icon: "users" },
+        { href: "/host-terms", label: "Host Terms", icon: "book" },
       ],
     },
   ];

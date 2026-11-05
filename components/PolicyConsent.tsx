@@ -47,12 +47,43 @@ export function PolicyConsent({
   );
 }
 
+export function HostTermsConsent({
+  accepted,
+  onChange,
+}: {
+  accepted: boolean;
+  onChange: (value: boolean) => void;
+}) {
+  return (
+    <fieldset className="policy-consent">
+      <legend className="sr-only">Host Terms</legend>
+      <label>
+        <input
+          type="checkbox"
+          name="acceptHostTerms"
+          checked={accepted}
+          onChange={(event) => onChange(event.target.checked)}
+          required
+        />
+        <span>
+          I have read the{" "}
+          <a href="/host-terms" target="_blank" rel="noreferrer">
+            Host Terms and Conditions
+          </a>
+          .
+        </span>
+      </label>
+    </fieldset>
+  );
+}
+
 export function PolicyLinks() {
   return (
     <p className="policy-links">
       <a href="/terms">Terms &amp; Conditions</a>
       <a href="/privacy_policy">Privacy Policy</a>
       <a href="/refunds">Refunds &amp; Cancellations</a>
+      <a href="/host-terms">Host Terms</a>
       <a href="/support">Support</a>
     </p>
   );

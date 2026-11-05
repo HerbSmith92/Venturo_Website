@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { getCurrentUser } from "@/lib/auth";
 import { requirePaidPayout } from "@/lib/event-input";
 import { eventReadyToGoLive, goLiveEvent, saveEventDraft, type CreateEventInput } from "@/lib/events";
+import { recordHostTermsConsent } from "@/lib/policy-consent";
 import { isStaff } from "@/lib/roles";
 
 export async function POST(
@@ -14,7 +15,13 @@ export async function POST(
   }
 
   const { id } = await params;
-  const body = (await request.json()) as CreateEventInput & { stay?: string };
+  const body = (await request.json()) as CreateEventInput & { stay?: string; acceptHostTerms?: boolean };
+  if (body.acceptHostTerms !== true) {
+    return NextResponse.json(
+      { error: "Read the Host Terms and Conditions before you submit." },
+      { status: 400 },
+    );
+  }
   const ready = eventReadyToGoLive({
     title: body.title ?? "",
     description: body.description ?? "",
@@ -33,6 +40,7 @@ export async function POST(
     await requirePaidPayout(user.id, body.ticketTypes ?? []);
     const staff = isStaff(user.role);
     await saveEventDraft(user.id, id, body, staff);
+    await recordHostTermsConsent(user.id, "event-submit");
     const live = await goLiveEvent(user.id, id, staff);
     const stayInPortal = body.stay === "portal";
     return NextResponse.json({

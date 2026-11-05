@@ -28,5 +28,11 @@
     "href": "/community-guidelines/",
     "title": "Venturo User-Generated Content & Community Guidelines",
     "summary": "Venturo is built around discovering things to do, meeting people with similar interests & helping people spend more time experiencing the world around them."
+  },
+  {
+    "slug": "host-terms",
+    "href": "/host-terms/",
+    "title": "Venturo Host Terms Agreement",
+    "summary": "These Host Terms and Conditions apply when a Host registers, lists or manages an Event through Venturo."
   }
 ]
