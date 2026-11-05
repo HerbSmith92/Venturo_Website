@@ -1,4 +1,4 @@
-import { authorSocialHref, type GuideAuthor } from "@/lib/guide-authors";
+import { instagramHandle, type GuideAuthor } from "@/lib/guide-authors";
 import type { GuideDraftItem, GuideListingPreview } from "@/lib/guide-shared";
 
 export const IG_POST_WIDTH = 1080;
@@ -225,14 +225,6 @@ export function inkForAccent(accent: string): "night" | "snow" {
     default:
       return "night";
   }
-}
-
-export function instagramHandle(raw: string | null | undefined) {
-  const href = authorSocialHref(raw, "instagram");
-  if (!href) return "";
-  const match = href.match(/instagram\.com\/([^/?#]+)/i);
-  const handle = (match?.[1] ?? "").replace(/^@/, "");
-  return handle ? `@${handle}` : "";
 }
 
 function areaFromListing(listing: GuideListingPreview | null) {

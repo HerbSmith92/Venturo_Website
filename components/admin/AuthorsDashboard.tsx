@@ -6,7 +6,7 @@ import { createGuideAuthor, deleteGuideAuthor } from "@/app/admin/author-actions
 import { AuthorInvitePanel } from "@/components/admin/AuthorInvitePanel";
 import type { GuideAuthorInviteRow, GuideAuthorRow } from "@/lib/control-room-authors";
 import { formatClock } from "@/lib/control-room-shared";
-import { authorSocialHref } from "@/lib/guide-authors";
+import { instagramHandle } from "@/lib/guide-authors";
 
 const PAGE_SIZE = 6;
 
@@ -29,13 +29,6 @@ function initials(name: string) {
     .slice(0, 2)
     .map((part) => part[0]?.toUpperCase() ?? "")
     .join("");
-}
-
-function instagramHandle(raw: string | null) {
-  const href = authorSocialHref(raw, "instagram");
-  if (!href) return null;
-  const match = href.match(/instagram\.com\/([^/?#]+)/i);
-  return match?.[1] ? `@${match[1]}` : null;
 }
 
 function inviteUrl(token: string) {

@@ -36,25 +36,81 @@ export type AuthorLatestGuide = {
   image: string | null;
 };
 
+function looseUrl(value: string) {
+  try {
+    if (/^https?:\/\//i.test(value)) return new URL(value);
+    if (/^(www\.)?(instagram|tiktok|facebook)\.com\//i.test(value)) return new URL(`https://${value}`);
+  } catch {
+    return null;
+  }
+  return null;
+}
+
+function firstSegment(pathname: string) {
+  return pathname.split("/").filter(Boolean)[0]?.replace(/^@/, "") ?? "";
+}
+
+function hostOf(url: URL) {
+  return url.hostname.replace(/^www\./i, "").toLowerCase();
+}
+
 export function authorSocialHref(
   raw: string | null | undefined,
   network: "instagram" | "tiktok" | "facebook" | "website",
 ): string | null {
   const value = raw?.trim();
   if (!value) return null;
-  if (/^https?:\/\//i.test(value)) return value;
-  const handle = value.replace(/^@/, "").replace(/^\/+/, "");
+  const parsed = looseUrl(value);
+
   if (network === "instagram") {
-    return `https://instagram.com/${handle.replace(/^(www\.)?instagram\.com\//i, "")}`;
+    const fromSite = parsed && hostOf(parsed) === "instagram.com";
+    const handle = (
+      fromSite
+        ? firstSegment(parsed.pathname)
+        : value.replace(/^@/, "").replace(/^(https?:\/\/)?(www\.)?instagram\.com\//i, "")
+    )
+      .split(/[/?#]/)[0]
+      .replace(/^@/, "");
+    if (!handle || /^(p|reel|reels|stories|explore|share)$/i.test(handle)) {
+      return parsed ? `${parsed.origin}${parsed.pathname.replace(/\/+$/, "")}` : null;
+    }
+    return `https://www.instagram.com/${handle}`;
   }
   if (network === "tiktok") {
-    return `https://tiktok.com/@${handle.replace(/^@/, "").replace(/^(www\.)?tiktok\.com\/@?/i, "")}`;
+    const fromSite = parsed && hostOf(parsed) === "tiktok.com";
+    const handle = (
+      fromSite
+        ? firstSegment(parsed.pathname)
+        : value.replace(/^@/, "").replace(/^(https?:\/\/)?(www\.)?tiktok\.com\/@?/i, "")
+    )
+      .split(/[/?#]/)[0]
+      .replace(/^@/, "");
+    if (!handle) return parsed ? `${parsed.origin}${parsed.pathname.replace(/\/+$/, "")}` : null;
+    return `https://www.tiktok.com/@${handle}`;
   }
   if (network === "facebook") {
-    return `https://facebook.com/${handle.replace(/^(www\.)?facebook\.com\//i, "")}`;
+    const fromSite = parsed && hostOf(parsed) === "facebook.com";
+    const handle = (
+      fromSite
+        ? firstSegment(parsed.pathname)
+        : value.replace(/^@/, "").replace(/^(https?:\/\/)?(www\.)?facebook\.com\//i, "")
+    )
+      .split(/[/?#]/)[0]
+      .replace(/^@/, "");
+    if (!handle) return parsed ? `${parsed.origin}${parsed.pathname.replace(/\/+$/, "")}` : null;
+    return `https://www.facebook.com/${handle}`;
   }
-  if (handle.includes(".")) return `https://${handle}`;
-  return `https://${handle}`;
+  if (parsed) return parsed.href;
+  const host = value.replace(/^\/+/, "");
+  return /^https?:\/\//i.test(host) ? host : `https://${host}`;
+}
+
+export function instagramHandle(raw: string | null | undefined) {
+  const href = authorSocialHref(raw, "instagram");
+  if (!href) return "";
+  const match = href.match(/instagram\.com\/([^/?#]+)/i);
+  const handle = (match?.[1] ?? "").replace(/^@/, "");
+  return handle ? `@${handle}` : "";
 }
 
 export function mapGuideAuthor(row: GuideAuthor): GuideAuthorPublic {
