@@ -1,8 +1,10 @@
 import { EventCard } from "@/components/EventCard";
+import { GuideCard } from "@/components/GuideCard";
 import { ListingCard } from "@/components/ListingCard";
 import { PAID_CADENCE, PAID_PRICE } from "@/lib/brand";
 import type { CommunityRecord } from "@/lib/communities";
 import type { VenturoEvent } from "@/lib/event-types";
+import type { GuideCardData } from "@/lib/guides";
 import type { Listing } from "@/lib/listings";
 import type { WebsiteCopy } from "@/lib/website";
 
@@ -26,22 +28,46 @@ export function LandingDiscover({
   listings,
   events,
   communities,
+  guides,
   appStoreHref,
   playStoreHref,
   device,
   showMemberPrice = false,
+  signedIn = false,
+  firstName = "",
 }: {
   copy: WebsiteCopy;
   listings: Listing[];
   events: VenturoEvent[];
   communities: CommunityRecord[];
+  guides: GuideCardData[];
   appStoreHref: string;
   playStoreHref: string | null;
   device: "ios" | "android" | "desktop";
   showMemberPrice?: boolean;
+  signedIn?: boolean;
+  firstName?: string;
 }) {
+  const named = firstName.trim() && firstName.trim().toLowerCase() !== "there";
+  const greeting = named ? `Hey ${firstName.trim()}` : "Your Next Adventure Awaits";
+
   return (
-    <main className="landing">
+    <main className={signedIn ? "landing landing-member" : "landing"}>
+      {signedIn ? (
+        <section className="shell landing-welcome" aria-label="Your Venturo">
+          <p className="eyebrow">Your Venturo</p>
+          <h1>{greeting}</h1>
+          <p className="lede">
+            Activities, events, communities & guides. Pick one & get out.
+          </p>
+          <nav className="landing-jumps" aria-label="On this page">
+            <a href="#landing-activities">Activities</a>
+            <a href="#landing-events">Events</a>
+            <a href="#landing-community">Communities</a>
+            <a href="#landing-guides">Guides</a>
+          </nav>
+        </section>
+      ) : (
       <section className="landing-hero" aria-label="Featured">
         <div className="landing-hero-media">
           <img src={copy.heroImageUrl} alt="" />
@@ -70,6 +96,7 @@ export function LandingDiscover({
           </div>
         </div>
       </section>
+      )}
 
       <div className="shell landing-directory">
         <section className="landing-activities" aria-labelledby="landing-activities">
@@ -168,8 +195,35 @@ export function LandingDiscover({
             </div>
           )}
         </section>
+
+        <section className="landing-guides" aria-labelledby="landing-guides">
+          <div className="landing-band-head">
+            <div>
+              <h2 id="landing-guides">Guides</h2>
+              <p>Hand-picked lists for weekends, rainy days & the plan in between.</p>
+            </div>
+            <a className="landing-see" href="/guides">
+              See All
+            </a>
+          </div>
+          {guides.length === 0 ? (
+            <p className="notice">
+              Guides are warming up. <a href="/guides">Read them here</a> when a list goes live.
+            </p>
+          ) : (
+            <div className="home-rail" role="list">
+              {guides.map((guide) => (
+                <div key={guide.id} role="listitem">
+                  <GuideCard guide={guide} />
+                </div>
+              ))}
+            </div>
+          )}
+        </section>
       </div>
 
+      {signedIn ? null : (
+      <>
       <section className="band band-light" aria-labelledby="landing-why">
         <div className="shell">
           <div className="band-intro">
@@ -232,6 +286,8 @@ export function LandingDiscover({
           </article>
         </div>
       </section>
+      </>
+      )}
     </main>
   );
 }
