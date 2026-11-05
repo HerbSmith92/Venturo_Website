@@ -4,7 +4,7 @@ import { useMemo, useState } from "react";
 import { GuideLikeForm } from "@/components/GuideLikeForm";
 import { SaveForm } from "@/components/SaveForm";
 import { formatGuideTally, type GuideKind } from "@/lib/guide-engagement";
-import { AuthorSocialLinks } from "@/components/GuideAuthorCard";
+import { AuthorSocialLinks, GuideAuthorCard } from "@/components/GuideAuthorCard";
 import type { GuideAuthorPublic } from "@/lib/guide-authors";
 import { SpotlightSectionView } from "@/components/spotlight/SpotlightSectionView";
 import {
@@ -155,6 +155,7 @@ export function SpotlightArticle({
   shareUrl,
   moreByAuthor = [],
   compact = false,
+  chip = null,
 }: {
   title: string;
   intro: string;
@@ -173,6 +174,7 @@ export function SpotlightArticle({
   shareUrl?: string;
   moreByAuthor?: { title: string; href: string }[];
   compact?: boolean;
+  chip?: string | null;
 }) {
   const hero = coverPhoto(photos, cover);
   const gallery = galleryPhotos(photos);
@@ -200,6 +202,9 @@ export function SpotlightArticle({
 
   const lightboxPhoto = lightbox != null ? gallery[lightbox] : null;
   const visitPhoto = gallery.find((photo) => photo.url !== hero?.url) ?? gallery[0] ?? hero ?? null;
+  const storyPhotoIds = new Set(story.flatMap((section) => section.placements.map((row) => row.photoId)));
+  const closerPhotos = gallery.filter((photo) => photo.id !== hero?.id);
+  const showCloserLook = closerPhotos.some((photo) => !storyPhotoIds.has(photo.id));
 
   return (
     <article className={`spotlight-page${compact ? " is-compact" : ""}`}>
@@ -215,9 +220,14 @@ export function SpotlightArticle({
         <div className={`spotlight-hero-copy is-${cover.textAlign}`}>
           <p className="spotlight-kicker">Activity Spotlight</p>
           <h1>{title || "Untitled Spotlight"}</h1>
-          {intro ? <p>{intro}</p> : null}
+          {intro ? <p className="spotlight-hero-intro">{intro}</p> : null}
         </div>
       </header>
+
+      <div className="spotlight-lede">
+        {intro ? <p>{intro}</p> : null}
+        {chip ? <p className="spotlight-chip">{chip}</p> : null}
+      </div>
 
       <div className="spotlight-bar">
         <div className="spotlight-bar-inner">
@@ -259,13 +269,11 @@ export function SpotlightArticle({
 
       <div className="spotlight-layout">
         <div className="spotlight-story">
-          {listing ? <VisitCard listing={listing} variant="mobile" /> : null}
-
           {story.map((section) => (
             <SpotlightSectionView key={section.id} section={section} photos={photos} authorName={author?.name} />
           ))}
 
-          {gallery.length > 0 ? (
+          {showCloserLook ? (
             <section className="spotlight-gallery">
               <div className="section-head">
                 <h2>A closer look</h2>
@@ -274,8 +282,8 @@ export function SpotlightArticle({
                 </button>
               </div>
               <div className="spotlight-gallery-grid">
-                {gallery.slice(0, 3).map((photo, index) => (
-                  <button key={photo.id} type="button" onClick={() => setLightbox(index)}>
+                {closerPhotos.slice(0, 3).map((photo, index) => (
+                  <button key={photo.id} type="button" onClick={() => setLightbox(gallery.findIndex((row) => row.id === photo.id))}>
                     <img src={photo.url} alt={photo.alt || photo.caption || ""} />
                   </button>
                 ))}
@@ -286,23 +294,31 @@ export function SpotlightArticle({
           {listing ? <VisitCard listing={listing} photo={visitPhoto} variant="end" /> : null}
 
           {author ? (
-            <aside className="spotlight-author">
-              {author.photo ? <img src={author.photo} alt="" /> : <div aria-hidden="true">{author.name.charAt(0)}</div>}
-              <div>
-                <p className="eyebrow">Meet your guide</p>
-                <h2>
-                  {author.slug ? <a href={`/authors/${author.slug}`}>{author.name}</a> : author.name}
-                </h2>
-                {author.tagline ? <p className="spotlight-author-tag">{author.tagline}</p> : null}
-                {author.bio ? <p>{author.bio}</p> : null}
-                <AuthorSocialLinks author={author} />
-                {moreByAuthor.length > 0 ? (
-                  <p>
-                    <a href={author.slug ? `/authors/${author.slug}` : "/authors"}>More guides by this author</a>
-                  </p>
-                ) : null}
+            <>
+              <aside className="spotlight-author spotlight-author-compact">
+                {author.photo ? <img src={author.photo} alt="" /> : <div aria-hidden="true">{author.name.charAt(0)}</div>}
+                <div>
+                  <p className="eyebrow">Meet your guide</p>
+                  <h2>
+                    {author.slug ? <a href={`/authors/${author.slug}`}>{author.name}</a> : author.name}
+                  </h2>
+                  {author.tagline ? <p className="spotlight-author-tag">{author.tagline}</p> : null}
+                  {author.bio ? <p>{author.bio}</p> : null}
+                  <AuthorSocialLinks author={author} />
+                  {moreByAuthor.length > 0 ? (
+                    <p>
+                      <a href={author.slug ? `/authors/${author.slug}` : "/authors"}>More guides by this author</a>
+                    </p>
+                  ) : null}
+                </div>
+              </aside>
+              <div className="spotlight-author-full">
+                <GuideAuthorCard
+                  author={author}
+                  profileHref={author.slug ? `/authors/${author.slug}` : null}
+                />
               </div>
-            </aside>
+            </>
           ) : null}
         </div>
 
