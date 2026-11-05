@@ -37,13 +37,22 @@ export function AccountFrame({
   return (
     <div className="shell">
       <section className={collapsed ? "section account-frame is-collapsed" : "section account-frame"}>
+        <div className="account-nav-desktop">
+          <AccountNav
+            host={host}
+            events={events}
+            communities={communities}
+            collapsed={collapsed}
+            onToggleCollapsed={toggleCollapsed}
+          />
+        </div>
         <details className="account-nav-drawer">
           <summary className="account-nav-summary">Account menu</summary>
           <AccountNav
             host={host}
             events={events}
             communities={communities}
-            collapsed={collapsed}
+            collapsed={false}
             onToggleCollapsed={toggleCollapsed}
           />
         </details>

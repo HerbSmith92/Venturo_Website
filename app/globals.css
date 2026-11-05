@@ -1678,8 +1678,12 @@ a.chip.active {
   color: color-mix(in srgb, var(--snow) 65%, transparent);
 }
 
+.account-nav-desktop {
+  min-width: 0;
+}
+
 .account-nav-drawer {
-  display: contents;
+  display: none;
 }
 
 .account-nav-summary {
@@ -2167,7 +2171,12 @@ a.cr-nav-label.active:hover {
     order: 0;
   }
 
+  .account-nav-desktop {
+    display: none;
+  }
+
   .account-nav-drawer {
+    display: block;
     order: -1;
     border: 1px solid color-mix(in srgb, var(--snow) 14%, transparent);
     border-radius: 16px;
