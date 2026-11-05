@@ -3,6 +3,7 @@ import {
   PAYOUT_WORKING_DAYS,
   type EventPayoutRow,
   type EventPayoutSummary,
+  type HostPayoutListRow,
 } from "@/lib/event-payout-display";
 import { hostOwedCents } from "@/lib/overview/metrics";
 import { createServiceClient } from "@/lib/supabase/admin";
