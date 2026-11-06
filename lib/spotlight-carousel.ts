@@ -3,6 +3,7 @@ import type { GuideAuthor } from "@/lib/guide-authors";
 import {
   APPROVED_CATEGORIES,
   FALLBACK_EXPORT_IMAGE,
+  accentForCategory,
   completeSentence,
   seedCarouselDraft,
   wordCount,
@@ -187,6 +188,7 @@ export function seedSpotlightCarouselDraft(input: {
   return {
     ...base,
     kind: "spotlight",
+    accent: accentForCategory(kindKey || "adventure"),
     cover: {
       ...base.cover,
       seriesLabel: "Outdoor Spotlight",

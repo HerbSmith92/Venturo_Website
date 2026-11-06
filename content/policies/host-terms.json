@@ -185,7 +185,7 @@
     },
     {
       "type": "p",
-      "text": "PayFast is currently used for payments for services supplied directly by Venturo. It may be used for Host payouts only if Venturo separately confirms that the Provider and account configuration support that arrangement."
+      "text": "Paystack is currently used for payments for services supplied directly by Venturo. It may be used for Host payouts only if Venturo separately confirms that the Provider and account configuration support that arrangement."
     },
     {
       "type": "p",

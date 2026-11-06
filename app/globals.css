@@ -11180,8 +11180,8 @@ a.chip.on {
   right: 0;
   bottom: 0;
   z-index: 3;
-  color: #45a67f;
-  background: #45a67f;
+  color: var(--cr-ig-accent, var(--jade));
+  background: var(--cr-ig-accent, var(--jade));
 }
 
 .ig-spot.is-cover .ig-spot-band,
@@ -11332,7 +11332,7 @@ a.chip.on {
 
 .ig-spot.is-copy .ig-spot-kicker,
 .ig-spot.is-overlay .ig-spot-kicker {
-  color: #45a67f;
+  color: var(--cr-ig-accent, var(--jade));
 }
 
 .ig-spot.is-copy .ig-spot-copy h3,
@@ -11351,7 +11351,17 @@ a.chip.on {
 }
 
 .ig-spot-band .cr-ig-wave {
-  color: #45a67f;
+  color: var(--cr-ig-accent, var(--jade));
+}
+
+.ig-spot-band .ig-spot-kicker,
+.ig-spot-band .ig-spot-copy h3,
+.ig-spot-band .ig-spot-pack,
+.ig-spot-band .ig-spot-body,
+.ig-spot-band .ig-spot-support,
+.ig-spot-band .ig-spot-geo,
+.ig-spot-band .ig-spot-foot {
+  color: var(--cr-ig-band-ink, var(--night));
 }
 
 .ig-spot-copy {
@@ -11822,6 +11832,30 @@ a.chip.on {
 
 .carousel-ink[data-ink="night"] {
   background: #2a2d35;
+}
+
+.carousel-colour-picker {
+  margin: 0 0 18px;
+}
+
+.carousel-swatches {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.carousel-swatches button {
+  width: 28px;
+  height: 28px;
+  min-width: 28px;
+  min-height: 28px;
+  padding: 0;
+  border-radius: 999px;
+  border: 1px solid color-mix(in srgb, var(--night) 22%, transparent);
+}
+
+.carousel-swatches button.is-on {
+  box-shadow: 0 0 0 2px var(--snow), 0 0 0 4px var(--night);
 }
 
 .carousel-inspector textarea#cf-title,

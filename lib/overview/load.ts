@@ -1324,7 +1324,7 @@ function memberCardFor(
     scope: platform === "web" ? "Current website entitlement" : "Current entitlement",
     comparison: comparison ?? "Snapshot, not the selected period",
     href: platform === "web" ? "/admin/members?plan=paid&metrics=1" : "/admin/members?plan=paid&metrics=1",
-    hint: "member_access.subscribed, one row per person. Website billing is payfast_active. App billing is revenuecat_active.",
+    hint: "member_access.subscribed, one row per person. Website billing is Paystack. App billing is RevenueCat.",
   };
 }
 

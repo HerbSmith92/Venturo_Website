@@ -4,6 +4,8 @@ import { GuideExportWave } from "@/components/admin/guide-export/GuideExportShel
 import {
   CAROUSEL_FOOTER,
   cropStyle,
+  inkForAccent,
+  spotlightAccent,
   spotlightBackdrop,
   spotlightInkCss,
   spotlightPostAlign,
@@ -17,8 +19,6 @@ import {
   type SlideBackdrop,
   type SpotlightSlideTemplate,
 } from "@/lib/guide-carousel";
-
-const JADE = "#45A67F";
 
 type FrameVariant = SpotlightSlideTemplate | "cover";
 
@@ -77,6 +77,7 @@ function Frame({
   crop,
   frameRef,
   variant,
+  accent,
   backdrop,
   backdropColour,
   children,
@@ -87,6 +88,7 @@ function Frame({
   crop: CarouselCover["crop"] | CarouselRec["crop"];
   frameRef?: Ref<HTMLDivElement>;
   variant: FrameVariant;
+  accent?: string;
   backdrop?: SlideBackdrop;
   backdropColour?: string;
   children?: ReactNode;
@@ -96,13 +98,16 @@ function Frame({
   const showBand = variant === "cover" || variant === "combined";
   const showCopy = variant !== "photo";
   const colourBack = variant === "copy" && backdrop === "colour";
+  const series = spotlightAccent(accent);
+  const bandInk = inkForAccent(series) === "snow" ? "#EBEBF3" : "#2A2D35";
   return (
     <div
       className={`cr-ig-frame ig-spot is-${variant}${imageBack && variant === "copy" ? " has-image-back" : ""}${colourBack ? " has-colour-back" : ""}`}
       ref={frameRef}
       style={{
-        ["--cr-ig-accent" as string]: JADE,
-        background: colourBack ? backdropColour || JADE : undefined,
+        ["--cr-ig-accent" as string]: series,
+        ["--cr-ig-band-ink" as string]: bandInk,
+        background: colourBack ? backdropColour || series : undefined,
       }}
     >
       {showPhoto ? (
@@ -173,10 +178,12 @@ function StoryCopy({ rec, listingName, fill }: { rec: CarouselRec; listingName: 
 export function SpotlightCoverSlide({
   cover,
   recCount,
+  accent,
   frameRef,
 }: {
   cover: CarouselCover;
   recCount: number;
+  accent?: string;
   frameRef?: Ref<HTMLDivElement>;
 }) {
   const long = wordCount(cover.headline) > 8;
@@ -187,6 +194,7 @@ export function SpotlightCoverSlide({
       count={spotlightSlideCount(1, recCount)}
       image={cover.image}
       crop={cover.crop}
+      accent={accent}
       frameRef={frameRef}
     >
       {cover.seriesLabel ? <p className="ig-spot-kicker">{cover.seriesLabel}</p> : null}
@@ -208,12 +216,14 @@ export function SpotlightStorySlide({
   index,
   recCount,
   listingName,
+  accent,
   frameRef,
 }: {
   rec: CarouselRec;
   index: number;
   recCount: number;
   listingName: string;
+  accent?: string;
   frameRef?: Ref<HTMLDivElement>;
 }) {
   const template = spotlightTemplate(rec);
@@ -225,6 +235,7 @@ export function SpotlightStorySlide({
       count={spotlightSlideCount(index + 2, recCount)}
       image={rec.image}
       crop={rec.crop}
+      accent={accent}
       backdrop={spotlightBackdrop(rec)}
       backdropColour={rec.backdropColour}
       frameRef={frameRef}
@@ -248,16 +259,27 @@ function initials(name: string) {
 export function SpotlightAuthorSlide({
   author,
   listingName,
+  accent,
   frameRef,
 }: {
   author: CarouselAuthor;
   listingName?: string;
+  accent?: string;
   frameRef?: Ref<HTMLDivElement>;
 }) {
   const cover = author.cover.trim();
   const header = listingName?.trim() || author.kicker || "Meet your guide";
+  const series = spotlightAccent(accent);
+  const bandInk = inkForAccent(series) === "snow" ? "#EBEBF3" : "#2A2D35";
   return (
-    <div className={`cr-ig-frame ig-spot ig-spot-author${cover ? " has-cover" : ""}`} ref={frameRef} style={{ ["--cr-ig-accent" as string]: JADE }}>
+    <div
+      className={`cr-ig-frame ig-spot ig-spot-author${cover ? " has-cover" : ""}`}
+      ref={frameRef}
+      style={{
+        ["--cr-ig-accent" as string]: series,
+        ["--cr-ig-band-ink" as string]: bandInk,
+      }}
+    >
       <div className="ig-spot-author-sky">
         {cover ? <img className="ig-spot-author-cover" src={exportPhotoSrc(cover)} alt="" decoding="sync" loading="eager" /> : null}
         <header className="ig-spot-head">

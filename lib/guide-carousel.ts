@@ -147,6 +147,7 @@ export type CarouselAuthor = {
 export type CarouselDraft = {
   version: 1;
   kind?: "collection" | "spotlight";
+  accent?: string;
   cover: CarouselCover;
   recs: CarouselRec[];
   author: CarouselAuthor;
@@ -221,10 +222,31 @@ export function inkForAccent(accent: string): "night" | "snow" {
     case "#5E589E":
     case "#971A21":
     case "#14001A":
+    case "#2A2D35":
       return "snow";
     default:
       return "night";
   }
+}
+
+export const BRAND_COLOURS = [
+  { id: "night", label: "Night Sky", value: "#2A2D35" },
+  { id: "snow", label: "Snow Drift", value: "#EBEBF3" },
+  { id: "pomegranate", label: "Pomegranate", value: "#D54732" },
+  { id: "orange", label: "Orange", value: "#FF9E6B" },
+  { id: "pink", label: "Pink", value: "#FF2EFF" },
+  { id: "canary", label: "Canary", value: "#F3BF4A" },
+  { id: "currant", label: "Black Currant", value: "#14001A" },
+  { id: "maroon", label: "Maroon", value: "#971A21" },
+  { id: "sapphire", label: "Sapphire", value: "#7CC3E9" },
+  { id: "blush", label: "Blush", value: "#DC729E" },
+  { id: "velvet", label: "Velvet", value: "#5E589E" },
+  { id: "jade", label: "Jade", value: "#45A67F" },
+] as const;
+
+export function spotlightAccent(value?: string | null) {
+  const hex = (value ?? "").toUpperCase();
+  return BRAND_COLOURS.find((row) => row.value.toUpperCase() === hex)?.value ?? CATEGORY_COLOURS.adventure;
 }
 
 function areaFromListing(listing: GuideListingPreview | null) {
@@ -361,11 +383,7 @@ export function spotlightBackdrop(rec: Pick<CarouselRec, "backdrop">): SlideBack
   return rec.backdrop === "colour" || rec.backdrop === "image" ? rec.backdrop : "night";
 }
 
-export const BACKDROP_COLOURS = [
-  { id: "jade", label: "Jade", value: "#45A67F" },
-  { id: "night", label: "Night Sky", value: "#2A2D35" },
-  { id: "canary", label: "Canary", value: "#F3BF4A" },
-] as const;
+export const BACKDROP_COLOURS = BRAND_COLOURS;
 
 export function exportFileSlug(title: string) {
   const slug = title
@@ -645,6 +663,7 @@ export function mergeCarouselDraft(saved: CarouselDraft | null | undefined, seed
   return {
     version: 1,
     kind: seed.kind ?? saved.kind ?? "collection",
+    accent: saved.accent ?? seed.accent,
     cover: {
       ...seed.cover,
       ...saved.cover,

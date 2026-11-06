@@ -28,10 +28,12 @@ import {
   spotlightTemplate,
   spotlightTypeStyle,
   BACKDROP_COLOURS,
+  BRAND_COLOURS,
   COPY_SIZE_MAX,
   COPY_SIZE_MIN,
   HEADING_SIZE_MAX,
   HEADING_SIZE_MIN,
+  spotlightAccent,
   validateCarousel,
   wordCount,
   type CarouselAuthor,
@@ -94,15 +96,15 @@ function hydrateCarousel(savedDraft: unknown, seed: CarouselDraft, title: string
 function thumbStamp(draft: CarouselDraft, key: SlideKey) {
   if (key === "cover") {
     const crop = draft.cover.crop;
-    return `cover:${draft.cover.image}:${draft.cover.headline}:${crop.x}:${crop.y}:${crop.zoom}:${draft.cover.layout}`;
+    return `cover:${draft.cover.image}:${draft.cover.headline}:${crop.x}:${crop.y}:${crop.zoom}:${draft.cover.layout}:${draft.accent ?? ""}`;
   }
   if (key === "author") {
-    return `author:${draft.author.photo}:${draft.author.cover}:${draft.author.name}:${draft.author.bio}`;
+    return `author:${draft.author.photo}:${draft.author.cover}:${draft.author.name}:${draft.author.bio}:${draft.accent ?? ""}`;
   }
   const rec = draft.recs.find((row) => row.id === key);
   if (!rec) return key;
   const crop = rec.crop;
-  return `${rec.id}:${rec.image}:${rec.title}:${rec.template}:${rec.backdrop}:${crop.x}:${crop.y}:${crop.zoom}:${rec.description}`;
+  return `${rec.id}:${rec.image}:${rec.title}:${rec.template}:${rec.backdrop}:${crop.x}:${crop.y}:${crop.zoom}:${rec.description}:${draft.accent ?? ""}`;
 }
 
 function LiveSlide({
@@ -117,7 +119,7 @@ function LiveSlide({
   const spotlight = draft.kind === "spotlight";
   if (slide === "cover") {
     return spotlight ? (
-      <SpotlightCoverSlide cover={draft.cover} recCount={draft.recs.length} frameRef={frameRef} />
+      <SpotlightCoverSlide cover={draft.cover} recCount={draft.recs.length} accent={draft.accent} frameRef={frameRef} />
     ) : (
       <CoverSlide cover={draft.cover} count={draft.recs.length} frameRef={frameRef} />
     );
@@ -127,6 +129,7 @@ function LiveSlide({
       <SpotlightAuthorSlide
         author={{ ...draft.author, cover: draft.author.cover || draft.cover.image }}
         listingName={draft.cover.headerTitle}
+        accent={draft.accent}
         frameRef={frameRef}
       />
     ) : (
@@ -143,6 +146,7 @@ function LiveSlide({
         index={index - 1}
         recCount={draft.recs.length}
         listingName={draft.cover.headerTitle || ""}
+        accent={draft.accent}
         frameRef={frameRef}
       />
     );
@@ -598,7 +602,9 @@ export function CarouselWorkspace({
                 photos={allPhotos}
                 count={draft.recs.length}
                 spotlight={draft.kind === "spotlight"}
+                accent={draft.accent}
                 onChange={patchCover}
+                onAccent={(value) => commit((prev) => ({ ...prev, accent: value }))}
               />
             ) : null}
             {rec ? (
@@ -608,6 +614,8 @@ export function CarouselWorkspace({
                 events={events}
                 photos={allPhotos}
                 spotlight={draft.kind === "spotlight"}
+                accent={draft.accent}
+                onAccent={(value) => commit((prev) => ({ ...prev, accent: value }))}
                 onChange={(patch, keysToMark) => patchRec(rec.id, patch, keysToMark)}
                 onReset={(field) => resetRecField(rec.id, field)}
                 onAddEvent={(event) => commit((prev) => ({ ...prev, recs: [...prev.recs, seedRecFromEvent(event)] }))}
@@ -619,6 +627,8 @@ export function CarouselWorkspace({
                 author={draft.author}
                 assigned={seed.author}
                 spotlight={draft.kind === "spotlight"}
+                accent={draft.accent}
+                onAccent={(value) => commit((prev) => ({ ...prev, accent: value }))}
                 onChange={patchAuthor}
                 onReset={() => patchAuthor(seed.author)}
                 onCompact={() => {
@@ -701,18 +711,52 @@ function recTitle(draft: CarouselDraft, id: string) {
   return `${String(index + 1).padStart(2, "0")} ${draft.recs[index]?.title ?? "Recommendation"}`;
 }
 
+function BrandColourPicker({
+  value,
+  onChange,
+}: {
+  value?: string;
+  onChange: (value: string) => void;
+}) {
+  const selected = spotlightAccent(value);
+  return (
+    <div className="carousel-colour-picker">
+      <p>Series colour</p>
+      <p className="muted">Primary brand colours plus the activity accents. Applies to every slide.</p>
+      <div className="carousel-swatches" role="group" aria-label="Series colour">
+        {BRAND_COLOURS.map((row) => (
+          <button
+            key={row.id}
+            type="button"
+            className={selected === row.value ? "is-on" : ""}
+            style={{ background: row.value }}
+            title={row.label}
+            aria-label={row.label}
+            aria-pressed={selected === row.value}
+            onClick={() => onChange(row.value)}
+          />
+        ))}
+      </div>
+    </div>
+  );
+}
+
 function CoverInspector({
   cover,
   photos,
   count,
   spotlight,
+  accent,
   onChange,
+  onAccent,
 }: {
   cover: CarouselCover;
   photos: string[];
   count: number;
   spotlight?: boolean;
+  accent?: string;
   onChange: (patch: Partial<CarouselCover>) => void;
+  onAccent?: (value: string) => void;
 }) {
   const crops = cover.collageCrops ?? [cover.crop, cover.crop, cover.crop];
   function setSlot(index: number, src: string) {
@@ -729,6 +773,7 @@ function CoverInspector({
     <>
       <h2>Cover</h2>
       <p className="muted">{count} story slides · {count + 2} slides</p>
+      {spotlight && onAccent ? <BrandColourPicker value={accent} onChange={onAccent} /> : null}
       {spotlight ? (
         <label>
           Header title
@@ -935,6 +980,8 @@ function RecInspector({
   events,
   photos,
   spotlight,
+  accent,
+  onAccent,
   onChange,
   onReset,
   onAddEvent,
@@ -945,6 +992,8 @@ function RecInspector({
   events: CarouselEventSource[];
   photos: string[];
   spotlight?: boolean;
+  accent?: string;
+  onAccent?: (value: string) => void;
   onChange: (patch: Partial<CarouselRec>, custom: (keyof CarouselRec)[]) => void;
   onReset: (field: keyof CarouselRec) => void;
   onAddEvent: (event: CarouselEventSource) => void;
@@ -976,6 +1025,7 @@ function RecInspector({
       </h2>
       {spotlight ? (
         <>
+          {onAccent ? <BrandColourPicker value={accent} onChange={onAccent} /> : null}
           <p>Template</p>
           <div className="carousel-templates" role="group" aria-label="Slide template">
             {(
@@ -1249,6 +1299,8 @@ function AuthorInspector({
   author,
   assigned,
   spotlight,
+  accent,
+  onAccent,
   onChange,
   onReset,
   onCompact,
@@ -1256,6 +1308,8 @@ function AuthorInspector({
   author: CarouselAuthor;
   assigned: CarouselAuthor;
   spotlight?: boolean;
+  accent?: string;
+  onAccent?: (value: string) => void;
   onChange: (patch: Partial<CarouselAuthor>) => void;
   onReset: () => void;
   onCompact: () => void;
@@ -1263,6 +1317,7 @@ function AuthorInspector({
   return (
     <>
       <h2>Author closing slide</h2>
+      {spotlight && onAccent ? <BrandColourPicker value={accent} onChange={onAccent} /> : null}
       {assigned.name ? (
         <p className="muted">Assigned on this guide: {assigned.name}</p>
       ) : (
@@ -1271,7 +1326,7 @@ function AuthorInspector({
       {spotlight ? (
         <p className="muted">
           {author.cover
-            ? "Cover photo sits behind the portrait, with the Jade band for the close."
+            ? "Cover photo sits behind the portrait. The colour band is the series colour."
             : "Add a cover on the author card, or this slide will use the guide cover."}
         </p>
       ) : author.cover ? (
