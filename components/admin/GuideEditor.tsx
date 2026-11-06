@@ -244,6 +244,12 @@ export function GuideEditor({
 
   useEffect(() => {
     if (!pickerFor) return;
+    const spotlightSearch = draftRef.current.shape === "spotlight";
+    if (spotlightSearch && !listingQuery.trim()) {
+      setListingResults([]);
+      setSearching(false);
+      return;
+    }
     let cancelled = false;
     setSearching(true);
     const handle = window.setTimeout(async () => {
@@ -275,6 +281,7 @@ export function GuideEditor({
     fillSnapshot.current = { audienceKey, fillKey, placeKey, priceAmount, priceOn };
     const firstPass = fillSkip.current;
     if (fillSkip.current) fillSkip.current = false;
+    if (draftRef.current.shape === "spotlight") return;
     const chosen = placesRef.current.filter((item) => placeIds.includes(item.id));
     const placeLabel = joinGuideLabels(chosen.map((item) => item.name)) || null;
     const amount = priceOn ? Math.round(priceAmount) : null;
@@ -288,7 +295,6 @@ export function GuideEditor({
     });
     if (!hasAmount && !chosen.length && !hasAudience) return;
     if (priceOn && !hasAmount) return;
-    if (draftRef.current.shape === "spotlight") return;
     const scrollToList = !audienceOnly;
 
     let cancelled = false;
@@ -1229,7 +1235,9 @@ export function GuideEditor({
                 {searching && <p className="muted">Searching…</p>}
                 {!searching && pickerListings.length === 0 && (
                   <p className="muted">
-                    No live listings match. Try another name, or clear the filter.
+                    {draft.shape === "spotlight" && !listingQuery.trim()
+                      ? "Search by name to link an activity. Nothing is linked until you pick one."
+                      : "No live listings match. Try another name, or clear the filter."}
                   </p>
                 )}
                 <ul className="cr-guide-results">

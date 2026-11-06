@@ -9,7 +9,7 @@ import type { GuideEditorRecord, SpotlightListingDetails } from "@/lib/control-r
 import { formatDay, formatHours, formatRand } from "@/lib/control-room-shared";
 import type { GuideAuthor } from "@/lib/guide-authors";
 import { mapGuideAuthor } from "@/lib/guide-authors";
-import { toZaLocalInput, type GuideListingPreview } from "@/lib/guide-shared";
+import { publicGuideSlug, toZaLocalInput, type GuideListingPreview } from "@/lib/guide-shared";
 import { INTEREST_CHIPS, spotlightInterestKey, type EditorCatalog } from "@/lib/listing-draft";
 import { createClient } from "@/lib/supabase/client";
 import {
@@ -143,7 +143,7 @@ export function SpotlightGuideEditor({
     setSaveState("saving");
     const result = await saveCuratedGuide(guide.id, {
       title: title.trim() || "Untitled Guide",
-      slug,
+      slug: publicGuideSlug(title.trim() || "Untitled Guide", slug),
       intro,
       body: "",
       shape: "spotlight",
@@ -296,7 +296,15 @@ export function SpotlightGuideEditor({
             <h2>Guide details</h2>
             <label>
               Guide title
-              <input value={title} onChange={(event) => setTitle(event.target.value)} placeholder="A little chalk. A lot of courage." />
+              <input
+                value={title}
+                onChange={(event) => {
+                  const next = event.target.value;
+                  setTitle(next);
+                  setSlug((current) => publicGuideSlug(next, current) || current);
+                }}
+                placeholder="A little chalk. A lot of courage."
+              />
             </label>
             <label>
               Short introduction

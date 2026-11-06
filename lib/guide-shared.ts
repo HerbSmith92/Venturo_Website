@@ -408,3 +408,21 @@ export function parseGuideIds(value: string | null, limit = 12): string[] {
 export function parseGuideInterestIds(value: string | null): string[] {
   return parseGuideIds(value, 12);
 }
+
+export function slugifyGuideTitle(title: string) {
+  return title
+    .trim()
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-|-$/g, "")
+    .slice(0, 80);
+}
+
+export function isPlaceholderGuideSlug(slug: string) {
+  return /^untitled-(?:event-)?guide(?:-\d+)?$/i.test(slug.trim());
+}
+
+export function publicGuideSlug(title: string, current?: string) {
+  if (current?.trim() && !isPlaceholderGuideSlug(current)) return current.trim();
+  return slugifyGuideTitle(title) || current?.trim() || "";
+}

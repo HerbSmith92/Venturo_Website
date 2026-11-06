@@ -6,7 +6,7 @@ import { redirect } from "next/navigation";
 import { requireAdmin, requireGuideWriter } from "@/lib/auth";
 import { requireWritableGuide } from "@/lib/guide-access";
 import { notifyAuthorFollowers } from "@/lib/follow-notifications";
-import { fromZaLocalInput, isGuideAction } from "@/lib/guide-shared";
+import { fromZaLocalInput, isGuideAction, publicGuideSlug } from "@/lib/guide-shared";
 import { createClient } from "@/lib/supabase/server";
 
 function revalidateGuides(id?: string) {
@@ -75,7 +75,7 @@ export async function saveCuratedGuide(
     p_guide_id: guideId,
     p_payload: {
       title: draft.title,
-      slug: draft.slug ?? draft.title,
+      slug: publicGuideSlug(draft.title, draft.slug),
       intro: draft.intro,
       body: draft.body,
       shape: draft.shape,
