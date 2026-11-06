@@ -161,6 +161,14 @@ export const INTEREST_CHIPS: { key: string; label: string }[] = [
   { key: "third-party", label: "Shows" },
 ];
 
+export function spotlightInterestKey(
+  listingKey: string | null | undefined,
+  guideKindKeys: string[] = [],
+) {
+  if (listingKey) return listingKey;
+  return INTEREST_CHIPS.find((chip) => guideKindKeys.includes(chip.key))?.key ?? null;
+}
+
 export function interestIdsFromKeywords(
   keywords: string,
   interests: { id: string; title: string }[],

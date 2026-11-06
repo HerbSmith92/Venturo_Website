@@ -32,6 +32,7 @@ import {
   INTEREST_CHIPS,
   interestIdsFromKeywords,
   interestKeywordsFromIds,
+  spotlightInterestKey,
   type EditorCatalog,
 } from "@/lib/listing-draft";
 import { joinGuideLabels } from "@/lib/guide-places";
@@ -624,6 +625,10 @@ export function GuideEditor({
       }
     : null;
   const credited = authors.find((row) => row.id === draft.author_id) ?? null;
+  const spotlightKind = spotlightInterestKey(
+    activity?.activityKindKey ?? draft.items[0]?.listing?.activity_kind_key,
+    catalog.kinds.filter((item) => draft.kind_ids.includes(item.id)).map((item) => item.key),
+  );
   const spotlightCarousel = useMemo(
     () =>
       draft.shape === "spotlight"
@@ -1258,9 +1263,7 @@ export function GuideEditor({
             onPhotosChange={setPhotos}
             onPersist={persistStory}
             onPreviewFull={() => setPreviewOpen(true)}
-            kind={
-              activity?.activityKindKey ?? draft.items[0]?.listing?.activity_kind_key ?? null
-            }
+            kind={spotlightKind}
           />
         ) : null}
 
@@ -1419,14 +1422,8 @@ export function GuideEditor({
                 listing={visit}
                 author={credited ? mapGuideAuthor(credited) : null}
                 compact
-                kind={activity?.activityKindKey ?? draft.items[0]?.listing?.activity_kind_key ?? null}
-                chip={
-                  INTEREST_CHIPS.find(
-                    (chip) =>
-                      chip.key ===
-                      (activity?.activityKindKey ?? draft.items[0]?.listing?.activity_kind_key),
-                  )?.label ?? null
-                }
+                kind={spotlightKind}
+                chip={INTEREST_CHIPS.find((chip) => chip.key === spotlightKind)?.label ?? null}
               />
             ) : (
               <div className="guide-collection">

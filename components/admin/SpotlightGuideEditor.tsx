@@ -10,7 +10,7 @@ import { formatDay, formatHours, formatRand } from "@/lib/control-room-shared";
 import type { GuideAuthor } from "@/lib/guide-authors";
 import { mapGuideAuthor } from "@/lib/guide-authors";
 import { toZaLocalInput, type GuideListingPreview } from "@/lib/guide-shared";
-import { INTEREST_CHIPS, type EditorCatalog } from "@/lib/listing-draft";
+import { INTEREST_CHIPS, spotlightInterestKey, type EditorCatalog } from "@/lib/listing-draft";
 import { createClient } from "@/lib/supabase/client";
 import {
   coverPhoto,
@@ -86,6 +86,10 @@ export function SpotlightGuideEditor({
 
   const author = authors.find((row) => row.id === authorId) ?? null;
   const visit = asVisit(activity);
+  const spotlightKind = spotlightInterestKey(
+    activity?.activityKindKey,
+    catalog.kinds.filter((item) => kindIds.includes(item.id)).map((item) => item.key),
+  );
   const inspected = photos.find((photo) => photo.id === inspect) ?? null;
   const spotlightCarousel = useMemo(
     () => ({ listing: activity, photos, cover, story }),
@@ -369,7 +373,7 @@ export function SpotlightGuideEditor({
             onPhotosChange={setPhotos}
             onPersist={persist}
             onPreviewFull={() => setPreview("desktop")}
-            kind={activity?.activityKindKey ?? null}
+            kind={spotlightKind}
           />
         </div>
 
@@ -516,11 +520,8 @@ export function SpotlightGuideEditor({
               listing={visit}
               author={previewAuthor}
               compact={preview === "mobile"}
-              kind={activity?.activityKindKey ?? null}
-              chip={
-                INTEREST_CHIPS.find((chip) => chip.key === activity?.activityKindKey)?.label ??
-                null
-              }
+              kind={spotlightKind}
+              chip={INTEREST_CHIPS.find((chip) => chip.key === spotlightKind)?.label ?? null}
             />
           </div>
         </div>

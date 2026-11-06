@@ -1,3 +1,4 @@
+import { keyFromKindEmbed, primaryActivityKindKey, type ActivityKindEmbed } from "@/lib/activity-kind";
 import { canManageGuide, type GuideViewer } from "@/lib/guide-access";
 import { createClient } from "@/lib/supabase/server";
 import {
@@ -138,20 +139,15 @@ function coverFromMedia(media: MediaRow[] | undefined) {
 }
 
 function primaryKind(kinds: KindRow[] | undefined) {
-  const rows = [...(kinds ?? [])];
-  const primary = rows.filter((entry) => entry.is_primary === true);
-  const sorted = primary.length ? [...primary, ...rows.filter((entry) => entry.is_primary !== true)] : rows;
-  for (const entry of sorted) {
-    const kind = entry.activity_kinds;
-    const row = Array.isArray(kind) ? kind[0] : kind;
-    if (row?.key || row?.title) {
-      return {
-        key: row.key ?? null,
-        title: row.title ?? null,
-      };
-    }
-  }
-  return { key: null, title: null };
+  const list = kinds ?? [];
+  const key = primaryActivityKindKey(list as ActivityKindEmbed[]);
+  const match = list.find((entry) => keyFromKindEmbed(entry as ActivityKindEmbed) === key);
+  const kind = match?.activity_kinds;
+  const row = Array.isArray(kind) ? kind.find((item) => item.key === key) ?? kind[0] : kind;
+  return {
+    key: key ?? row?.key ?? null,
+    title: row?.title ?? null,
+  };
 }
 
 function asIndoorOutdoor(value: string | null | undefined): GuideListingPreview["indoor_outdoor"] {
@@ -423,7 +419,7 @@ export async function loadSpotlightListingDetails(listingId: string): Promise<Sp
       id, name, slug, suburb, city, price_from, booking_url, website_url, phone, email,
       booking_required, indoor_outdoor,
       listing_media ( id, public_url, is_cover, sort_order, alt_text, is_pending ),
-      listing_activity_kinds ( is_primary, activity_kinds ( key, title ) ),
+      listing_activity_kinds ( is_primary, activity_kind_id, activity_kinds ( id, key, title ) ),
       operating_hours ( day_of_week, opens_at, closes_at, is_closed )
     `,
     )

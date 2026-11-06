@@ -4,6 +4,7 @@ import { PUBLIC_CATALOG_TAG } from "@/lib/public-cache";
 import { createAnonClient } from "@/lib/supabase/anon";
 import { createClient } from "@/lib/supabase/server";
 import { liveEventGuides } from "@/lib/event-guides";
+import { primaryActivityKindKey } from "@/lib/activity-kind";
 import { authorFromEmbed, type GuideAuthor, type GuideAuthorPublic } from "@/lib/guide-authors";
 import {
   CATEGORIES,
@@ -96,7 +97,11 @@ type ListingEmbed = {
   listing_media?: MediaRow[];
   listing_activity_kinds?: {
     is_primary: boolean | null;
-    activity_kinds?: { key: string | null } | { key: string | null }[] | null;
+    activity_kind_id?: string | null;
+    activity_kinds?:
+      | { id?: string | null; key: string | null }
+      | { id?: string | null; key: string | null }[]
+      | null;
   }[];
   price_options?: {
     standard_price: number | string | null;
@@ -177,14 +182,6 @@ function listingBlurb(description: string | null | undefined, shortDescription: 
   return out;
 }
 
-function kindKey(
-  entry: NonNullable<ListingEmbed["listing_activity_kinds"]>[number],
-): string | null {
-  const kind = entry.activity_kinds;
-  if (!kind) return null;
-  return Array.isArray(kind) ? (kind[0]?.key ?? null) : (kind.key ?? null);
-}
-
 function mapRecommendation(
   item: NonNullable<GuideRow["curated_guide_items"]>[number],
 ): GuideRecommendation | null {
@@ -192,10 +189,7 @@ function mapRecommendation(
   if (!listing || listing.status !== "approved") return null;
   const vibe = listingBlurb(listing.description, listing.short_description);
   const area = (listing.suburb ?? listing.city ?? "South Africa").replace(/,$/, "").trim();
-  const kinds = [...(listing.listing_activity_kinds ?? [])].sort((a, b) =>
-    Number(a.is_primary === true) === Number(b.is_primary === true) ? 0 : a.is_primary === true ? -1 : 1,
-  );
-  const rawKey = kinds.map(kindKey).find((key): key is string => Boolean(key));
+  const rawKey = primaryActivityKindKey(listing.listing_activity_kinds);
   const category: CategoryId =
     rawKey && CATEGORY_IDS.has(rawKey as CategoryId) ? (rawKey as CategoryId) : "adventure";
 
@@ -236,7 +230,7 @@ const GUIDE_ITEMS_SELECT = `
       price_from,
       status,
       listing_media ( public_url, is_cover, sort_order, is_pending ),
-      listing_activity_kinds ( is_primary, activity_kinds ( key ) ),
+      listing_activity_kinds ( is_primary, activity_kind_id, activity_kinds ( id, key ) ),
       price_options ( standard_price, member_price, is_active )
     )
   )

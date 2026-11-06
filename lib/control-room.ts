@@ -1,3 +1,4 @@
+import { keyFromKindEmbed, primaryActivityKindKey, type ActivityKindEmbed } from "@/lib/activity-kind";
 import { isListingStatus, type ListingStatus } from "@/lib/control-room-shared";
 import type { ListingDetail, QueueListing } from "@/lib/control-room-types";
 import { getMemberAccessMap } from "@/lib/member-access";
@@ -91,8 +92,6 @@ export async function loadQueue(status?: string, q?: string): Promise<QueueListi
   return data as QueueListing[];
 }
 
-type KindEmbed = { key?: string | null; title?: string | null } | { key?: string | null; title?: string | null }[] | null;
-
 type DirectoryQueryRow = QueueListing & {
   listing_media?: {
     public_url: string | null;
@@ -100,22 +99,8 @@ type DirectoryQueryRow = QueueListing & {
     sort_order: number | null;
     is_pending?: boolean | null;
   }[] | null;
-  listing_activity_kinds?: { is_primary: boolean | null; activity_kinds: KindEmbed }[] | null;
+  listing_activity_kinds?: ActivityKindEmbed[] | null;
 };
-
-function kindTitle(entry: { activity_kinds: KindEmbed } | undefined) {
-  const kind = entry?.activity_kinds;
-  if (!kind) return null;
-  const row = Array.isArray(kind) ? kind[0] : kind;
-  return row?.title?.trim() || null;
-}
-
-function kindKeyOf(entry: { activity_kinds: KindEmbed } | undefined) {
-  const kind = entry?.activity_kinds;
-  if (!kind) return null;
-  const row = Array.isArray(kind) ? kind[0] : kind;
-  return row?.key?.trim() || null;
-}
 
 function queueCoverUrl(media: DirectoryQueryRow["listing_media"]) {
   const rows = [...(media ?? [])].filter((row) => !row.is_pending).sort((a, b) => {
@@ -148,7 +133,7 @@ export async function loadDirectoryQueue(filters: {
       `
       id, name, branch_name, slug, suburb, city, status, is_featured, is_suspended, review_note, publish_at, price_from, updated_at,
       listing_media ( public_url, is_cover, sort_order, is_pending ),
-      listing_activity_kinds ( is_primary, activity_kinds ( key, title ) )
+      listing_activity_kinds ( is_primary, activity_kind_id, activity_kinds ( id, key, title ) )
     `,
     )
     .order("updated_at", { ascending: false })
@@ -200,15 +185,17 @@ export async function loadDirectoryQueue(filters: {
   }
 
   const mapped = base.map((row) => {
-    const kinds = [...(row.listing_activity_kinds ?? [])].sort(
-      (a, b) => Number(Boolean(b.is_primary)) - Number(Boolean(a.is_primary)),
+    const interestKey = primaryActivityKindKey(row.listing_activity_kinds);
+    const primary = (row.listing_activity_kinds ?? []).find(
+      (entry) => keyFromKindEmbed(entry) === interestKey,
     );
-    const primary = kinds[0];
+    const kind = primary?.activity_kinds;
+    const kindRow = Array.isArray(kind) ? kind.find((item) => item.key === interestKey) ?? kind[0] : kind;
     return {
       ...row,
       cover_url: queueCoverUrl(row.listing_media),
-      interest: kindTitle(primary),
-      interest_key: kindKeyOf(primary),
+      interest: kindRow?.title?.trim() || null,
+      interest_key: interestKey,
       author: authorByListing.get(row.id) ?? null,
     } satisfies QueueListing;
   });

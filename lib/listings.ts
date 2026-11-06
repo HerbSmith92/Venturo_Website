@@ -1,5 +1,6 @@
 import { cache } from "react";
 import { unstable_cache } from "next/cache";
+import { primaryActivityKindKey } from "@/lib/activity-kind";
 import { PUBLIC_CATALOG_TAG } from "@/lib/public-cache";
 import { createAnonClient } from "@/lib/supabase/anon";
 import { createClient } from "@/lib/supabase/server";
@@ -87,7 +88,11 @@ type LiveRow = {
   }[];
   listing_activity_kinds?: {
     is_primary: boolean | null;
-    activity_kinds?: { key: string | null } | { key: string | null }[] | null;
+    activity_kind_id?: string | null;
+    activity_kinds?:
+      | { id?: string | null; key: string | null }
+      | { id?: string | null; key: string | null }[]
+      | null;
   }[];
   price_options?: {
     standard_price: number | string | null;
@@ -102,21 +107,8 @@ function asNumber(value: number | string | null | undefined) {
   return Number.isFinite(n) ? n : null;
 }
 
-function kindKey(entry: LiveRow["listing_activity_kinds"] extends (infer T)[] | undefined ? T : never) {
-  const kind = entry.activity_kinds;
-  if (!kind) return null;
-  return Array.isArray(kind) ? kind[0]?.key : kind.key;
-}
-
 function mapLiveRow(row: LiveRow): Listing {
-  const kinds = [...(row.listing_activity_kinds ?? [])].sort((a, b) =>
-    Number(a.is_primary === true) === Number(b.is_primary === true)
-      ? 0
-      : a.is_primary === true
-        ? -1
-        : 1,
-  );
-  const rawKey = kinds.map(kindKey).find((key): key is string => Boolean(key));
+  const rawKey = primaryActivityKindKey(row.listing_activity_kinds);
   const category: CategoryId = rawKey && isCategoryId(rawKey) ? rawKey : "adventure";
 
   const media = [...(row.listing_media ?? [])].filter((item) => !item.is_pending).sort((a, b) => {
@@ -173,7 +165,7 @@ const LIVE_SELECT = `
       is_suspended,
       publish_at,
       listing_media ( public_url, is_cover, sort_order, is_pending ),
-      listing_activity_kinds ( is_primary, activity_kinds ( key ) ),
+      listing_activity_kinds ( is_primary, activity_kind_id, activity_kinds ( id, key ) ),
       price_options ( standard_price, member_price, is_active )
     `;
 
@@ -201,7 +193,7 @@ async function fetchLiveListings(): Promise<Listing[] | null> {
             `
       id, name, slug, suburb, city, short_description, price_from, is_featured, google_rating,
       listing_media ( public_url, is_cover, sort_order, is_pending ),
-      listing_activity_kinds ( is_primary, activity_kinds ( key ) ),
+      listing_activity_kinds ( is_primary, activity_kind_id, activity_kinds ( id, key ) ),
       price_options ( standard_price, member_price, is_active )
     `,
           )
@@ -524,7 +516,7 @@ export async function getPublicListingBySlug(
       indoor_outdoor,
       social_links ( platform, handle, url ),
       listing_media ( public_url, is_cover, sort_order, alt_text, is_pending ),
-      listing_activity_kinds ( is_primary, activity_kinds ( key ) ),
+      listing_activity_kinds ( is_primary, activity_kind_id, activity_kinds ( id, key ) ),
       listing_activities!listing_activities_listing_id_fkey (
         id, name, short_description, description, duration_minutes, booking_required, sort_order, status, show_on_discover, show_on_from, cost_varied
       ),
@@ -548,7 +540,7 @@ export async function getPublicListingBySlug(
       website_url, booking_url, street_address_1, street_address_2, province, postal_code,
       booking_required, indoor_outdoor,
       listing_media ( public_url, is_cover, sort_order, alt_text, is_pending ),
-      listing_activity_kinds ( is_primary, activity_kinds ( key ) ),
+      listing_activity_kinds ( is_primary, activity_kind_id, activity_kinds ( id, key ) ),
       listing_activities!listing_activities_listing_id_fkey (
         id, name, short_description, description, duration_minutes, booking_required, sort_order, status, show_on_discover, show_on_from, cost_varied
       ),

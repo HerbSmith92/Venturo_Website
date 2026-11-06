@@ -1,3 +1,4 @@
+import { primaryActivityKindKey } from "@/lib/activity-kind";
 import { loadMemberProfile } from "@/lib/profile";
 import {
   featuredListings,
@@ -36,7 +37,11 @@ type ScoreableRow = {
   }[];
   listing_activity_kinds?: {
     is_primary: boolean | null;
-    activity_kinds?: { key: string | null } | { key: string | null }[] | null;
+    activity_kind_id?: string | null;
+    activity_kinds?:
+      | { id?: string | null; key: string | null }
+      | { id?: string | null; key: string | null }[]
+      | null;
   }[];
   listing_interests?: { interest_id: string | null }[];
   listing_personas?: { persona_id: string | null }[];
@@ -67,13 +72,6 @@ function haversineKm(lat1: number, lng1: number, lat2: number, lng2: number) {
   return 2 * 6371 * Math.asin(Math.sqrt(a));
 }
 
-function kindKey(
-  entry: NonNullable<ScoreableRow["listing_activity_kinds"]>[number],
-): string | null {
-  const kind = entry.activity_kinds;
-  if (!kind) return null;
-  return Array.isArray(kind) ? (kind[0]?.key ?? null) : (kind.key ?? null);
-}
 
 function scaleRanks(row: ScoreableRow): number[] {
   const ranks: number[] = [];
@@ -86,10 +84,7 @@ function scaleRanks(row: ScoreableRow): number[] {
 }
 
 function mapToListing(row: ScoreableRow): Listing {
-  const kinds = [...(row.listing_activity_kinds ?? [])].sort(
-    (a, b) => Number(Boolean(b.is_primary)) - Number(Boolean(a.is_primary)),
-  );
-  const rawKey = kinds.map(kindKey).find((key): key is string => Boolean(key));
+  const rawKey = primaryActivityKindKey(row.listing_activity_kinds);
   const categoryIds = new Set(CATEGORIES.map((item) => item.id));
   const category: CategoryId =
     rawKey && categoryIds.has(rawKey as CategoryId) ? (rawKey as CategoryId) : "adventure";
@@ -215,7 +210,7 @@ async function loadScoreableListings(): Promise<ScoreableRow[]> {
       is_suspended,
       publish_at,
       listing_media ( public_url, is_cover, sort_order, is_pending ),
-      listing_activity_kinds ( is_primary, activity_kinds ( key ) ),
+      listing_activity_kinds ( is_primary, activity_kind_id, activity_kinds ( id, key ) ),
       listing_interests ( interest_id ),
       listing_personas ( persona_id ),
       listing_activity_scales ( is_primary, activity_scales ( rank ) ),
@@ -234,7 +229,7 @@ async function loadScoreableListings(): Promise<ScoreableRow[]> {
       id, name, slug, suburb, city, short_description, price_from, is_featured, google_rating,
       latitude, longitude,
       listing_media ( public_url, is_cover, sort_order, is_pending ),
-      listing_activity_kinds ( is_primary, activity_kinds ( key ) ),
+      listing_activity_kinds ( is_primary, activity_kind_id, activity_kinds ( id, key ) ),
       listing_interests ( interest_id ),
       listing_personas ( persona_id ),
       listing_activity_scales ( is_primary, activity_scales ( rank ) ),
