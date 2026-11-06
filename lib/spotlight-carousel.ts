@@ -1,6 +1,7 @@
 import type { SpotlightListingDetails } from "@/lib/control-room-guides";
 import type { GuideAuthor } from "@/lib/guide-authors";
 import {
+  APPROVED_CATEGORIES,
   FALLBACK_EXPORT_IMAGE,
   completeSentence,
   seedCarouselDraft,
@@ -8,7 +9,6 @@ import {
   type CarouselDraft,
   type CarouselRec,
 } from "@/lib/guide-carousel";
-import { CATEGORIES } from "@/lib/listings";
 import {
   coverPhoto,
   htmlToPlainText,
@@ -29,7 +29,7 @@ function socialExcerpt(raw: string, maxWords = 28) {
 
 function kindLabel(key: string | null | undefined) {
   if (!key) return "Adventure";
-  return CATEGORIES.find((item) => item.id === key)?.label ?? "Adventure";
+  return APPROVED_CATEGORIES.find((item) => item.key === key)?.title ?? "Adventure";
 }
 
 function recShell(
