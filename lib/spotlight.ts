@@ -414,6 +414,10 @@ export function photoPlacements(photo: SpotlightPhoto, cover: SpotlightCover) {
   return uses;
 }
 
+function usablePhotoUrl(url: string) {
+  return Boolean(url) && !/\/listing-media\/?$/.test(url);
+}
+
 export function mergeListingPhotos(existing: SpotlightPhoto[], media: SpotlightListingMedia[]): SpotlightPhoto[] {
   const byMedia = new Map(
     existing.filter((photo) => photo.listingMediaId).map((photo) => [photo.listingMediaId as string, photo]),
@@ -421,6 +425,7 @@ export function mergeListingPhotos(existing: SpotlightPhoto[], media: SpotlightL
   const byUrl = new Map(existing.map((photo) => [photo.url, photo]));
   const next = [...existing];
   for (const item of media) {
+    if (!usablePhotoUrl(item.url)) continue;
     if (byMedia.has(item.id) || byUrl.has(item.url)) continue;
     next.push({
       id: newSpotlightId(),
@@ -438,6 +443,29 @@ export function mergeListingPhotos(existing: SpotlightPhoto[], media: SpotlightL
     });
   }
   return next;
+}
+
+/** Keep uploads; swap listing-sourced photos when the linked activity changes. */
+export function replaceListingPhotos(existing: SpotlightPhoto[], media: SpotlightListingMedia[]): SpotlightPhoto[] {
+  const allowed = new Set(media.map((item) => item.id));
+  const kept = existing.filter((photo) => {
+    if (!usablePhotoUrl(photo.url)) return false;
+    if (photo.source === "upload" && !photo.listingMediaId) return true;
+    return Boolean(photo.listingMediaId && allowed.has(photo.listingMediaId));
+  });
+  return mergeListingPhotos(kept, media);
+}
+
+export function pruneStoryPhotos(story: SpotlightSection[], photos: SpotlightPhoto[]): SpotlightSection[] {
+  const ids = new Set(photos.map((photo) => photo.id));
+  return story.map((section) => {
+    const placements = section.placements.filter((row) => ids.has(row.photoId));
+    let layout = section.layout;
+    if (placements.length === 0) layout = "none";
+    else if (placements.length === 1) layout = "one";
+    else if (placements.length === 2 && layout === "gallery") layout = "two";
+    return { ...section, placements, layout };
+  });
 }
 
 export function estimateReadMinutes(intro: string, story: SpotlightSection[]) {

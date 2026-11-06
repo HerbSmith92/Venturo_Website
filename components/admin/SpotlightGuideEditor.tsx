@@ -15,7 +15,8 @@ import { createClient } from "@/lib/supabase/client";
 import {
   coverPhoto,
   emptySpotlightCover,
-  mergeListingPhotos,
+  pruneStoryPhotos,
+  replaceListingPhotos,
   newSpotlightId,
   photoPlacements,
   type SpotlightPhoto,
@@ -120,15 +121,16 @@ export function SpotlightGuideEditor({
     setActivity(next);
     if (next) {
       setPhotos((current) => {
-        const merged = mergeListingPhotos(current, next.media);
+        const nextPhotos = replaceListingPhotos(current, next.media);
+        setStory((story) => pruneStoryPhotos(story, nextPhotos));
         setCover((prev) => {
-          if (prev.photoId) return prev;
+          if (nextPhotos.some((photo) => photo.id === prev.photoId)) return prev;
           const coverMediaId = next.media.find((item) => item.isCover)?.id;
           const preferred =
-            merged.find((photo) => photo.listingMediaId === coverMediaId) ?? merged[0] ?? null;
+            nextPhotos.find((photo) => photo.listingMediaId === coverMediaId) ?? nextPhotos[0] ?? null;
           return preferred ? { ...prev, photoId: preferred.id } : prev;
         });
-        return merged;
+        return nextPhotos;
       });
     }
   }
@@ -367,6 +369,7 @@ export function SpotlightGuideEditor({
             onPhotosChange={setPhotos}
             onPersist={persist}
             onPreviewFull={() => setPreview("desktop")}
+            kind={activity?.activityKindKey ?? null}
           />
         </div>
 

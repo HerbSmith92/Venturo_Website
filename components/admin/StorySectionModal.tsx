@@ -40,6 +40,7 @@ export function StorySectionModal({
   onDiscard,
   onSave,
   onInsertPhotoBreak,
+  kind = null,
 }: {
   open: boolean;
   mode: "add" | "edit";
@@ -57,6 +58,7 @@ export function StorySectionModal({
   onDiscard: () => void;
   onSave: (section: SpotlightSection) => void;
   onInsertPhotoBreak?: (writing: SpotlightSection, afterHtml: string) => void;
+  kind?: string | null;
 }) {
   const [draft, setDraft] = useState(() => initial ?? emptySection(sectionType));
   const [pane, setPane] = useState<"edit" | "preview">("edit");
@@ -341,7 +343,10 @@ export function StorySectionModal({
                 </button>
               </div>
             </div>
-            <div className={`story-preview spotlight-page${device === "mobile" ? " is-mobile" : ""}`}>
+            <div
+              className={`story-preview spotlight-page${device === "mobile" ? " is-mobile" : ""}`}
+              data-kind={kind || undefined}
+            >
               {draft.layout !== "none" && !draft.placements.some((item) => item.photoId) ? (
                 <p className="story-preview-empty">
                   {draft.layout === "gallery"

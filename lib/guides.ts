@@ -192,8 +192,8 @@ function mapRecommendation(
   if (!listing || listing.status !== "approved") return null;
   const vibe = listingBlurb(listing.description, listing.short_description);
   const area = (listing.suburb ?? listing.city ?? "South Africa").replace(/,$/, "").trim();
-  const kinds = [...(listing.listing_activity_kinds ?? [])].sort(
-    (a, b) => Number(Boolean(b.is_primary)) - Number(Boolean(a.is_primary)),
+  const kinds = [...(listing.listing_activity_kinds ?? [])].sort((a, b) =>
+    Number(a.is_primary === true) === Number(b.is_primary === true) ? 0 : a.is_primary === true ? -1 : 1,
   );
   const rawKey = kinds.map(kindKey).find((key): key is string => Boolean(key));
   const category: CategoryId =

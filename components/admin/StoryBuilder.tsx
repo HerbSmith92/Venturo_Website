@@ -35,6 +35,7 @@ export function StoryBuilder({
   onPhotosChange,
   onPersist,
   onPreviewFull,
+  kind = null,
 }: {
   story: SpotlightSection[];
   photos: SpotlightPhoto[];
@@ -47,6 +48,7 @@ export function StoryBuilder({
   onPhotosChange: (photos: SpotlightPhoto[]) => void;
   onPersist: (story: SpotlightSection[]) => Promise<boolean> | boolean;
   onPreviewFull: () => void;
+  kind?: string | null;
 }) {
   const [menuAt, setMenuAt] = useState<number | null>(null);
   const [editor, setEditor] = useState<{ mode: "add" | "edit"; index: number; type: StorySectionType; section: SpotlightSection | null } | null>(null);
@@ -174,7 +176,7 @@ export function StoryBuilder({
                 </button>
               </div>
             </div>
-            <div className="story-card-preview spotlight-page">
+            <div className="story-card-preview spotlight-page" data-kind={kind || undefined}>
               <div className="spotlight-story">
                 <SpotlightSectionView section={section} photos={photos} authorName={authorName} />
               </div>
@@ -207,6 +209,7 @@ export function StoryBuilder({
           onDiscard={() => setEditor(null)}
           onSave={(section) => void saveSection(section)}
           onInsertPhotoBreak={(writing, afterHtml) => void insertPhotoBreak(writing, afterHtml)}
+          kind={kind}
         />
       ) : null}
     </section>

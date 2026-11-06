@@ -38,8 +38,9 @@ import { joinGuideLabels } from "@/lib/guide-places";
 import { createClient } from "@/lib/supabase/client";
 import {
   emptySpotlightCover,
-  mergeListingPhotos,
   newSpotlightId,
+  pruneStoryPhotos,
+  replaceListingPhotos,
   type SpotlightPhoto,
   type SpotlightSection,
   type SpotlightVisitInfo,
@@ -183,7 +184,18 @@ export function GuideEditor({
   useEffect(() => {
     if (!listing) return;
     setActivity(listing);
-    setPhotos((current) => mergeListingPhotos(current, listing.media));
+    setPhotos((current) => {
+      const next = replaceListingPhotos(current, listing.media);
+      setStory((story) => pruneStoryPhotos(story, next));
+      setCover((prev) => {
+        if (next.some((photo) => photo.id === prev.photoId)) return prev;
+        const coverMediaId = listing.media.find((item) => item.isCover)?.id;
+        const preferred =
+          next.find((photo) => photo.listingMediaId === coverMediaId) ?? next[0] ?? null;
+        return preferred ? { ...prev, photoId: preferred.id } : prev;
+      });
+      return next;
+    });
   }, [listing]);
 
   useEffect(() => {
@@ -275,6 +287,7 @@ export function GuideEditor({
     });
     if (!hasAmount && !chosen.length && !hasAudience) return;
     if (priceOn && !hasAmount) return;
+    if (draftRef.current.shape === "spotlight") return;
     const scrollToList = !audienceOnly;
 
     let cancelled = false;
@@ -309,27 +322,7 @@ export function GuideEditor({
           placeLabel,
           joinGuideLabels(labels) || null,
         );
-        if (draftRef.current.shape === "spotlight") {
-          if (!firstPass) {
-            setDraft((current) => {
-              const notes = new Map(current.items.map((item) => [item.listing_id, item.editorial_note]));
-              return {
-                ...current,
-                title:
-                  hasAmount && amount != null
-                    ? underPriceTitle(amount, placeLabel)
-                    : current.title,
-                items: listings.slice(0, 1).map((listing) => ({
-                  listing_id: listing.id,
-                  editorial_note: notes.get(listing.id) ?? "",
-                  listing,
-                })),
-              };
-            });
-          }
-        } else {
-          setMatches(listings);
-        }
+        setMatches(listings);
         setMatchNote(summary);
         setOpenSteps((current) => ({ ...current, spots: true }));
         setSaveNotice(null);
@@ -602,12 +595,16 @@ export function GuideEditor({
     setActivity(next);
     if (next) {
       setPhotos((current) => {
-        const merged = mergeListingPhotos(current, next.media);
+        const nextPhotos = replaceListingPhotos(current, next.media);
+        setStory((story) => pruneStoryPhotos(story, nextPhotos));
         setCover((prev) => {
-          if (prev.photoId) return prev;
-          return { ...prev, photoId: merged[0]?.id ?? null };
+          if (nextPhotos.some((photo) => photo.id === prev.photoId)) return prev;
+          const coverMediaId = next.media.find((item) => item.isCover)?.id;
+          const preferred =
+            nextPhotos.find((photo) => photo.listingMediaId === coverMediaId) ?? nextPhotos[0] ?? null;
+          return preferred ? { ...prev, photoId: preferred.id } : prev;
         });
-        return merged;
+        return nextPhotos;
       });
     }
   }
@@ -1261,6 +1258,9 @@ export function GuideEditor({
             onPhotosChange={setPhotos}
             onPersist={persistStory}
             onPreviewFull={() => setPreviewOpen(true)}
+            kind={
+              activity?.activityKindKey ?? draft.items[0]?.listing?.activity_kind_key ?? null
+            }
           />
         ) : null}
 

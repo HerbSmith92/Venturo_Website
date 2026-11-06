@@ -8,6 +8,7 @@ import {
   type CarouselDraft,
   type CarouselRec,
 } from "@/lib/guide-carousel";
+import { CATEGORIES } from "@/lib/listings";
 import {
   coverPhoto,
   htmlToPlainText,
@@ -26,13 +27,20 @@ function socialExcerpt(raw: string, maxWords = 28) {
   return `${words.slice(0, maxWords - 2).join(" ").replace(/[,:;]$/, "")}.`;
 }
 
+function kindLabel(key: string | null | undefined) {
+  if (!key) return "Adventure";
+  return CATEGORIES.find((item) => item.id === key)?.label ?? "Adventure";
+}
+
 function recShell(
   partial: Pick<CarouselRec, "id" | "sourceId" | "title" | "description" | "location" | "image" | "photos"> & Partial<CarouselRec>,
+  kindKey: string | null,
 ): CarouselRec {
+  const categoryKey = kindKey || "adventure";
   return {
     kind: "activity",
-    categoryKey: "adventure",
-    categoryTitle: "Adventure",
+    categoryKey,
+    categoryTitle: kindLabel(kindKey),
     priceAmount: null,
     priceBasis: "omit",
     priceNote: "",
@@ -102,6 +110,7 @@ export function seedSpotlightCarouselDraft(input: {
   const coverImage = hero?.url || photos[0] || FALLBACK_EXPORT_IMAGE;
   const listingName = input.listing?.name.trim() || input.title.trim() || "Activity Spotlight";
   const area = input.listing?.area ?? "";
+  const kindKey = input.listing?.activityKindKey ?? null;
   const recs: CarouselRec[] = [];
 
   for (const section of input.story) {
@@ -132,7 +141,7 @@ export function seedSpotlightCarouselDraft(input: {
         role: pack ? "pack" : "story",
         credit: photo?.credit || "",
         crop: photo ? { x: photo.focusX, y: photo.focusY, zoom: 1 } : { x: input.cover.focusX, y: input.cover.focusY, zoom: 1 },
-      }),
+      }, kindKey),
     );
     if (recs.length >= 6) break;
   }
@@ -149,7 +158,7 @@ export function seedSpotlightCarouselDraft(input: {
         image: photos[photos.length - 1] || coverImage,
         photos,
         role: "pack",
-      }),
+      }, kindKey),
     );
   }
 
@@ -163,7 +172,7 @@ export function seedSpotlightCarouselDraft(input: {
         location: area,
         image: coverImage,
         photos,
-      }),
+      }, kindKey),
     );
   }
 

@@ -110,7 +110,11 @@ function kindKey(entry: LiveRow["listing_activity_kinds"] extends (infer T)[] | 
 
 function mapLiveRow(row: LiveRow): Listing {
   const kinds = [...(row.listing_activity_kinds ?? [])].sort((a, b) =>
-    Number(Boolean(b.is_primary)) - Number(Boolean(a.is_primary)),
+    Number(a.is_primary === true) === Number(b.is_primary === true)
+      ? 0
+      : a.is_primary === true
+        ? -1
+        : 1,
   );
   const rawKey = kinds.map(kindKey).find((key): key is string => Boolean(key));
   const category: CategoryId = rawKey && isCategoryId(rawKey) ? rawKey : "adventure";

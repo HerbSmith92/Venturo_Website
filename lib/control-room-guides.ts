@@ -138,9 +138,9 @@ function coverFromMedia(media: MediaRow[] | undefined) {
 }
 
 function primaryKind(kinds: KindRow[] | undefined) {
-  const sorted = [...(kinds ?? [])].sort(
-    (a, b) => Number(Boolean(b.is_primary)) - Number(Boolean(a.is_primary)),
-  );
+  const rows = [...(kinds ?? [])];
+  const primary = rows.filter((entry) => entry.is_primary === true);
+  const sorted = primary.length ? [...primary, ...rows.filter((entry) => entry.is_primary !== true)] : rows;
   for (const entry of sorted) {
     const kind = entry.activity_kinds;
     const row = Array.isArray(kind) ? kind[0] : kind;
