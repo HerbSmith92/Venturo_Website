@@ -1419,6 +1419,14 @@ export function GuideEditor({
                 listing={visit}
                 author={credited ? mapGuideAuthor(credited) : null}
                 compact
+                kind={activity?.activityKindKey ?? draft.items[0]?.listing?.activity_kind_key ?? null}
+                chip={
+                  INTEREST_CHIPS.find(
+                    (chip) =>
+                      chip.key ===
+                      (activity?.activityKindKey ?? draft.items[0]?.listing?.activity_kind_key),
+                  )?.label ?? null
+                }
               />
             ) : (
               <div className="guide-collection">

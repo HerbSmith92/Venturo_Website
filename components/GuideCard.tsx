@@ -19,7 +19,7 @@ export function GuideCard({ guide }: { guide: GuideCardData }) {
   const likes = guide.likeCount ?? 0;
 
   return (
-    <a className="guide-card" href={`/guides/${guide.slug}`}>
+    <a className="guide-card" href={`/guides/${guide.slug}`} data-kind={guide.category}>
       <div className="guide-card-image">
         <img src={guide.cover} alt="" />
       </div>

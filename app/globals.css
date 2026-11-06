@@ -8172,6 +8172,19 @@ button.listing-cost-toggle {
   border: 1px solid color-mix(in srgb, var(--snow) 8%, transparent);
   color: inherit;
   min-height: 100%;
+  position: relative;
+  --kind: var(--canary);
+}
+
+.guide-card[data-kind]::before {
+  content: "";
+  position: absolute;
+  left: 0;
+  top: 0;
+  bottom: 0;
+  width: 5px;
+  background: var(--kind);
+  z-index: 1;
 }
 
 .guide-card-image {
@@ -9509,7 +9522,7 @@ a.chip.on {
   letter-spacing: 0.04em;
   text-transform: uppercase;
   font-size: 12px;
-  color: var(--canary);
+  color: var(--kind);
 }
 
 .guide-collection {
@@ -14825,6 +14838,68 @@ a.chip,
   isolation: isolate;
   background: var(--snow);
   color: var(--night);
+  --kind: var(--canary);
+  --kind-ink: var(--night);
+}
+
+.spotlight-page[data-kind="adventure"],
+.guide-card[data-kind="adventure"] {
+  --kind: var(--jade);
+  --kind-ink: var(--snow);
+}
+
+.spotlight-page[data-kind="thrills"],
+.guide-card[data-kind="thrills"] {
+  --kind: var(--orange);
+  --kind-ink: var(--night);
+}
+
+.spotlight-page[data-kind="romance"],
+.guide-card[data-kind="romance"] {
+  --kind: var(--pomegranate);
+  --kind-ink: var(--snow);
+}
+
+.spotlight-page[data-kind="family"],
+.guide-card[data-kind="family"] {
+  --kind: var(--blush);
+  --kind-ink: var(--night);
+}
+
+.spotlight-page[data-kind="nightlife"],
+.guide-card[data-kind="nightlife"] {
+  --kind: var(--velvet);
+  --kind-ink: var(--snow);
+}
+
+.spotlight-page[data-kind="team"],
+.guide-card[data-kind="team"] {
+  --kind: var(--canary);
+  --kind-ink: var(--night);
+}
+
+.spotlight-page[data-kind="workshop"],
+.guide-card[data-kind="workshop"] {
+  --kind: var(--magenta);
+  --kind-ink: var(--night);
+}
+
+.spotlight-page[data-kind="markets"],
+.guide-card[data-kind="markets"] {
+  --kind: var(--maroon);
+  --kind-ink: var(--snow);
+}
+
+.spotlight-page[data-kind="digital"],
+.guide-card[data-kind="digital"] {
+  --kind: var(--sapphire);
+  --kind-ink: var(--night);
+}
+
+.spotlight-page[data-kind="third-party"],
+.guide-card[data-kind="third-party"] {
+  --kind: var(--currant);
+  --kind-ink: var(--snow);
 }
 
 .spotlight-page::before {
@@ -14896,8 +14971,8 @@ a.chip,
   margin: 0;
   padding: 6px 12px;
   border-radius: var(--radius-sm);
-  background: var(--canary);
-  color: var(--night);
+  background: var(--kind);
+  color: var(--kind-ink);
   font-size: 12px;
   letter-spacing: 0.16em;
   text-transform: uppercase;
@@ -14925,7 +15000,8 @@ a.chip,
   margin: 0;
   padding: 6px 10px;
   border-radius: 999px;
-  border: 1px solid color-mix(in srgb, var(--night) 22%, transparent);
+  border: 1px solid color-mix(in srgb, var(--kind) 55%, transparent);
+  background: color-mix(in srgb, var(--kind) 18%, var(--snow));
   font-size: 12px;
   letter-spacing: 0.04em;
 }
@@ -15051,7 +15127,7 @@ a.chip,
 .spotlight-quote {
   margin: 32px 0;
   padding: 8px 0 8px 18px;
-  border-left: 6px solid var(--canary);
+  border-left: 6px solid var(--kind);
   font-family: "Social Gothic Rough", "Arial Black", sans-serif;
   font-size: 28px;
   line-height: 1.15;
@@ -15071,7 +15147,7 @@ a.chip,
 .spotlight-tip {
   margin: 32px 0;
   padding: 20px 22px;
-  background: color-mix(in srgb, var(--canary) 28%, var(--snow));
+  background: color-mix(in srgb, var(--kind) 28%, var(--snow));
   border-radius: 8px 28px 8px 8px;
 }
 
@@ -15092,7 +15168,7 @@ a.chip,
   color: var(--snow);
   padding: 22px 20px 20px;
   border-radius: 8px 28px 8px 8px;
-  border-top: 8px solid var(--canary);
+  border-top: 8px solid var(--kind);
   box-shadow: 0 18px 40px color-mix(in srgb, var(--currant) 28%, transparent);
 }
 
@@ -15206,7 +15282,7 @@ a.chip,
   padding: 24px 22px 22px;
   background: white;
   border-radius: 8px 28px 8px 8px;
-  border-top: 8px solid var(--canary);
+  border-top: 8px solid var(--kind);
   box-shadow: 0 12px 32px color-mix(in srgb, var(--night) 8%, transparent);
 }
 

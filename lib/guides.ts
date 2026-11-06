@@ -41,6 +41,7 @@ export type GuideCardData = {
   publishAt?: string | null;
   viewCount?: number;
   likeCount?: number;
+  category?: CategoryId;
 };
 
 export type GuideRecommendation = {
@@ -317,6 +318,7 @@ async function fetchLiveGuides(limit?: number): Promise<GuideCardData[]> {
         publishAt: row.publish_at ?? null,
         viewCount: row.view_count ?? 0,
         likeCount: row.like_count ?? 0,
+        category: row.shape === "spotlight" ? items[0]?.category : undefined,
       },
     ];
   });

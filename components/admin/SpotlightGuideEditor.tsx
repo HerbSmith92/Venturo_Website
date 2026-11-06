@@ -513,6 +513,11 @@ export function SpotlightGuideEditor({
               listing={visit}
               author={previewAuthor}
               compact={preview === "mobile"}
+              kind={activity?.activityKindKey ?? null}
+              chip={
+                INTEREST_CHIPS.find((chip) => chip.key === activity?.activityKindKey)?.label ??
+                null
+              }
             />
           </div>
         </div>

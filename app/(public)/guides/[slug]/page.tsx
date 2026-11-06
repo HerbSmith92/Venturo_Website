@@ -11,7 +11,7 @@ import { getPublicEventGuideBySlug } from "@/lib/event-guides";
 import { getPublicGuideBySlug, listGuideEventIds, liveGuides, liveGuidesByAuthor } from "@/lib/guides";
 import { getPublicListingById } from "@/lib/listings";
 import { isSaved } from "@/lib/saves";
-import { categoryLabel } from "@/lib/listings";
+import { asCategoryId, categoryLabel } from "@/lib/listings";
 import { coverPhoto, type SpotlightVisitInfo } from "@/lib/spotlight";
 
 function siteUrl() {
@@ -124,7 +124,8 @@ export default async function GuideDetailPage({
           moreByAuthor={moreByAuthor
             .filter((item) => item.id !== listingGuide.id)
             .map((item) => ({ title: item.title, href: `/guides/${item.slug}` }))}
-          chip={listing ? categoryLabel(listing.category) : null}
+          chip={listing ? categoryLabel(listing.category) : listingGuide.items[0] ? categoryLabel(listingGuide.items[0].category) : null}
+          kind={asCategoryId(listing?.category ?? listingGuide.items[0]?.category ?? null)}
         />
       </main>
     );

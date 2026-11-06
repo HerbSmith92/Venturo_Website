@@ -80,6 +80,7 @@ export type SpotlightListingDetails = {
   email: string | null;
   bookingRequired: boolean;
   indoorOutdoor: string | null;
+  activityKindKey: string | null;
   hours: { dayOfWeek: number; opensAt: string | null; closesAt: string | null; isClosed: boolean }[];
   media: SpotlightListingMedia[];
 };
@@ -422,6 +423,7 @@ export async function loadSpotlightListingDetails(listingId: string): Promise<Sp
       id, name, slug, suburb, city, price_from, booking_url, website_url, phone, email,
       booking_required, indoor_outdoor,
       listing_media ( id, public_url, is_cover, sort_order, alt_text, is_pending ),
+      listing_activity_kinds ( is_primary, activity_kinds ( key, title ) ),
       operating_hours ( day_of_week, opens_at, closes_at, is_closed )
     `,
     )
@@ -441,6 +443,7 @@ export async function loadSpotlightListingDetails(listingId: string): Promise<Sp
     email: string | null;
     booking_required: boolean | null;
     indoor_outdoor: string | null;
+    listing_activity_kinds?: KindRow[];
     listing_media?: {
       id: string;
       public_url: string | null;
@@ -480,6 +483,7 @@ export async function loadSpotlightListingDetails(listingId: string): Promise<Sp
     email: row.email,
     bookingRequired: Boolean(row.booking_required),
     indoorOutdoor: row.indoor_outdoor,
+    activityKindKey: primaryKind(row.listing_activity_kinds).key,
     hours: [...(row.operating_hours ?? [])]
       .sort((a, b) => a.day_of_week - b.day_of_week)
       .map((hour) => ({

@@ -156,6 +156,7 @@ export function SpotlightArticle({
   moreByAuthor = [],
   compact = false,
   chip = null,
+  kind = null,
 }: {
   title: string;
   intro: string;
@@ -175,6 +176,7 @@ export function SpotlightArticle({
   moreByAuthor?: { title: string; href: string }[];
   compact?: boolean;
   chip?: string | null;
+  kind?: string | null;
 }) {
   const hero = coverPhoto(photos, cover);
   const gallery = galleryPhotos(photos);
@@ -207,7 +209,10 @@ export function SpotlightArticle({
   const showCloserLook = closerPhotos.some((photo) => !storyPhotoIds.has(photo.id));
 
   return (
-    <article className={`spotlight-page${compact ? " is-compact" : ""}`}>
+    <article
+      className={`spotlight-page${compact ? " is-compact" : ""}`}
+      data-kind={kind || undefined}
+    >
       <header className="spotlight-hero">
         {hero ? (
           <img
