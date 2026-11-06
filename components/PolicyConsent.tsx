@@ -56,7 +56,7 @@ export function HostTermsConsent({
 }) {
   return (
     <fieldset className="policy-consent">
-      <legend className="sr-only">Host Terms</legend>
+      <legend className="sr-only">Host Terms Agreement</legend>
       <label>
         <input
           type="checkbox"
@@ -68,7 +68,7 @@ export function HostTermsConsent({
         <span>
           I have read the{" "}
           <a href="/host-terms" target="_blank" rel="noreferrer">
-            Host Terms and Conditions
+            Host Terms Agreement
           </a>
           .
         </span>
@@ -83,7 +83,7 @@ export function PolicyLinks() {
       <a href="/terms">Terms &amp; Conditions</a>
       <a href="/privacy_policy">Privacy Policy</a>
       <a href="/refunds">Refunds &amp; Cancellations</a>
-      <a href="/host-terms">Host Terms</a>
+      <a href="/host-terms">Host Terms Agreement</a>
       <a href="/support">Support</a>
     </p>
   );

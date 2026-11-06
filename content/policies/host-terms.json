@@ -2,13 +2,13 @@
   "slug": "host-terms",
   "href": "/host-terms/",
   "title": "Venturo Host Terms Agreement",
-  "summary": "These Host Terms and Conditions apply when a Host registers, lists or manages an Event through Venturo.",
+  "summary": "These Host Terms and Conditions apply when a Host registers, lists or manages an Event through Venturo. Independent Host Events use an external ticket link or Venturo-enabled checkout & payout through Paystack.",
   "meta": [
     "Business: Venturo Ventures (PTY) Ltd trading as Venturo",
-    "Company registration number: 2026 / 851364 / 07",
+    "Company registration number: 2026/851364/07",
     "Website: www.venturo.co.za",
     "Country: South Africa",
-    "Effective date: 05 November 2026"
+    "Last updated: 06 November 2026"
   ],
   "blocks": [
     {
@@ -17,7 +17,7 @@
     },
     {
       "type": "p",
-      "text": "The default payment arrangement for independent Hosts is direct payment: Customers book and pay the Host, and Venturo does not collect, hold, manage or distribute those booking funds. The payout and payment-hold terms in these Terms apply only when Venturo expressly activates checkout and payout for a specific Event."
+      "text": "Venturo supports two ticketing routes for independent Host Events: an external ticket link to the Host's approved ticket supplier, or Venturo-enabled checkout & payout through Paystack, subject to Paystack approval & activation. The route for each Event must be clearly disclosed before purchase. Venturo collects & pays out funds only for tickets purchased through Venturo-enabled checkout."
     },
     {
       "type": "h2",
@@ -41,7 +41,7 @@
     },
     {
       "type": "p",
-      "text": "Venturo-enabled checkout and payout means an arrangement for a specific Host and Event for which Venturo has approved Platform checkout, a Payment Provider and a payout route in the Host account or in a separate written confirmation."
+      "text": "Venturo-enabled checkout & payout means an arrangement for a Host & Event approved by Venturo for ticket purchases through the Platform using Paystack, subject to Paystack approval & activation, with manual payout by Venturo to the Host's recorded bank account."
     },
     {
       "type": "p",
@@ -161,11 +161,11 @@
     },
     {
       "type": "p",
-      "text": "For a direct-to-Host payment, the Host must process any refund itself. Venturo cannot refund money it did not receive. The Host may not substitute a credit or voucher where the Customer is legally entitled to a refund."
+      "text": "For tickets bought through an external ticket link, the Host or its approved ticket supplier must process any refund under the applicable booking terms & law. Venturo cannot refund money it did not receive. The Host may not substitute a credit or voucher where the Customer is legally entitled to a refund."
     },
     {
       "type": "p",
-      "text": "Venturo’s Refund & Cancellation Policy applies to purchases made directly from Venturo. It does not turn a direct-to-Host booking into a Venturo payment."
+      "text": "For Customer cancellations, the Event's refund & cancellation terms disclosed before purchase apply, subject to statutory rights & Venturo's applicable Refund & Cancellation Policy. For payments collected through Venturo, Venturo may investigate disputed requests & authorise refunds under clause 6. For external ticket purchases, the external supplier's process applies, subject to law."
     },
     {
       "type": "p",
@@ -177,15 +177,15 @@
     },
     {
       "type": "p",
-      "text": "For most independent Host Events, Customers book and pay the Host directly. The Host or its own payment provider receives and processes those payments. Venturo does not collect, hold, manage or distribute direct-to-Host booking funds."
+      "text": "Some independent Host Events are featured with an external ticket link directing Customers to the Host's approved ticket supplier. That supplier or the Host receives the payment & manages settlement. Venturo does not collect, hold or distribute those booking funds. Other approved Events use Venturo-enabled checkout & payout."
     },
     {
       "type": "p",
-      "text": "A Host may use Venturo-enabled checkout and payout only after Venturo confirms the arrangement for the specific Event. The Host authorises Venturo to facilitate payment through the approved Payment Provider and account for ticket receipts, deductions, refunds, reversals and payouts in an Event statement. The approved Provider and settlement route will be recorded in the Host account or confirmed separately before sales begin."
+      "text": "A Host may use Venturo-enabled checkout & payout only after Venturo confirms that route for the Event & the required Paystack approval & activation are in place. The Host authorises Venturo to facilitate ticket payment through Paystack & account for receipts, fees, refunds, reversals & payouts in an itemised Event statement. The payment route must be recorded before sales begin."
     },
     {
       "type": "p",
-      "text": "Paystack is currently used for payments for services supplied directly by Venturo. It may be used for Host payouts only if Venturo separately confirms that the Provider and account configuration support that arrangement."
+      "text": "Paystack is the intended payment provider for Venturo website memberships & Venturo-enabled event ticket checkout. Live processing is subject to Paystack approving & activating the relevant services & account configuration. These Terms do not represent that approval has already been granted."
     },
     {
       "type": "p",
@@ -193,7 +193,7 @@
     },
     {
       "type": "p",
-      "text": "Each party that holds money or property belonging to a Customer must handle it with the care required by law. These Terms do not represent that funds are kept in a trust account or escrow unless Venturo separately confirms that arrangement in writing."
+      "text": "Event funds received by Venturo pending payout are held in a separate bank account in Venturo's registered company name, separate from its operating account. Each party holding Customer money or property must handle it with the care required by law. This separate account is not represented as a trust account or escrow arrangement."
     },
     {
       "type": "p",
@@ -229,11 +229,11 @@
     },
     {
       "type": "li",
-      "text": "the Host’s verified payout account and applicable payout timing."
+      "text": "the Host's recorded payout account, banking-document comparison status & applicable payout timing."
     },
     {
       "type": "p",
-      "text": "The payment mode, supplier identity, Payment Provider and refund contact shown to Customers must match the actual transaction. Direct payment to the Host is the default unless Venturo confirms Venturo-enabled checkout and payout for that Event."
+      "text": "The ticketing route, supplier identity, payment provider, fees & refund contact shown to Customers must match the actual transaction. Each Event must clearly identify whether the Customer purchases through an external ticket supplier or Venturo-enabled checkout."
     },
     {
       "type": "h2",
@@ -241,11 +241,11 @@
     },
     {
       "type": "p",
-      "text": "For an Event with Venturo-enabled checkout and payout and no active hold, Venturo will instruct payment of the Host’s net proceeds within two Working Days after the Event ends."
+      "text": "For an Event using Venturo-enabled checkout & payout, two full Working Days must elapse after the Event ends before the Host's payout becomes eligible. The Event end date is excluded when counting these days. This waiting period allows time for settlement & Customer complaints. Payout is subject to cleared funds being available & no active hold under clause 10."
     },
     {
       "type": "p",
-      "text": "If the approved Payment Provider has not released cleared funds by then, Venturo will instruct payment within two Working Days after those funds clear and will notify the Host of the delay. For a multi-session Event, settlement may occur after each session or after the final session, as recorded in the Host account or Event setup flow. No Venturo payout is due for a direct-to-Host payment."
+      "text": "Payouts are manually authorised & initiated by Venturo after that waiting period; they are not automatic. If no complaint or other reason for a hold has arisen, payout may proceed without an affirmative Host reply confirming delivery. If Paystack has not released the relevant cleared funds, payout is delayed until they are available & Venturo will notify the Host. Venturo will initiate eligible payouts promptly once these conditions are met. Bank processing may add time before the Host receives the money. For multi-session Events, the applicable session or final Event end date must be recorded before sale. No Venturo payout is due for external ticket purchases."
     },
     {
       "type": "p",
@@ -257,7 +257,7 @@
     },
     {
       "type": "p",
-      "text": "Payouts will be sent to the verified account recorded in the Host account. The Host is responsible for correct account details and any resulting bank charge or delay, except to the extent caused by Venturo. Venturo may require identity, business or bank verification before the first payout or when details change."
+      "text": "Payouts are sent to the bank account recorded for the Host. Venturo manually compares the name & account details on the submitted proof of banking with the details entered into the Platform. This comparison does not independently authenticate the document, confirm identity or constitute bank verification. The Host must provide accurate details & promptly report changes. Venturo may request additional identity, business or banking checks before payout or when details change. Responsibility for bank charges or delays remains as set out in the disclosed payment arrangements & applicable law."
     },
     {
       "type": "h2",
@@ -301,7 +301,7 @@
     },
     {
       "type": "p",
-      "text": "For direct-to-Host payments, Venturo cannot withhold funds it does not hold. The Host remains responsible for resolving the complaint and providing any refund."
+      "text": "For external ticket purchases, Venturo cannot withhold funds it does not hold. The Host & its ticket supplier remain responsible for resolving complaints & providing refunds in accordance with the transaction terms & applicable law."
     },
     {
       "type": "h2",
@@ -309,11 +309,11 @@
     },
     {
       "type": "p",
-      "text": "Venturo may charge only the commission, listing, processing or other fees shown in the Host account or Event setup flow and accepted before the relevant tickets go on sale. No new fee applies retroactively to a completed sale."
+      "text": "Hosts using Venturo-enabled ticketing must maintain an active Venturo membership at R19.99 per month, charged from day one, with no free trial. Venturo's ticketing fee is 5% of the base ticket price plus R5 per ticket. Before sales begin, the Host chooses whether to absorb this fee from ticket proceeds or add it to the Customer's checkout total. The fee & who pays it must be disclosed before purchase. No new fee applies retroactively to a completed sale."
     },
     {
       "type": "p",
-      "text": "For a direct-to-Host payment, Venturo does not deduct a commission or process a payout from the Customer’s booking funds. Each party is responsible for its own income tax and tax registrations. The Host must give Venturo accurate VAT details, if registered, and set prices and tax information in the manner required by law."
+      "text": "For a R100 base ticket, the Venturo ticketing fee is R10. If the Host absorbs it, the Customer pays R100 & the Host's proceeds before refunds or other authorised adjustments are R90. If passed to the Customer, the Customer pays R110 & the Host's proceeds before those adjustments are R100. Paystack processing charges are calculated on the amount processed & covered from Venturo's ticketing fee; they are not an additional Host deduction under these examples. External ticket suppliers apply their own disclosed fees & settlement terms. Venturo does not deduct its checkout ticketing fee from external booking funds it does not receive. Each party remains responsible for its own tax registrations & obligations. VAT-registered Hosts must provide accurate VAT details & display tax information as required by law."
     },
     {
       "type": "p",

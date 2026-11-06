@@ -351,7 +351,7 @@ export function EventStudio({
     setError(null);
     setNotice(null);
     if (kind === "live" && !acceptHostTerms) {
-      setError("Read the Host Terms and Conditions before you submit.");
+      setError("Read the Host Terms Agreement before you submit.");
       return;
     }
     setPending(kind);

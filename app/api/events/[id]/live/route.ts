@@ -18,7 +18,7 @@ export async function POST(
   const body = (await request.json()) as CreateEventInput & { stay?: string; acceptHostTerms?: boolean };
   if (body.acceptHostTerms !== true) {
     return NextResponse.json(
-      { error: "Read the Host Terms and Conditions before you submit." },
+      { error: "Read the Host Terms Agreement before you submit." },
       { status: 400 },
     );
   }

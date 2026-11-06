@@ -10,4 +10,7 @@ Useful files:
 - Cookie / POPIA notes
 - Partner listing terms
 
-Existing public privacy policy: [venturo.co.za/privacy_policy](https://venturo.co.za/privacy_policy/)
+Public pages:
+
+- Privacy: [venturo.co.za/privacy_policy](https://venturo.co.za/privacy_policy/)
+- Host Terms Agreement: [venturo.co.za/host-terms](https://venturo.co.za/host-terms/)

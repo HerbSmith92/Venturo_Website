@@ -397,7 +397,7 @@ export function CreateEventWizard({
       return;
     }
     if (!acceptHostTerms) {
-      setError("Read the Host Terms and Conditions before you submit.");
+      setError("Read the Host Terms Agreement before you submit.");
       return;
     }
     void submitForReview();
