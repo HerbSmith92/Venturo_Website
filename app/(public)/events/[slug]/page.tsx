@@ -1,4 +1,5 @@
 import { EventMap } from "@/components/EventMap";
+import { EventDatePicker } from "@/components/events/EventDatePicker";
 import { EventPageHero } from "@/components/events/EventPageHero";
 import { EventViewBeacon } from "@/components/events/EventViewBeacon";
 import { UsageBeacon } from "@/components/UsageBeacon";
@@ -92,35 +93,26 @@ export default async function EventDetailPage({
 
       <div className="shell">
         <div className="event-live-bar">
-        <div className="event-live-bar-item">
+        <div className="event-live-bar-item event-live-when">
           <span className="eyebrow">When</span>
           <strong>{windowLabel}</strong>
           {repeatLabel ? <p className="muted">{repeatLabel}</p> : null}
-          {occurrences.length > 1 ? (
-            <div className="event-date-picker">
-              <p className="eyebrow">Choose a date</p>
-              <ul className="event-repeat-dates">
-                {occurrences.map((occurrence) => (
-                  <li key={occurrence.startsAt}>
-                    <a
-                      href={`/events/${event.slug}?on=${encodeURIComponent(occurrence.startsAt)}#tickets`}
-                      aria-current={occurrence.startsAt === selected?.startsAt ? "true" : undefined}
-                    >
-                      {formatEventWindow(occurrence.startsAt, occurrence.endsAt, event.timezone)}
-                    </a>
-                  </li>
-                ))}
-              </ul>
-            </div>
-          ) : null}
         </div>
-        <div className="event-live-bar-item">
+        <div className="event-live-bar-item event-live-where">
           <span className="eyebrow">Where</span>
           <strong>
             {event.venueName || "Venue coming"}
             {event.city ? ` · ${event.city}` : ""}
           </strong>
         </div>
+        {occurrences.length > 1 && selected ? (
+          <EventDatePicker
+            slug={event.slug}
+            timezone={event.timezone}
+            occurrences={occurrences}
+            selectedStartsAt={selected.startsAt}
+          />
+        ) : null}
         <div className="event-live-actions">
           {event.status === "cancelled" ? (
             <span className="btn btn-secondary" aria-disabled="true">
