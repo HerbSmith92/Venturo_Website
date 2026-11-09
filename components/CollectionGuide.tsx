@@ -3,6 +3,7 @@ import { GuideBrowse } from "@/components/GuideBrowse";
 import { EventGuideRecommendationBlock } from "@/components/EventGuideRecommendation";
 import { GuideRecommendationBlock } from "@/components/GuideRecommendation";
 import { GuideLikeForm } from "@/components/GuideLikeForm";
+import { GuideShareButton } from "@/components/GuideShareButton";
 import { SaveForm } from "@/components/SaveForm";
 import { formatGuideTally, type GuideKind } from "@/lib/guide-engagement";
 import type { GuideAuthorPublic } from "@/lib/guide-authors";
@@ -37,6 +38,7 @@ export function CollectionGuide({
   save,
   like,
   viewCount = 0,
+  shareUrl,
 }: {
   title: string;
   intro: string | null;
@@ -52,6 +54,7 @@ export function CollectionGuide({
   save?: { targetId: string; saved: boolean; next: string };
   like?: { kind: GuideKind; guideId: string; liked: boolean; likeCount: number; next: string };
   viewCount?: number;
+  shareUrl?: string;
 }) {
   const dateLabel = guideDate(publishedAt);
   const items = listingItems ?? [];
@@ -67,28 +70,47 @@ export function CollectionGuide({
           </p>
           <h1>{title}</h1>
           {intro ? <p className="guide-collection-intro">{intro}</p> : null}
-          {viewCount > 0 ? (
-            <p className="guide-collection-meta muted">{formatGuideTally(viewCount, "view", "views")}</p>
-          ) : null}
-          {save || like ? (
-            <div className="guide-collection-actions">
-              {like ? (
-                <GuideLikeForm
-                  kind={like.kind}
-                  guideId={like.guideId}
-                  liked={like.liked}
-                  likeCount={like.likeCount}
-                  next={like.next}
-                />
-              ) : null}
-              {save ? <SaveForm kind="guide" targetId={save.targetId} saved={save.saved} next={save.next} /> : null}
-            </div>
-          ) : null}
         </header>
+      </div>
 
+      <div className="spotlight-bar">
+        <div className="spotlight-bar-inner">
+          {author ? (
+            <a className="spotlight-byline" href={author.slug ? `/authors/${author.slug}` : undefined}>
+              {author.photo ? <img src={author.photo} alt="" /> : <span>{author.name.charAt(0)}</span>}
+              <div>
+                <strong>By {author.name}</strong>
+                <p>
+                  {dateLabel ? dateLabel : "Collection"}
+                  {viewCount > 0 ? ` · ${formatGuideTally(viewCount, "view", "views")}` : ""}
+                </p>
+              </div>
+            </a>
+          ) : (
+            <p className="muted">
+              {dateLabel}
+              {viewCount > 0 ? ` · ${formatGuideTally(viewCount, "view", "views")}` : ""}
+            </p>
+          )}
+          <div className="spotlight-actions">
+            {like ? (
+              <GuideLikeForm
+                kind={like.kind}
+                guideId={like.guideId}
+                liked={like.liked}
+                likeCount={like.likeCount}
+                next={like.next}
+              />
+            ) : null}
+            {save ? <SaveForm kind="guide" targetId={save.targetId} saved={save.saved} next={save.next} /> : null}
+            {shareUrl ? <GuideShareButton url={shareUrl} title={title} /> : null}
+          </div>
+        </div>
+      </div>
+
+      <div className="shell">
         <div className={moreGuides.length > 0 ? "guide-layout" : undefined}>
           <div className="guide-collection-main">
-            {author ? <GuideAuthorCard author={author} profileHref={author.slug ? `/authors/${author.slug}` : null} /> : null}
             {body ? <p className="guide-collection-body">{body}</p> : null}
             <div className="guide-recs">
               {items.map((item, index) => (
@@ -110,6 +132,11 @@ export function CollectionGuide({
                     ) : null,
                   )}
                 </ul>
+              </div>
+            ) : null}
+            {author ? (
+              <div className="guide-collection-author">
+                <GuideAuthorCard author={author} profileHref={author.slug ? `/authors/${author.slug}` : null} />
               </div>
             ) : null}
           </div>

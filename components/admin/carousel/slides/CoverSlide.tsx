@@ -1,6 +1,13 @@
 import type { Ref } from "react";
 import { exportPhotoSrc } from "@/lib/export-image";
-import { cropStyle, formatCoverDates, wordCount, type CarouselCover, type CarouselCrop } from "@/lib/guide-carousel";
+import {
+  cropStyle,
+  formatCoverDates,
+  spotlightAccent,
+  wordCount,
+  type CarouselCover,
+  type CarouselCrop,
+} from "@/lib/guide-carousel";
 import { GuideExportWave } from "@/components/admin/guide-export/GuideExportShell";
 
 function stackHeadline(value: string) {
@@ -15,10 +22,12 @@ function stackHeadline(value: string) {
 export function CoverSlide({
   cover,
   count,
+  accent,
   frameRef,
 }: {
   cover: CarouselCover;
   count: number;
+  accent?: string;
   frameRef?: Ref<HTMLDivElement>;
 }) {
   const collage = cover.layout === "collage";
@@ -27,7 +36,11 @@ export function CoverSlide({
   const cropFor = (index: number): CarouselCrop =>
     collage ? (cover.collageCrops?.[index] ?? cover.crop) : cover.crop;
   return (
-    <div className="cr-ig-frame ig-cover" ref={frameRef}>
+    <div
+      className="cr-ig-frame ig-cover"
+      ref={frameRef}
+      style={{ ["--cr-ig-accent" as string]: spotlightAccent(accent) }}
+    >
       <header className="ig-cover-head">
         <img src="/brand/logos/venturo-horizontal-simple-light.svg" alt="" />
         {cover.seriesLabel ? <p>{cover.seriesLabel}</p> : null}

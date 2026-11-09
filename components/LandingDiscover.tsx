@@ -6,7 +6,7 @@ import type { CommunityRecord } from "@/lib/communities";
 import type { VenturoEvent } from "@/lib/event-types";
 import type { GuideCardData } from "@/lib/guides";
 import type { Listing } from "@/lib/listings";
-import type { WebsiteCopy } from "@/lib/website";
+import type { HomeHighlight, WebsiteCopy } from "@/lib/website";
 
 const REASONS = [
   {
@@ -25,6 +25,7 @@ const REASONS = [
 
 export function LandingDiscover({
   copy,
+  highlights = [],
   listings,
   events,
   communities,
@@ -37,6 +38,7 @@ export function LandingDiscover({
   firstName = "",
 }: {
   copy: WebsiteCopy;
+  highlights?: HomeHighlight[];
   listings: Listing[];
   events: VenturoEvent[];
   communities: CommunityRecord[];
@@ -61,6 +63,7 @@ export function LandingDiscover({
             Activities, events, communities & guides. Pick one & get out.
           </p>
           <nav className="landing-jumps" aria-label="On this page">
+            {highlights.length > 0 ? <a href="#landing-featured">Featured</a> : null}
             <a href="#landing-activities">Activities</a>
             <a href="#landing-events">Events</a>
             <a href="#landing-community">Communities</a>
@@ -68,7 +71,7 @@ export function LandingDiscover({
           </nav>
         </section>
       ) : (
-      <section className="landing-hero" aria-label="Featured">
+      <section className="landing-hero" aria-label="Hero">
         <div className="landing-hero-media">
           <img src={copy.heroImageUrl} alt="" />
         </div>
@@ -95,8 +98,43 @@ export function LandingDiscover({
             </div>
           </div>
         </div>
-      </section>
+        </section>
       )}
+
+      {highlights.length > 0 ? (
+        <div className="shell">
+          <section className="landing-feature" aria-labelledby="landing-featured">
+            <div className="landing-band-head">
+              <div>
+                <h2 id="landing-featured">Featured</h2>
+                <p>Highlighted activities, events, communities &amp; guides.</p>
+              </div>
+            </div>
+            <div className="home-rail landing-feature-rail" role="list">
+              {highlights.map((item) => (
+                <div key={`${item.kind}-${item.id}`} role="listitem">
+                  <a
+                    className="card landing-feature-card"
+                    href={item.href}
+                    style={{ ["--card-accent" as string]: item.accent }}
+                  >
+                    <div className="card-image">
+                      <img src={item.image} alt="" />
+                    </div>
+                    <div className="card-body">
+                      <p className="card-kicker" style={{ color: item.accent }}>
+                        {item.kicker}
+                      </p>
+                      <h3>{item.title}</h3>
+                      {item.meta ? <p className="card-meta">{item.meta}</p> : null}
+                    </div>
+                  </a>
+                </div>
+              ))}
+            </div>
+          </section>
+        </div>
+      ) : null}
 
       <div className="shell landing-directory">
         <section className="landing-activities" aria-labelledby="landing-activities">

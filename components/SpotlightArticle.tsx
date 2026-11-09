@@ -2,6 +2,8 @@
 
 import { useMemo, useState } from "react";
 import { GuideLikeForm } from "@/components/GuideLikeForm";
+import { GuideShareButton } from "@/components/GuideShareButton";
+import { PlanVisitCard } from "@/components/PlanVisitCard";
 import { SaveForm } from "@/components/SaveForm";
 import { formatGuideTally, type GuideKind } from "@/lib/guide-engagement";
 import { AuthorSocialLinks, GuideAuthorCard } from "@/components/GuideAuthorCard";
@@ -11,131 +13,11 @@ import {
   coverPhoto,
   estimateReadMinutes,
   galleryPhotos,
-  groupSpotlightHours,
-  spotlightPriceLabel,
   type SpotlightCover,
   type SpotlightPhoto,
   type SpotlightSection,
   type SpotlightVisitInfo,
 } from "@/lib/spotlight";
-
-function ShareButton({ url, title }: { url: string; title: string }) {
-  const [copied, setCopied] = useState(false);
-  async function share() {
-    try {
-      if (navigator.share) {
-        await navigator.share({ title, url });
-        return;
-      }
-    } catch {
-      /* fall through */
-    }
-    try {
-      await navigator.clipboard.writeText(url);
-      setCopied(true);
-      window.setTimeout(() => setCopied(false), 1600);
-    } catch {
-      setCopied(false);
-    }
-  }
-  return (
-    <button className="btn btn-secondary" type="button" onClick={share}>
-      {copied ? "Link copied" : "Share"}
-    </button>
-  );
-}
-
-function VisitRows({ listing }: { listing: SpotlightVisitInfo }) {
-  const price = spotlightPriceLabel(listing.fromPrice);
-  const hourGroups = groupSpotlightHours(listing.hours);
-  const suitability =
-    listing.indoorOutdoor === "indoor"
-      ? "Indoor"
-      : listing.indoorOutdoor === "outdoor"
-        ? "Outdoor"
-        : listing.indoorOutdoor === "both"
-          ? "Indoor & outdoor"
-          : null;
-  return (
-    <dl className="spotlight-visit-list">
-      {listing.area ? (
-        <>
-          <dt>Location</dt>
-          <dd>{listing.area}</dd>
-        </>
-      ) : null}
-      {price ? (
-        <>
-          <dt>Price</dt>
-          <dd>{price}</dd>
-        </>
-      ) : (
-        <>
-          <dt>Price</dt>
-          <dd>
-            <a href={`/directory/${listing.slug}`}>View latest pricing</a>
-          </dd>
-        </>
-      )}
-      <dt className="spotlight-visit-hours-label">Hours</dt>
-      <dd className="spotlight-visit-hours">
-        {hourGroups.length ? (
-          hourGroups.map((row) => (
-            <div className="spotlight-visit-hour" key={`${row.days}-${row.time}`}>
-              <span>{row.days}</span>
-              <span className="spotlight-visit-time">{row.time}</span>
-            </div>
-          ))
-        ) : (
-          <a href={`/directory/${listing.slug}`}>Check opening times</a>
-        )}
-      </dd>
-      {listing.bookingRequired || listing.bookingUrl ? (
-        <>
-          <dt>Booking</dt>
-          <dd>
-            {listing.bookingUrl ? (
-              <a href={listing.bookingUrl} rel="noreferrer" target="_blank">
-                Check availability
-              </a>
-            ) : (
-              "Booking required"
-            )}
-          </dd>
-        </>
-      ) : null}
-      {suitability ? (
-        <>
-          <dt>Best for</dt>
-          <dd>{suitability}</dd>
-        </>
-      ) : null}
-    </dl>
-  );
-}
-
-function VisitCard({
-  listing,
-  photo,
-  variant,
-}: {
-  listing: SpotlightVisitInfo;
-  photo?: SpotlightPhoto | null;
-  variant: "sticky" | "end" | "mobile";
-}) {
-  return (
-    <aside className={`spotlight-visit is-${variant}`}>
-      <p className="eyebrow">Plan your visit</p>
-      {photo ? <img src={photo.url} alt="" /> : null}
-      <h2>{listing.name}</h2>
-      {variant === "mobile" ? listing.area ? <p className="spotlight-visit-area">{listing.area}</p> : null : <VisitRows listing={listing} />}
-      {variant !== "mobile" ? <p className="spotlight-visit-note">Confirm current details before visiting.</p> : null}
-      <a className="btn btn-primary" href={`/directory/${listing.slug}`}>
-        View activity
-      </a>
-    </aside>
-  );
-}
 
 export function SpotlightArticle({
   title,
@@ -268,7 +150,7 @@ export function SpotlightArticle({
             {saveTargetId ? (
               <SaveForm kind="guide" targetId={saveTargetId} saved={saved} next={`/guides/${slug}`} />
             ) : null}
-            {shareUrl ? <ShareButton url={shareUrl} title={title} /> : null}
+            {shareUrl ? <GuideShareButton url={shareUrl} title={title} /> : null}
           </div>
         </div>
       </div>
@@ -297,7 +179,7 @@ export function SpotlightArticle({
             </section>
           ) : null}
 
-          {listing ? <VisitCard listing={listing} photo={visitPhoto} variant="end" /> : null}
+          {listing ? <PlanVisitCard listing={listing} photo={visitPhoto} variant="end" /> : null}
 
           {author ? (
             <>
@@ -328,7 +210,7 @@ export function SpotlightArticle({
           ) : null}
         </div>
 
-        {listing ? <VisitCard listing={listing} photo={visitPhoto} variant="sticky" /> : null}
+        {listing ? <PlanVisitCard listing={listing} photo={visitPhoto} variant="sticky" /> : null}
       </div>
 
       {lightboxPhoto ? (

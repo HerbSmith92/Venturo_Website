@@ -31,8 +31,8 @@ export default async function WebsiteControlsPage({
       <p className="eyebrow">Content</p>
       <h1>Website</h1>
       <p className="lede muted">
-        What you publish here is the home page. The app reads the same featured lists.
-        An empty list falls back to the newest live items.
+        What you publish here is the home page. Ticked items fill the Featured banner,
+        then the rails below. An empty list falls back to the newest live items.
       </p>
       {done ? <p className="notice">Website controls saved.</p> : null}
       {error ? <p className="error">{error}</p> : null}
@@ -55,7 +55,8 @@ export default async function WebsiteControlsPage({
           <input name="hero_image_url" defaultValue={copy.heroImageUrl} />
         </label>
 
-        <h2>Featured On Home</h2>
+        <h2>Featured Banner</h2>
+        <p className="muted">Highlighted activities, events, communities &amp; guides on the public home page.</p>
         <fieldset>
           <legend>Events</legend>
           {events.map((event) => (

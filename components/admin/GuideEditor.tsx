@@ -10,8 +10,10 @@ import { GuidePhotoGrid } from "@/components/admin/guide-desk/GuidePhotoGrid";
 import { GuidePlacePicker } from "@/components/admin/guide-desk/GuidePlacePicker";
 import { GuideSuggestedTitles } from "@/components/admin/guide-desk/GuideSuggestedTitles";
 import { StoryBuilder } from "@/components/admin/StoryBuilder";
+import { GuideRecommendationBlock } from "@/components/GuideRecommendation";
 import { SpotlightArticle } from "@/components/SpotlightArticle";
 import { formatRand } from "@/lib/control-room-shared";
+import { asCategoryId } from "@/lib/listings";
 import type { GuideEditorRecord, SpotlightListingDetails } from "@/lib/control-room-guides";
 import type { GuideAuthor } from "@/lib/guide-authors";
 import { mapGuideAuthor } from "@/lib/guide-authors";
@@ -1448,7 +1450,6 @@ export function GuideEditor({
                     ) : (
                       draft.items.map((item, index) => {
                         const listing = item.listing;
-                        const writeUp = item.editorial_note.trim();
                         const amount = listing?.price_from;
                         const price =
                           amount == null || amount === ""
@@ -1457,25 +1458,28 @@ export function GuideEditor({
                               ? amount
                               : Number(amount);
                         return (
-                          <article key={item.listing_id} className="guide-rec is-stack">
-                            <header className="guide-rec-copy">
-                              <p className="eyebrow">{String(index + 1).padStart(2, "0")}</p>
-                              <h2>{listing?.name ?? "Listing missing"}</h2>
-                              {writeUp ? <p className="guide-rec-note">{writeUp}</p> : null}
-                            </header>
-                            <div className="card guide-rec-card">
-                              <div className="card-image">
-                                <img src={listing?.image ?? FALLBACK_IMAGE} alt="" />
-                              </div>
-                              <div className="card-body">
-                                <h3>{listing?.name ?? "Listing missing"}</h3>
-                                <p className="card-meta">{areaLabel(listing)}</p>
-                                {price != null && Number.isFinite(price) ? (
-                                  <p className="card-meta">{formatRand(price)}</p>
-                                ) : null}
-                              </div>
-                            </div>
-                          </article>
+                          <GuideRecommendationBlock
+                            key={item.listing_id}
+                            index={index + 1}
+                            item={{
+                              listingId: item.listing_id,
+                              slug: listing?.slug ?? "",
+                              name: listing?.name ?? "Listing missing",
+                              area: areaLabel(listing),
+                              category: asCategoryId(listing?.activity_kind_key) ?? "adventure",
+                              vibe: "",
+                              image: listing?.image ?? FALLBACK_IMAGE,
+                              fromPrice: price != null && Number.isFinite(price) ? price : null,
+                              memberFromPrice: null,
+                              editorialNote: item.editorial_note.trim() || null,
+                              bookingUrl: null,
+                              websiteUrl: null,
+                              phone: null,
+                              bookingRequired: listing?.booking_required ?? false,
+                              indoorOutdoor: listing?.indoor_outdoor ?? null,
+                              hours: [],
+                            }}
+                          />
                         );
                       })
                     )}

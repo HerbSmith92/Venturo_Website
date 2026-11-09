@@ -78,6 +78,7 @@ export type CarouselCover = {
   headline: string;
   supporting: string;
   geoLabel: string;
+  fromPrice?: number | null;
   dateFrom: string;
   dateTo: string;
   dateRange: string;
@@ -587,6 +588,7 @@ export function seedCarouselDraft(input: {
   return {
     version: 1,
     kind: "collection",
+    accent: accentForCategory(recs[0]?.categoryKey || "adventure"),
     cover: seedCover(input.title, input.intro, recs, input.place ?? ""),
     recs,
     author: seedAuthor(input.author),
@@ -609,7 +611,11 @@ export function mergeCarouselDraft(saved: CarouselDraft | null | undefined, seed
       categoryKey: custom.categoryKey ? prev.categoryKey : fresh.categoryKey,
       categoryTitle: custom.categoryTitle ? prev.categoryTitle : fresh.categoryTitle,
       priceAmount: custom.priceAmount ? prev.priceAmount : fresh.priceAmount,
-      priceBasis: custom.priceBasis ? prev.priceBasis : fresh.priceBasis,
+      priceBasis: custom.priceBasis
+        ? prev.priceBasis === "omit" && fresh.priceAmount != null
+          ? fresh.priceBasis
+          : prev.priceBasis
+        : fresh.priceBasis,
       priceNote: custom.priceNote ? prev.priceNote : fresh.priceNote,
       tip: custom.tip ? prev.tip : fresh.tip,
       kicker: distinctKicker(custom.kicker ? prev.kicker : (fresh.kicker ?? prev.kicker), custom.title ? prev.title : fresh.title),
@@ -670,6 +676,7 @@ export function mergeCarouselDraft(saved: CarouselDraft | null | undefined, seed
       collage: saved.cover.collage ?? seed.cover.collage,
       collageCrops: saved.cover.collageCrops ?? seed.cover.collageCrops,
       crop: saved.cover.crop ?? seed.cover.crop,
+      fromPrice: saved.cover.fromPrice !== undefined ? saved.cover.fromPrice : seed.cover.fromPrice,
       dateFrom: saved.cover.dateFrom || datesFromRange(saved.cover.dateRange).from,
       dateTo: saved.cover.dateTo || datesFromRange(saved.cover.dateRange).to,
     },

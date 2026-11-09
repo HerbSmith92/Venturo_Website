@@ -196,6 +196,12 @@ export function seedSpotlightCarouselDraft(input: {
       headline: punchyHeadline(input.intro),
       supporting: socialExcerpt(input.intro, 16) || "Walking trails, bushveld views & room to breathe.",
       geoLabel: geoLine(area),
+      fromPrice: (() => {
+        const raw = input.listing?.fromPrice;
+        if (raw == null || raw === "") return null;
+        const amount = typeof raw === "number" ? raw : Number(raw);
+        return Number.isFinite(amount) ? amount : null;
+      })(),
       swipePrompt: "Swipe to explore →",
       layout: "hero",
       image: coverImage,

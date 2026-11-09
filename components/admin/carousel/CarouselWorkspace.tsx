@@ -121,7 +121,7 @@ function LiveSlide({
     return spotlight ? (
       <SpotlightCoverSlide cover={draft.cover} recCount={draft.recs.length} accent={draft.accent} frameRef={frameRef} />
     ) : (
-      <CoverSlide cover={draft.cover} count={draft.recs.length} frameRef={frameRef} />
+      <CoverSlide cover={draft.cover} count={draft.recs.length} accent={draft.accent} frameRef={frameRef} />
     );
   }
   if (slide === "author") {
@@ -133,7 +133,7 @@ function LiveSlide({
         frameRef={frameRef}
       />
     ) : (
-      <AuthorSlide author={draft.author} frameRef={frameRef} />
+      <AuthorSlide author={draft.author} accent={draft.accent} frameRef={frameRef} />
     );
   }
   const rec = draft.recs.find((row) => row.id === slide);
@@ -722,7 +722,7 @@ function BrandColourPicker({
   return (
     <div className="carousel-colour-picker">
       <p>Series colour</p>
-      <p className="muted">Primary brand colours plus the activity accents. Applies to every slide.</p>
+      <p className="muted">Primary brand colours plus the activity accents. Cover and author slides use this colour.</p>
       <div className="carousel-swatches" role="group" aria-label="Series colour">
         {BRAND_COLOURS.map((row) => (
           <button
@@ -773,7 +773,7 @@ function CoverInspector({
     <>
       <h2>Cover</h2>
       <p className="muted">{count} story slides · {count + 2} slides</p>
-      {spotlight && onAccent ? <BrandColourPicker value={accent} onChange={onAccent} /> : null}
+      {onAccent ? <BrandColourPicker value={accent} onChange={onAccent} /> : null}
       {spotlight ? (
         <label>
           Header title
@@ -796,6 +796,20 @@ function CoverInspector({
         Geographic label
         <input id="cf-geoLabel" value={cover.geoLabel} onChange={(e) => onChange({ geoLabel: e.target.value })} />
       </label>
+      {spotlight ? (
+        <label>
+          From price
+          <input
+            type="number"
+            min={0}
+            step="1"
+            value={cover.fromPrice ?? ""}
+            onChange={(e) =>
+              onChange({ fromPrice: e.target.value === "" ? null : Number(e.target.value) })
+            }
+          />
+        </label>
+      ) : null}
       {spotlight ? null : (
         <>
           <p>Weekend on the cover</p>
@@ -1317,7 +1331,7 @@ function AuthorInspector({
   return (
     <>
       <h2>Author closing slide</h2>
-      {spotlight && onAccent ? <BrandColourPicker value={accent} onChange={onAccent} /> : null}
+      {onAccent ? <BrandColourPicker value={accent} onChange={onAccent} /> : null}
       {assigned.name ? (
         <p className="muted">Assigned on this guide: {assigned.name}</p>
       ) : (

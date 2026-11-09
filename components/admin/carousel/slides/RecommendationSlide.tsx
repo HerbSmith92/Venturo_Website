@@ -4,12 +4,12 @@ import {
   CAROUSEL_FOOTER,
   accentForCategory,
   cropStyle,
-  formatSocialPrice,
   inkForAccent,
   padRecIndex,
   type CarouselRec,
 } from "@/lib/guide-carousel";
 import { GuideExportWave } from "@/components/admin/guide-export/GuideExportShell";
+import { spotlightPriceLabel } from "@/lib/spotlight";
 
 function formatEventWhen(rec: CarouselRec) {
   if (!rec.eventDate) return "";
@@ -26,6 +26,16 @@ function formatEventWhen(rec: CarouselRec) {
   return time ? `${day} · ${time}` : day;
 }
 
+function recFromPrice(rec: CarouselRec) {
+  if (rec.priceBasis === "free" || rec.priceAmount === 0) return "Free entry";
+  if (rec.priceAmount != null && Number.isFinite(rec.priceAmount)) {
+    const label = spotlightPriceLabel(rec.priceAmount);
+    return label === "Price to follow" ? "" : label;
+  }
+  if (rec.priceBasis === "varies") return "Varies by activity";
+  return "";
+}
+
 export function RecommendationSlide({
   rec,
   index,
@@ -39,9 +49,8 @@ export function RecommendationSlide({
 }) {
   const accent = accentForCategory(rec.categoryKey);
   const ink = inkForAccent(accent);
-  const price = formatSocialPrice(rec.priceAmount, rec.priceBasis, rec.priceNote);
+  const price = recFromPrice(rec);
   const when = rec.kind === "event" ? formatEventWhen(rec) : "";
-  const details = [rec.location, price].filter(Boolean);
 
   return (
     <div className="cr-ig-frame ig-rec" ref={frameRef} data-ink={ink} style={{ ["--cr-ig-accent" as string]: accent }}>
@@ -59,7 +68,8 @@ export function RecommendationSlide({
           {when ? <p className="ig-rec-when">{when}</p> : null}
           <p className="ig-rec-cat">{rec.categoryTitle}</p>
           <p className="ig-rec-desc" data-ig-fit="description">{rec.description}</p>
-          {details.length ? <p className="ig-rec-meta">{details.join(" · ")}</p> : null}
+          {price ? <p className="ig-rec-price">{price}</p> : null}
+          {rec.location ? <p className="ig-rec-meta">{rec.location}</p> : null}
           {rec.tip ? <p className="ig-rec-tip">{rec.tip}</p> : null}
           <p className="ig-rec-foot">{CAROUSEL_FOOTER}</p>
         </div>

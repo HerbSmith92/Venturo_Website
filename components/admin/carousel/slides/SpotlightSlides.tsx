@@ -19,6 +19,7 @@ import {
   type SlideBackdrop,
   type SpotlightSlideTemplate,
 } from "@/lib/guide-carousel";
+import { spotlightPriceLabel } from "@/lib/spotlight";
 
 type FrameVariant = SpotlightSlideTemplate | "cover";
 
@@ -187,6 +188,9 @@ export function SpotlightCoverSlide({
   frameRef?: Ref<HTMLDivElement>;
 }) {
   const long = wordCount(cover.headline) > 8;
+  const fromPrice =
+    cover.fromPrice == null ? "" : spotlightPriceLabel(cover.fromPrice);
+  const priceLine = fromPrice && fromPrice !== "Price to follow" ? (fromPrice === "Free" ? "Free entry" : fromPrice) : "";
   return (
     <Frame
       variant="cover"
@@ -203,6 +207,7 @@ export function SpotlightCoverSlide({
       </h3>
       {cover.supporting ? <p className="ig-spot-support">{cover.supporting}</p> : null}
       {cover.geoLabel ? <p className="ig-spot-geo">{cover.geoLabel}</p> : null}
+      {priceLine ? <p className="ig-spot-price">{priceLine}</p> : null}
       <p className="ig-spot-foot">
         <span>{CAROUSEL_FOOTER}</span>
         <span>{cover.swipePrompt || "Swipe to explore →"}</span>

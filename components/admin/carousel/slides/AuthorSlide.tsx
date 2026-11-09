@@ -1,6 +1,6 @@
 import type { Ref } from "react";
 import { exportPhotoSrc } from "@/lib/export-image";
-import { CAROUSEL_FOOTER, type CarouselAuthor } from "@/lib/guide-carousel";
+import { CAROUSEL_FOOTER, spotlightAccent, type CarouselAuthor } from "@/lib/guide-carousel";
 import { GuideExportWave } from "@/components/admin/guide-export/GuideExportShell";
 
 function stackClosing(value: string) {
@@ -20,14 +20,20 @@ function initials(name: string) {
 
 export function AuthorSlide({
   author,
+  accent,
   frameRef,
 }: {
   author: CarouselAuthor;
+  accent?: string;
   frameRef?: Ref<HTMLDivElement>;
 }) {
   const compact = author.compactLayout;
   return (
-    <div className={`cr-ig-frame ig-author${compact ? " is-compact" : ""}${author.cover ? " has-cover" : ""}`} ref={frameRef}>
+    <div
+      className={`cr-ig-frame ig-author${compact ? " is-compact" : ""}${author.cover ? " has-cover" : ""}`}
+      ref={frameRef}
+      style={{ ["--cr-ig-accent" as string]: spotlightAccent(accent) }}
+    >
       <div className="ig-author-sky">
         {author.cover ? (
           <img className="ig-author-cover" src={exportPhotoSrc(author.cover)} alt="" decoding="sync" loading="eager" />

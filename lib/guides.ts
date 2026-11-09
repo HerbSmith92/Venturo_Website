@@ -22,6 +22,7 @@ import {
   type SpotlightCover,
   type SpotlightPhoto,
   type SpotlightSection,
+  type SpotlightVisitInfo,
 } from "@/lib/spotlight";
 
 const FALLBACK_IMAGE = "/brand/images/climbing.jpg";
@@ -56,6 +57,12 @@ export type GuideRecommendation = {
   fromPrice: number | null;
   memberFromPrice: number | null;
   editorialNote: string | null;
+  bookingUrl: string | null;
+  websiteUrl: string | null;
+  phone: string | null;
+  bookingRequired: boolean;
+  indoorOutdoor: string | null;
+  hours: { dayOfWeek: number; opensAt: string | null; closesAt: string | null; isClosed: boolean }[];
 };
 
 export type PublicGuide = {
@@ -84,6 +91,13 @@ type MediaRow = {
   is_pending?: boolean | null;
 };
 
+type HoursRow = {
+  day_of_week: number | null;
+  opens_at: string | null;
+  closes_at: string | null;
+  is_closed: boolean | null;
+};
+
 type ListingEmbed = {
   id: string;
   name: string;
@@ -94,6 +108,11 @@ type ListingEmbed = {
   description: string | null;
   price_from: number | string | null;
   status: string | null;
+  booking_url?: string | null;
+  website_url?: string | null;
+  phone?: string | null;
+  booking_required?: boolean | null;
+  indoor_outdoor?: string | null;
   listing_media?: MediaRow[];
   listing_activity_kinds?: {
     is_primary: boolean | null;
@@ -108,6 +127,7 @@ type ListingEmbed = {
     member_price: number | string | null;
     is_active: boolean | null;
   }[];
+  operating_hours?: HoursRow[];
 };
 
 type GuideRow = {
@@ -204,6 +224,34 @@ function mapRecommendation(
     fromPrice: asNumber(listing.price_from),
     memberFromPrice: memberFrom(listing),
     editorialNote: item.editorial_note,
+    bookingUrl: listing.booking_url ?? null,
+    websiteUrl: listing.website_url ?? null,
+    phone: listing.phone ?? null,
+    bookingRequired: Boolean(listing.booking_required),
+    indoorOutdoor: listing.indoor_outdoor ?? null,
+    hours: (listing.operating_hours ?? [])
+      .filter((row) => row.day_of_week != null)
+      .map((row) => ({
+        dayOfWeek: row.day_of_week as number,
+        opensAt: row.opens_at,
+        closesAt: row.closes_at,
+        isClosed: Boolean(row.is_closed),
+      })),
+  };
+}
+
+export function visitFromRecommendation(item: GuideRecommendation): SpotlightVisitInfo {
+  return {
+    name: item.name,
+    slug: item.slug,
+    area: item.area,
+    fromPrice: item.fromPrice,
+    bookingUrl: item.bookingUrl,
+    websiteUrl: item.websiteUrl,
+    phone: item.phone,
+    bookingRequired: item.bookingRequired,
+    indoorOutdoor: item.indoorOutdoor,
+    hours: item.hours,
   };
 }
 
@@ -229,9 +277,15 @@ const GUIDE_ITEMS_SELECT = `
       description,
       price_from,
       status,
+      booking_url,
+      website_url,
+      phone,
+      booking_required,
+      indoor_outdoor,
       listing_media ( public_url, is_cover, sort_order, is_pending ),
       listing_activity_kinds ( is_primary, activity_kind_id, activity_kinds ( id, key ) ),
-      price_options ( standard_price, member_price, is_active )
+      price_options ( standard_price, member_price, is_active ),
+      operating_hours ( day_of_week, opens_at, closes_at, is_closed )
     )
   )
 `;

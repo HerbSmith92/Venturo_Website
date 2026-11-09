@@ -149,6 +149,7 @@ export default async function GuideDetailPage({
         save={listingGuide ? { targetId: guideId, saved, next: nextPath } : undefined}
         like={{ kind, guideId, liked, likeCount, next: nextPath }}
         viewCount={viewCount}
+        shareUrl={`${siteUrl()}/guides/${guide.slug}`}
       />
     </>
   );

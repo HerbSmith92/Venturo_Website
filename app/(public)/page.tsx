@@ -4,7 +4,7 @@ import { LandingHeaderScrim } from "@/components/LandingHeaderScrim";
 import { getCurrentUser } from "@/lib/auth";
 import { getAppStoreLinks, storeUrlIsConfigured } from "@/lib/brand";
 import { mixListingsByInterest } from "@/lib/listings";
-import { loadHomeFeatures, loadWebsiteCopy } from "@/lib/website";
+import { homeHighlights, loadHomeFeatures, loadWebsiteCopy } from "@/lib/website";
 
 export default async function HomePage() {
   const [copy, features, user, headerList] = await Promise.all([
@@ -18,12 +18,14 @@ export default async function HomePage() {
   const device = /android/i.test(agent) ? "android" : /iPhone|iPad|iPod/i.test(agent) ? "ios" : "desktop";
   const playCandidate = copy.playStoreUrl || stores.playStore;
   const playStoreHref = storeUrlIsConfigured(playCandidate, "android") ? playCandidate : null;
+  const highlights = homeHighlights(features);
 
   return (
     <>
       <LandingHeaderScrim />
       <LandingDiscover
         copy={copy}
+        highlights={highlights}
         listings={mixListingsByInterest(features.listings, 8)}
         events={features.events.slice(0, 8)}
         communities={features.communities.slice(0, 8)}

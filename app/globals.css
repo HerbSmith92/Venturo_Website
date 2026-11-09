@@ -502,7 +502,19 @@ body:has(.landing-member) .chrome {
 }
 
 .landing-welcome {
-  padding: 112px 0 8px;
+  padding: 172px 0 28px;
+}
+
+.landing-welcome .eyebrow {
+  overflow: visible;
+  line-height: 1.4;
+  padding-top: 4px;
+}
+
+.landing-welcome h1 {
+  overflow: visible;
+  line-height: 1.18;
+  padding: 0.06em 0 0.1em;
 }
 
 .landing-welcome .lede {
@@ -591,7 +603,7 @@ body:has(.landing-member) .chrome {
   z-index: 1;
   display: grid;
   gap: 28px;
-  padding: 64px 0 8px;
+  padding: 64px 0 24px;
 }
 
 .landing-hero-copy {
@@ -678,6 +690,33 @@ body:has(.landing-member) .chrome {
 
 .landing-see:hover {
   text-decoration: underline;
+}
+
+.landing-feature {
+  padding: 12px 0 20px;
+  scroll-margin-top: 96px;
+}
+
+.landing-member .landing-feature {
+  padding-top: 8px;
+}
+
+.landing-feature-rail {
+  grid-auto-columns: calc((100% - 24px) / 3);
+}
+
+.landing-feature-card .card-image {
+  aspect-ratio: 16 / 9;
+}
+
+@media (max-width: 900px) {
+  .landing-welcome {
+    padding-top: 148px;
+  }
+
+  .landing-feature-rail {
+    grid-auto-columns: calc((100% - 12px) / 2);
+  }
 }
 
 .landing-reasons {
@@ -9545,8 +9584,10 @@ a.chip.on {
 .guide-collection-head h1 {
   margin: 0 0 18px;
   font-size: clamp(28px, 4vw, 44px);
-  line-height: 0.95;
+  line-height: 1.12;
   max-width: 22ch;
+  overflow: visible;
+  padding-bottom: 0.08em;
 }
 
 .guide-collection-intro {
@@ -9578,8 +9619,16 @@ a.chip.on {
   width: 100%;
 }
 
+.guide-collection-author {
+  margin-top: 40px;
+}
+
 .guide-collection .guide-author-cover {
   height: 168px;
+}
+
+.guide-collection .spotlight-bar {
+  margin-bottom: 28px;
 }
 
 .guide-collection-events h2 {
@@ -9588,13 +9637,13 @@ a.chip.on {
 
 .guide-recs {
   display: grid;
-  gap: 20px;
+  gap: 28px;
 }
 
 .guide-rec {
   display: grid;
-  grid-template-columns: 1fr;
-  gap: 16px;
+  grid-template-columns: minmax(240px, 0.95fr) minmax(280px, 1.15fr);
+  gap: 24px;
   align-items: start;
   width: 100%;
   padding: 20px;
@@ -9605,8 +9654,78 @@ a.chip.on {
   box-shadow: var(--shadow-1);
 }
 
+.guide-rec-photo {
+  margin: 0;
+  min-width: 0;
+  width: 100%;
+  aspect-ratio: 4 / 5;
+  border-radius: 4px 22px 4px 4px;
+  overflow: hidden;
+  background: color-mix(in srgb, var(--night) 70%, transparent);
+}
+
+.guide-rec-photo img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  object-position: center;
+  display: block;
+}
+
+.guide-rec-side {
+  display: grid;
+  gap: 18px;
+  align-content: start;
+  min-width: 0;
+}
+
+.guide-rec-facts {
+  display: grid;
+  gap: 10px;
+  align-content: start;
+}
+
+.guide-rec-facts .eyebrow {
+  margin: 0;
+}
+
+.guide-rec-facts h2 {
+  margin: 0;
+  font-size: clamp(22px, 2.4vw, 30px);
+  line-height: 1.12;
+}
+
+.guide-rec-facts .spotlight-visit-list {
+  margin: 4px 0 0;
+}
+
+.guide-rec-facts .spotlight-visit-note {
+  margin: 4px 0 0;
+}
+
+.guide-rec-facts .btn {
+  justify-self: start;
+  width: auto;
+  min-width: 180px;
+}
+
+.guide-rec-facts a:not(.btn) {
+  color: var(--canary);
+}
+
 .guide-rec.is-stack .guide-rec-card {
   max-width: 560px;
+}
+
+.guide-rec .spotlight-visit {
+  min-width: 0;
+}
+
+.spotlight-visit.is-inline {
+  display: block;
+  height: auto;
+  max-height: none;
+  overflow: hidden;
 }
 
 .guide-rec-card {
@@ -9789,6 +9908,19 @@ a.chip.on {
 
   .guide-browse {
     position: static;
+  }
+
+  .guide-rec {
+    grid-template-columns: 1fr;
+  }
+
+  .guide-rec-photo {
+    max-width: 420px;
+    aspect-ratio: 4 / 5;
+  }
+
+  .guide-rec-photo img {
+    height: 100%;
   }
 }
 
@@ -10008,6 +10140,7 @@ a.chip.on {
   }
 
   .guide-rec {
+    grid-template-columns: 1fr;
     gap: 14px;
     padding: 12px;
     width: 100%;
@@ -10762,12 +10895,12 @@ a.chip.on {
 }
 
 .ig-cover-band {
-  color: var(--canary);
-  background: var(--canary);
+  color: var(--cr-ig-accent, var(--canary));
+  background: var(--cr-ig-accent, var(--canary));
 }
 
 .ig-cover-band .cr-ig-wave {
-  color: var(--canary);
+  color: var(--cr-ig-accent, var(--canary));
 }
 
 .ig-cover-copy,
@@ -10782,20 +10915,20 @@ a.chip.on {
   margin: 0 0 18px;
   font-family: "Social Gothic Rough", "Arial Black", sans-serif;
   font-size: 100px;
-  line-height: 0.9;
+  line-height: 1.12;
   letter-spacing: 0.01em;
   text-transform: uppercase;
   color: var(--night);
-  overflow: hidden;
-  max-height: 280px;
+  overflow: visible;
+  padding: 0.08em 0 0.16em;
+  max-height: none;
   width: 100%;
   white-space: pre-line;
 }
 
 .ig-cover-copy h2.is-long {
   font-size: 64px;
-  line-height: 0.92;
-  max-height: 360px;
+  line-height: 1.14;
 }
 
 .ig-cover-geo,
@@ -10898,6 +11031,7 @@ a.chip.on {
   max-height: 176px;
 }
 
+.ig-rec-price,
 .ig-rec-meta,
 .ig-rec-tip,
 .ig-rec-foot {
@@ -10905,6 +11039,10 @@ a.chip.on {
   font-size: 28px;
   line-height: 1.2;
   color: var(--night);
+}
+
+.ig-rec-price {
+  font-weight: 800;
 }
 
 .ig-rec-foot {
@@ -10916,6 +11054,7 @@ a.chip.on {
 .ig-rec[data-ink="snow"] .ig-rec-cat,
 .ig-rec[data-ink="snow"] .ig-rec-when,
 .ig-rec[data-ink="snow"] .ig-rec-desc,
+.ig-rec[data-ink="snow"] .ig-rec-price,
 .ig-rec[data-ink="snow"] .ig-rec-meta,
 .ig-rec[data-ink="snow"] .ig-rec-tip,
 .ig-rec[data-ink="snow"] .ig-rec-foot {
@@ -10974,7 +11113,7 @@ a.chip.on {
   height: 391px;
   border-radius: 50%;
   overflow: hidden;
-  border: 8px solid var(--canary);
+  border: 8px solid var(--cr-ig-accent, var(--canary));
   display: grid;
   place-items: center;
   background: #1c1e24;
@@ -11016,12 +11155,12 @@ a.chip.on {
 }
 
 .ig-author-band {
-  color: var(--canary);
-  background: var(--canary);
+  color: var(--cr-ig-accent, var(--canary));
+  background: var(--cr-ig-accent, var(--canary));
 }
 
 .ig-author-band .cr-ig-wave {
-  color: var(--canary);
+  color: var(--cr-ig-accent, var(--canary));
 }
 
 .ig-author-copy {
@@ -11032,7 +11171,7 @@ a.chip.on {
   font-size: 64px;
   max-width: none;
   width: 100%;
-  line-height: 1.08;
+  line-height: 1.14;
   margin-bottom: 22px;
 }
 
@@ -11340,12 +11479,14 @@ a.chip.on {
 .ig-spot.is-copy .ig-spot-body,
 .ig-spot.is-copy .ig-spot-support,
 .ig-spot.is-copy .ig-spot-geo,
+.ig-spot.is-copy .ig-spot-price,
 .ig-spot.is-copy .ig-spot-foot,
 .ig-spot.is-overlay .ig-spot-copy h3,
 .ig-spot.is-overlay .ig-spot-pack,
 .ig-spot.is-overlay .ig-spot-body,
 .ig-spot.is-overlay .ig-spot-support,
 .ig-spot.is-overlay .ig-spot-geo,
+.ig-spot.is-overlay .ig-spot-price,
 .ig-spot.is-overlay .ig-spot-foot {
   color: var(--snow);
 }
@@ -11360,6 +11501,7 @@ a.chip.on {
 .ig-spot-band .ig-spot-body,
 .ig-spot-band .ig-spot-support,
 .ig-spot-band .ig-spot-geo,
+.ig-spot-band .ig-spot-price,
 .ig-spot-band .ig-spot-foot {
   color: var(--cr-ig-band-ink, var(--night));
 }
@@ -11396,19 +11538,19 @@ a.chip.on {
   margin: 0 0 18px;
   font-family: "Social Gothic Rough", "Arial Black", sans-serif;
   font-size: 88px;
-  line-height: 0.9;
+  line-height: 1.12;
   letter-spacing: 0.01em;
   text-transform: uppercase;
   color: var(--night);
-  overflow: hidden;
-  max-height: 280px;
+  overflow: visible;
+  padding: 0.08em 0 0.16em;
+  max-height: none;
 }
 
 .ig-spot-copy h3.is-long,
 .ig-spot-pack {
   font-size: 56px;
-  line-height: 0.94;
-  max-height: 220px;
+  line-height: 1.14;
 }
 
 .ig-spot-body,
@@ -11422,6 +11564,15 @@ a.chip.on {
 }
 
 .ig-spot-geo {
+  font-weight: 700;
+}
+
+.ig-spot-price {
+  margin: 0 0 14px;
+  color: var(--night);
+  font-family: Nunito, "Nunito Extra Light", system-ui, sans-serif;
+  font-size: 34px;
+  line-height: 1.25;
   font-weight: 700;
 }
 
@@ -15257,18 +15408,21 @@ a.chip,
 
 .spotlight-visit-list {
   display: grid;
-  grid-template-columns: 72px 1fr;
-  gap: 10px 14px;
+  grid-template-columns: auto 1fr;
+  gap: 10px 16px;
   margin: 0 0 8px;
   font-size: 14px;
+  align-items: start;
 }
 
 .spotlight-visit-list dt {
+  text-align: left;
   color: color-mix(in srgb, var(--snow) 58%, transparent);
 }
 
 .spotlight-visit-list dd {
   margin: 0;
+  text-align: right;
 }
 
 .spotlight-visit-hours-label,
@@ -15276,19 +15430,29 @@ a.chip,
   grid-column: 1 / -1;
 }
 
+.spotlight-visit-hours-label {
+  text-align: left;
+}
+
 .spotlight-visit-hours {
   display: grid;
   gap: 6px;
+  text-align: left;
 }
 
 .spotlight-visit-hour {
-  display: flex;
-  justify-content: space-between;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
   gap: 12px;
   align-items: baseline;
 }
 
+.spotlight-visit-hour span:first-child {
+  text-align: left;
+}
+
 .spotlight-visit-time {
+  text-align: right;
   white-space: nowrap;
   font-variant-numeric: tabular-nums;
 }

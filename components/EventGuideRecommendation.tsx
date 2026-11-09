@@ -1,4 +1,3 @@
-import Link from "next/link";
 import type { EventGuideRecommendation } from "@/lib/event-guides";
 
 export function EventGuideRecommendationBlock({
@@ -12,23 +11,41 @@ export function EventGuideRecommendationBlock({
   const writeUp = item.editorialNote?.trim();
 
   return (
-    <article className="guide-rec is-stack">
-      <header className="guide-rec-copy">
-        <p className="eyebrow">{String(index).padStart(2, "0")}</p>
-        <h2>{item.title}</h2>
+    <article className="guide-rec">
+      <div className="guide-rec-photo">
+        {item.image ? <img src={item.image} alt="" /> : null}
+      </div>
+      <div className="guide-rec-side">
+        <div className="guide-rec-facts">
+          <p className="eyebrow">{String(index).padStart(2, "0")}</p>
+          <h2>{item.title}</h2>
+          <dl className="spotlight-visit-list">
+            {item.when ? (
+              <>
+                <dt>When</dt>
+                <dd>{item.when}</dd>
+              </>
+            ) : null}
+            {item.area ? (
+              <>
+                <dt>Location</dt>
+                <dd>{item.area}</dd>
+              </>
+            ) : null}
+            {item.fromPrice ? (
+              <>
+                <dt>Price</dt>
+                <dd>{item.fromPrice}</dd>
+              </>
+            ) : null}
+          </dl>
+          <p className="spotlight-visit-note">Confirm current details before visiting.</p>
+          <a className="btn btn-primary" href={href}>
+            View event
+          </a>
+        </div>
         {writeUp ? <p className="guide-rec-note">{writeUp}</p> : null}
-      </header>
-      <Link className="card guide-rec-card" href={href}>
-        <div className="card-image">
-          <img src={item.image} alt="" />
-        </div>
-        <div className="card-body">
-          <h3>{item.title}</h3>
-          <p className="card-meta">
-            {item.when} · {item.area}
-          </p>
-        </div>
-      </Link>
+      </div>
     </article>
   );
 }

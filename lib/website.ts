@@ -3,8 +3,10 @@ import { unstable_cache } from "next/cache";
 import { getAppStoreLinks } from "@/lib/brand";
 import { listPublishedCommunities, type CommunityRecord } from "@/lib/communities";
 import { listPublicEvents, type VenturoEvent } from "@/lib/events";
+import { eventCategoryColour } from "@/lib/event-style";
+import { eventFeedImage, formatEventWhen } from "@/lib/event-types";
 import { liveGuides, type GuideCardData } from "@/lib/guides";
-import { listingsByCategory, type Listing } from "@/lib/listings";
+import { categoryColour, listingsByCategory, type Listing } from "@/lib/listings";
 import { PUBLIC_CATALOG_TAG } from "@/lib/public-cache";
 import { createAnonClient } from "@/lib/supabase/anon";
 
@@ -139,11 +141,97 @@ export async function loadHomeFeatures(): Promise<HomeFeatures> {
 
   const featured = allListings.filter((listing) => listing.featured);
   const listingPool = ids.listing.length ? allListings : featured.length ? featured : allListings;
+  const featuredCommunities = communities.filter((community) => community.isFeatured);
+  const communityPool = ids.community.length
+    ? communities
+    : featuredCommunities.length
+      ? featuredCommunities
+      : communities;
 
   return {
     events: pick(events, ids.event, 12),
     listings: pick(listingPool, ids.listing, 12),
-    communities: pick(communities, ids.community, 12),
+    communities: pick(communityPool, ids.community, 12),
     guides: pick(guides, ids.guide, 12),
   };
+}
+
+export type HomeHighlight = {
+  id: string;
+  kind: "activity" | "event" | "community" | "guide";
+  href: string;
+  title: string;
+  kicker: string;
+  meta: string;
+  image: string;
+  accent: string;
+};
+
+const HIGHLIGHT_FALLBACK = "/brand/images/climbing.jpg";
+
+export function homeHighlights(features: HomeFeatures): HomeHighlight[] {
+  const items: HomeHighlight[] = [];
+  const take = 2;
+  for (let index = 0; index < take; index += 1) {
+    const listing = features.listings[index];
+    if (listing) {
+      items.push({
+        id: listing.id,
+        kind: "activity",
+        href: `/directory/${listing.slug}`,
+        title: listing.name,
+        kicker: "Activity",
+        meta: listing.area || listing.vibe,
+        image: listing.image || HIGHLIGHT_FALLBACK,
+        accent: categoryColour(listing.category),
+      });
+    }
+    const event = features.events[index];
+    if (event) {
+      items.push({
+        id: event.id,
+        kind: "event",
+        href: event.slug
+          ? `/events/${event.slug}${event.startsAt ? `?on=${encodeURIComponent(event.startsAt)}` : ""}`
+          : "/events",
+        title: event.title,
+        kicker: "Event",
+        meta: [
+          event.startsAt ? formatEventWhen(event.startsAt, event.timezone) : null,
+          event.city,
+        ]
+          .filter(Boolean)
+          .join(" · "),
+        image: eventFeedImage(event),
+        accent: eventCategoryColour(event.category),
+      });
+    }
+    const community = features.communities[index];
+    if (community) {
+      items.push({
+        id: community.id,
+        kind: "community",
+        href: `/communities/${community.slug}`,
+        title: community.title,
+        kicker: "Community",
+        meta: [community.placeLabel, community.interest].filter(Boolean).join(" · "),
+        image: community.coverUrl || HIGHLIGHT_FALLBACK,
+        accent: "var(--blush)",
+      });
+    }
+    const guide = features.guides[index];
+    if (guide) {
+      items.push({
+        id: guide.id,
+        kind: "guide",
+        href: `/guides/${guide.slug}`,
+        title: guide.title,
+        kicker: "Guide",
+        meta: guide.authorName ? `By ${guide.authorName}` : "Hand-picked",
+        image: guide.cover || HIGHLIGHT_FALLBACK,
+        accent: guide.category ? categoryColour(guide.category) : "var(--jade)",
+      });
+    }
+  }
+  return items;
 }
