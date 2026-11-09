@@ -13,7 +13,7 @@ import { StoryBuilder } from "@/components/admin/StoryBuilder";
 import { GuideRecommendationBlock } from "@/components/GuideRecommendation";
 import { SpotlightArticle } from "@/components/SpotlightArticle";
 import { formatRand } from "@/lib/control-room-shared";
-import { asCategoryId } from "@/lib/listings";
+import { asCategoryId } from "@/lib/listing-categories";
 import type { GuideEditorRecord, SpotlightListingDetails } from "@/lib/control-room-guides";
 import type { GuideAuthor } from "@/lib/guide-authors";
 import { mapGuideAuthor } from "@/lib/guide-authors";

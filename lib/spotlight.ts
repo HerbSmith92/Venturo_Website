@@ -83,6 +83,21 @@ export type SpotlightVisitInfo = {
   hours: { dayOfWeek: number; opensAt: string | null; closesAt: string | null; isClosed: boolean }[];
 };
 
+export function visitFromRecommendation(item: SpotlightVisitInfo): SpotlightVisitInfo {
+  return {
+    name: item.name,
+    slug: item.slug,
+    area: item.area,
+    fromPrice: item.fromPrice,
+    bookingUrl: item.bookingUrl,
+    websiteUrl: item.websiteUrl,
+    phone: item.phone,
+    bookingRequired: item.bookingRequired,
+    indoorOutdoor: item.indoorOutdoor,
+    hours: item.hours,
+  };
+}
+
 export type SpotlightListingMedia = {
   id: string;
   url: string;

@@ -12,7 +12,7 @@ import {
   categoryLabel,
   formatFromPrice,
   type CategoryId,
-} from "@/lib/listings";
+} from "@/lib/listing-categories";
 import {
   coverPhoto,
   emptySpotlightCover,
@@ -22,7 +22,6 @@ import {
   type SpotlightCover,
   type SpotlightPhoto,
   type SpotlightSection,
-  type SpotlightVisitInfo,
 } from "@/lib/spotlight";
 
 const FALLBACK_IMAGE = "/brand/images/climbing.jpg";
@@ -237,21 +236,6 @@ function mapRecommendation(
         closesAt: row.closes_at,
         isClosed: Boolean(row.is_closed),
       })),
-  };
-}
-
-export function visitFromRecommendation(item: GuideRecommendation): SpotlightVisitInfo {
-  return {
-    name: item.name,
-    slug: item.slug,
-    area: item.area,
-    fromPrice: item.fromPrice,
-    bookingUrl: item.bookingUrl,
-    websiteUrl: item.websiteUrl,
-    phone: item.phone,
-    bookingRequired: item.bookingRequired,
-    indoorOutdoor: item.indoorOutdoor,
-    hours: item.hours,
   };
 }
 

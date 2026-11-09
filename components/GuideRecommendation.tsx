@@ -1,9 +1,7 @@
 import { PlanVisitRows } from "@/components/PlanVisitCard";
-import {
-  categoryColour,
-  visitFromRecommendation,
-  type GuideRecommendation,
-} from "@/lib/guides";
+import { categoryColour } from "@/lib/listing-categories";
+import type { GuideRecommendation } from "@/lib/guides";
+import { visitFromRecommendation } from "@/lib/spotlight";
 
 export function GuideRecommendationBlock({
   item,
