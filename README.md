@@ -34,6 +34,11 @@ Open [http://localhost:3000](http://localhost:3000).
 | `GOOGLE_PLAY_REPORTS_BUCKET` | Play Console Download reports bucket (`pubsite_prod_rev_…`) |
 | `GOOGLE_PLAY_SERVICE_ACCOUNT_JSON` | Service account JSON with storage read on that bucket |
 | `SUPABASE_SERVICE_ROLE_KEY` | Server-only. Invite staff from Control Room & fulfil Paystack payments |
+| `APNS_BUNDLE_ID` | Venturo Application iOS bundle. Defaults to `com.app.venturo` |
+| `APNS_KEY_ID` | Apple Push AuthKey id |
+| `APNS_TEAM_ID` | Apple Developer Team id |
+| `APNS_PRIVATE_KEY` | AuthKey `.p8`, newlines as `\\n` |
+| `FIREBASE_SERVICE_ACCOUNT` | Firebase service-account JSON with Cloud Messaging |
 | `PAYSTACK_SECRET_KEY` | Test secret while building. Live secret after Paystack approves the business |
 | `PAYSTACK_PLAN_CODE` | Optional monthly membership plan. Created on first website subscribe when empty |
 

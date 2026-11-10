@@ -4,6 +4,8 @@ Product architecture (roles, sites, claim flow, algorithm) is in [`PRODUCT_ARCHI
 
 Host door check-in (scan QR, guest counts, guest list) is in [`HOST_COMPANION_SCANNING.md`](HOST_COMPANION_SCANNING.md).
 
+Member-app lock-screen tokens (APNs & FCM, `register_push_device`) are in [`PUSH_TOKENS.md`](PUSH_TOKENS.md).
+
 Per-event Menu (Dashboard through Settings) is in [`EVENT_HOST_MENU.md`](EVENT_HOST_MENU.md).
 
 Drop extra journeys, sitemaps, and wireframes here.

@@ -201,7 +201,7 @@ export function PushComposer({
           Saved for {sent.inbox} {sent.inbox === 1 ? "person" : "people"}
           {sent.pushed || sent.failed
             ? `. Pushed to ${sent.pushed} ${sent.pushed === 1 ? "phone" : "phones"}${sent.failed ? `, ${sent.failed} failed` : ""}.`
-            : ". No phone had notifications turned on, so it stays in the app."}
+            : ". No phone has an Apple or Firebase token yet, so it stays in the app."}
         </p>
       ) : null}
       <button className="btn btn-primary" type="submit" disabled={disabled || pending}>

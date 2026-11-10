@@ -1,3 +1,4 @@
+import { deliverNativePush } from "@/lib/native-push";
 import { createServiceClient } from "@/lib/supabase/admin";
 
 export const PUSH_AUDIENCES = ["everyone", "paid", "free", "hosts"] as const;
@@ -78,8 +79,6 @@ const OPENS = /^(guide|event):[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0
 const PLACE_ID = /^place:[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 const TARGET_ID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 const REGION = /^region:[A-Za-z][A-Za-z -]{0,40}$/;
-const EXPO_PUSH_URL = "https://exp.host/--/api/v2/push/send";
-
 export function pushAudienceLabel(audience: PushAudience) {
   if (audience === "everyone") return "Everyone with the app";
   if (audience === "paid") return "Paid members";
@@ -341,6 +340,8 @@ type DeviceRow = {
   id: string;
   user_id: string;
   token: string | null;
+  platform: string;
+  apns_environment: "sandbox" | "production" | null;
 };
 
 async function countDevices(service: Service, withToken: boolean) {
@@ -357,7 +358,7 @@ async function loadDevices(service: Service) {
   for (let from = 0; ; from += pageSize) {
     const query = service
       .from("push_devices")
-      .select("id, user_id, token")
+      .select("id, user_id, token, platform, apns_environment")
       .eq("app", "member")
       .order("id")
       .range(from, from + pageSize - 1);
@@ -786,100 +787,23 @@ async function pushTokens(
     return { pushed: 0, failed: 0, attempted: 0, dropTokenIds: [] as string[], error: null };
   }
 
-  let pushed = 0;
-  let failed = 0;
-  const dropTokenIds: string[] = [];
-  let error: string | null = null;
+  const result = await deliverNativePush(
+    targets.map((device) => ({
+      id: device.id,
+      token: device.token,
+      platform: device.platform,
+      apns_environment: device.apns_environment,
+    })),
+    message,
+  );
 
-  for (const batch of chunks(targets, 100)) {
-    const result = await sendExpoBatch(batch, message);
-    pushed += result.pushed;
-    failed += result.failed;
-    dropTokenIds.push(...result.dropTokenIds);
-    error = error ?? result.error;
-  }
-
-  return { pushed, failed, attempted: targets.length, dropTokenIds, error };
-}
-
-async function sendExpoBatch(
-  batch: Array<DeviceRow & { token: string }>,
-  message: { title: string; body: string; path: string | null; kind: string; id: string; slug: string; when: string; campaignId: string },
-) {
-  const accessToken = process.env.EXPO_ACCESS_TOKEN;
-  const headers: Record<string, string> = {
-    Accept: "application/json",
-    "Accept-Encoding": "gzip, deflate",
-    "Content-Type": "application/json",
+  return {
+    pushed: result.pushed,
+    failed: result.failed,
+    attempted: targets.length,
+    dropTokenIds: result.dropTokenIds,
+    error: result.error,
   };
-  if (accessToken) headers.Authorization = `Bearer ${accessToken}`;
-
-  let response: Response;
-  try {
-    response = await fetch(EXPO_PUSH_URL, {
-      method: "POST",
-      headers,
-      body: JSON.stringify(
-        batch.map((device) => ({
-          to: device.token,
-          title: message.title,
-          body: message.body,
-          sound: "default",
-          channelId: "default",
-          data: {
-            path: message.path ?? "",
-            kind: message.kind,
-            id: message.id,
-            slug: message.slug,
-            when: message.when,
-            campaignId: message.campaignId,
-          },
-        })),
-      ),
-    });
-  } catch (error) {
-    return {
-      pushed: 0,
-      failed: batch.length,
-      dropTokenIds: [] as string[],
-      error: error instanceof Error ? error.message : "Expo push did not respond.",
-    };
-  }
-
-  const payload = (await response.json().catch(() => null)) as {
-    data?: Array<{ status?: string; message?: string; details?: { error?: string } }>;
-    errors?: Array<{ message?: string }>;
-  } | null;
-
-  if (!response.ok || !payload?.data) {
-    const detail = payload?.errors?.[0]?.message;
-    return {
-      pushed: 0,
-      failed: batch.length,
-      dropTokenIds: [] as string[],
-      error: detail || `Expo push returned ${response.status}.`,
-    };
-  }
-
-  let pushed = 0;
-  let failed = 0;
-  const dropTokenIds: string[] = [];
-  let error: string | null = null;
-
-  payload.data.forEach((ticket, index) => {
-    if (ticket.status === "ok") {
-      pushed += 1;
-      return;
-    }
-    failed += 1;
-    error = error ?? ticket.message ?? "Expo could not deliver a push.";
-    if (ticket.details?.error === "DeviceNotRegistered") {
-      const device = batch[index];
-      if (device) dropTokenIds.push(device.id);
-    }
-  });
-
-  return { pushed, failed, dropTokenIds, error };
 }
 
 function chunks<T>(items: T[], size: number) {
@@ -890,7 +814,7 @@ function chunks<T>(items: T[], size: number) {
   return batches;
 }
 
-/** Inbox row plus Expo push for a known set of member accounts. */
+/** Inbox row plus a native push for a known set of member accounts. */
 export async function notifyMemberUsers(input: {
   userIds: string[];
   title: string;
@@ -910,7 +834,7 @@ export async function notifyMemberUsers(input: {
   for (const batch of chunks(userIds, 100)) {
     const loaded = await service
       .from("push_devices")
-      .select("id, user_id, token")
+      .select("id, user_id, token, platform, apns_environment")
       .eq("app", "member")
       .in("user_id", batch);
     if (!loaded.error && loaded.data) devices.push(...(loaded.data as DeviceRow[]));

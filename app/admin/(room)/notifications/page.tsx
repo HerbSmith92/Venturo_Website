@@ -1,5 +1,6 @@
 import { PushComposer } from "@/components/admin/PushComposer";
 import { formatClock } from "@/lib/control-room";
+import { nativePushKeysReady } from "@/lib/native-push";
 import { loadPushDesk, loadPushOptions, pushAudienceLabel, pushNoticeLabel } from "@/lib/push-notifications";
 
 export default async function PushNotificationsPage({
@@ -10,6 +11,7 @@ export default async function PushNotificationsPage({
   const params = await searchParams;
   const [desk, options] = await Promise.all([loadPushDesk(), loadPushOptions()]);
   const missingTable = Boolean(desk.loadError && /push_(campaigns|devices|inbox)|schema cache/i.test(desk.loadError));
+  const keys = nativePushKeysReady();
 
   return (
     <section>
@@ -46,13 +48,26 @@ export default async function PushNotificationsPage({
       </div>
 
       <p className="muted" style={{ marginTop: -8, marginBottom: 24 }}>
-        Push ready means the phone allowed notifications. Every matched phone still keeps the message in the app.
-        Place uses each member's home area, not the phone's current GPS.
+        Push ready means the Venturo Application sent an Apple or Firebase token. Every matched person still
+        keeps the message in the app. Place uses each member's home area, not the phone's current GPS.
       </p>
+      {!keys.apple || !keys.android ? (
+        <p className="notice" style={{ marginBottom: 24 }}>
+          Lock-screen send needs server keys: {!keys.apple ? "Apple (APNS_KEY_ID, APNS_TEAM_ID, APNS_PRIVATE_KEY, APNS_BUNDLE_ID). " : ""}
+          {!keys.android ? "Android (FIREBASE_SERVICE_ACCOUNT). " : ""}
+          Inbox still saves without them.
+        </p>
+      ) : null}
       {desk.stats.phones === 0 ? (
         <p className="notice" style={{ marginBottom: 24 }}>
-          No Venturo Application phones have registered yet. Open the signed-in app on the phone so it can
-          register. Until Phones is at least 1, a place such as Johannesburg cannot match.
+          No Venturo Application phones have registered yet. The signed-in app must call
+          register_push_device with app member. Until Phones is at least 1, a place such as Johannesburg
+          cannot match.
+        </p>
+      ) : desk.stats.pushReady === 0 ? (
+        <p className="notice" style={{ marginBottom: 24 }}>
+          Phones are on file, but none have a native push token yet. Sends stay in the app until the
+          Venturo Application uploads an Apple or Firebase token.
         </p>
       ) : null}
 
