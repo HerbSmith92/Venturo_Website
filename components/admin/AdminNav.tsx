@@ -101,7 +101,12 @@ function menu(admin: boolean, name: string): Group[] {
           href: "/admin/listings?status=approved",
           leaves: [
             { id: "approved", label: "All Live", href: "/admin/listings?status=approved" },
-            ...(admin ? [{ id: "add-listing", label: "+ Add New Listing", action: "create-listing" as const }] : []),
+            ...(admin
+              ? [
+                  { id: "add-listing", label: "+ Add New Listing", action: "create-listing" as const },
+                  { id: "import", label: "Import & Export", href: "/admin/listings/import" },
+                ]
+              : []),
             { id: "review", label: "New Listings Requested", href: "/admin/listings?status=review" },
             { id: "changes", label: "Changes Requested", href: "/admin/listings?status=changes" },
             { id: "drafts", label: "Drafts", href: "/admin/listings?status=draft" },

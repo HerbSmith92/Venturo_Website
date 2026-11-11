@@ -3458,6 +3458,42 @@ fieldset.field {
   margin: 8px 0 28px;
 }
 
+.import-upload {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  gap: 16px;
+  margin-top: 8px;
+}
+
+.import-upload .field {
+  min-width: min(100%, 320px);
+}
+
+.import-summary {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px 18px;
+  margin: 22px 0 12px;
+}
+
+.import-summary strong {
+  font-weight: 600;
+}
+
+.import-preview {
+  max-height: 480px;
+  overflow: auto;
+}
+
+.import-notice {
+  margin: 16px 0 0;
+}
+
+.import-notice a {
+  color: var(--canary);
+}
+
 .cr-member-actions .cr-actions {
   margin: 0;
 }
