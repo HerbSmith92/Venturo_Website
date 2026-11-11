@@ -4,29 +4,32 @@ import { INTEREST_CHIPS } from "@/lib/listing-draft";
 
 export default async function DirectoryImportPage() {
   await requireAdmin();
-  const interests = INTEREST_CHIPS.map((chip) => chip.key).join(", ");
 
   return (
-    <section className="cr-paper">
-      <p className="eyebrow">Directory</p>
-      <h1>Import & Export</h1>
-      <p className="muted">
-        One row is one activity business. Download a template, export the directory, or import new
-        rows. Anything already on the directory is left as it is, and every new row is saved as a
-        draft. Photos, hours, and prices stay for the draft editor.
-      </p>
-      <p className="muted">
-        Interest is an activity kind key: {interests}.
-      </p>
-      <div className="cr-actions">
-        <a className="btn btn-secondary" href="/admin/listings/import/template">
-          Download template
-        </a>
-        <a className="btn btn-secondary" href="/admin/listings/import/export">
-          Export directory
-        </a>
-      </div>
+    <section className="cr-import">
+      <header className="cr-import-head">
+        <p className="eyebrow">Directory</p>
+        <h1>Import & Export</h1>
+        <p className="cr-import-lede">
+          One row is one activity business. New places land in Drafts. Anything already on the
+          directory stays as it is. Photos, hours & prices wait for the draft editor.
+        </p>
+      </header>
+
       <ListingImportPanel />
+
+      <section className="cr-import-kinds">
+        <h2>Interest Keys</h2>
+        <p>Put the key in the interest column.</p>
+        <ul>
+          {INTEREST_CHIPS.map((chip) => (
+            <li key={chip.key} className={`cr-import-kind kind-${chip.key}`}>
+              <span>{chip.label}</span>
+              <code>{chip.key}</code>
+            </li>
+          ))}
+        </ul>
+      </section>
     </section>
   );
 }
