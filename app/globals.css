@@ -3458,40 +3458,215 @@ fieldset.field {
   margin: 8px 0 28px;
 }
 
-.import-upload {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: flex-end;
-  gap: 16px;
-  margin-top: 8px;
+.cr-import {
+  display: grid;
+  gap: 28px;
+  max-width: 1080px;
+  align-content: start;
 }
 
-.import-upload .field {
-  min-width: min(100%, 320px);
+.cr-import-head {
+  display: grid;
+  gap: 10px;
+  max-width: 68ch;
 }
 
-.import-summary {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 8px 18px;
-  margin: 22px 0 12px;
+.cr-import h1 {
+  font-size: clamp(32px, 4vw, 48px);
 }
 
-.import-summary strong {
-  font-weight: 600;
+.cr-import-lede,
+.cr-import-card p,
+.cr-import-kinds > p {
+  color: color-mix(in srgb, var(--snow) 76%, transparent);
+  max-width: 62ch;
 }
 
-.import-preview {
+.cr-import-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 0.9fr) minmax(0, 1.1fr);
+  gap: 18px;
+  align-items: stretch;
+}
+
+.cr-import-card,
+.cr-import-kinds {
+  background: color-mix(in srgb, var(--snow) 6%, transparent);
+  border: 1px solid color-mix(in srgb, var(--snow) 10%, transparent);
+  border-radius: var(--radius-md);
+  padding: 22px;
+}
+
+.cr-import-card {
+  display: grid;
+  gap: 12px;
+  align-content: start;
+}
+
+.cr-import-card h2,
+.cr-import-kinds h2 {
+  font-size: 22px;
+}
+
+.cr-import-card .cr-actions {
+  margin: 4px 0 0;
+}
+
+.cr-import-upload {
+  display: grid;
+  gap: 14px;
+  justify-items: start;
+}
+
+.cr-import-drop {
+  display: grid;
+  gap: 4px;
+  width: 100%;
+  min-height: 96px;
+  padding: 18px 20px;
+  border-radius: var(--radius-sm);
+  border: 1.5px dashed color-mix(in srgb, var(--snow) 35%, transparent);
+  background: color-mix(in srgb, var(--night) 35%, transparent);
+  cursor: pointer;
+  align-content: center;
+}
+
+.cr-import-drop:hover,
+.cr-import-drop:focus-within,
+.cr-import-drop.is-over {
+  border-color: var(--canary);
+}
+
+.cr-import-drop strong {
+  font-weight: 400;
+  font-size: 16px;
+  color: var(--snow);
+}
+
+.cr-import-drop span {
+  font-size: 13px;
+  color: color-mix(in srgb, var(--snow) 64%, transparent);
+}
+
+.cr-import-notice {
+  margin: 0;
+  color: var(--snow);
+}
+
+.cr-import-notice a {
+  color: var(--canary);
+}
+
+.cr-import-panel {
+  display: grid;
+  gap: 18px;
+}
+
+.cr-import-review {
+  display: grid;
+  gap: 14px;
+}
+
+.cr-import-counts {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 10px;
+  margin: 4px 0 0;
+  padding: 0;
+  list-style: none;
+}
+
+.cr-import-counts li {
+  display: grid;
+  gap: 4px;
+  min-height: 72px;
+  padding: 12px 14px;
+  border-radius: var(--radius-sm);
+  background: color-mix(in srgb, var(--snow) 6%, transparent);
+  border: 1px solid color-mix(in srgb, var(--snow) 10%, transparent);
+}
+
+.cr-import-counts strong {
+  font-family: "Social Gothic Rough", "Arial Black", sans-serif;
+  font-size: 28px;
+  font-weight: 400;
+  line-height: 1;
+}
+
+.cr-import-counts span {
+  font-size: 12px;
+  color: color-mix(in srgb, var(--snow) 70%, transparent);
+}
+
+.cr-import-preview {
   max-height: 480px;
   overflow: auto;
 }
 
-.import-notice {
-  margin: 16px 0 0;
+.cr-import-result.is-new {
+  color: var(--jade);
 }
 
-.import-notice a {
-  color: var(--canary);
+.cr-import-result.is-duplicate {
+  color: var(--orange);
+}
+
+.cr-import-result.is-nameless {
+  color: var(--pomegranate);
+}
+
+.cr-import-kinds {
+  display: grid;
+  gap: 12px;
+}
+
+.cr-import-kinds ul {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.cr-import-kind {
+  display: grid;
+  gap: 2px;
+  min-height: 44px;
+  padding: 8px 14px;
+  border-radius: var(--radius-sm);
+  background: color-mix(in srgb, var(--kind, var(--canary)) 22%, transparent);
+  border: 1px solid color-mix(in srgb, var(--kind, var(--canary)) 55%, transparent);
+  color: var(--snow);
+}
+
+.cr-import-kind code {
+  font-family: Nunito, "Trebuchet MS", sans-serif;
+  font-weight: 200;
+  font-size: 12px;
+  color: color-mix(in srgb, var(--snow) 78%, transparent);
+}
+
+.cr-import-kind.kind-adventure { --kind: var(--jade); }
+.cr-import-kind.kind-thrills { --kind: var(--orange); }
+.cr-import-kind.kind-romance { --kind: var(--pomegranate); }
+.cr-import-kind.kind-family { --kind: var(--blush); }
+.cr-import-kind.kind-nightlife { --kind: var(--velvet); }
+.cr-import-kind.kind-team { --kind: var(--canary); }
+.cr-import-kind.kind-workshop { --kind: var(--magenta); }
+.cr-import-kind.kind-markets { --kind: var(--maroon); }
+.cr-import-kind.kind-digital { --kind: var(--sapphire); }
+.cr-import-kind.kind-third-party {
+  --kind: var(--snow);
+  background: color-mix(in srgb, var(--snow) 12%, transparent);
+  border-color: color-mix(in srgb, var(--snow) 42%, transparent);
+}
+
+@media (max-width: 800px) {
+  .cr-import-grid,
+  .cr-import-counts {
+    grid-template-columns: 1fr;
+  }
 }
 
 .cr-member-actions .cr-actions {
