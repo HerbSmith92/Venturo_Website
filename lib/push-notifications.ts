@@ -190,6 +190,7 @@ export async function deliverPushCampaign(draft: PushDraft, createdBy: string): 
 
   const destination = await resolveDestination(service, draft);
   if ("error" in destination) return destination;
+  const copy = lockScreenCopy(draft, destination);
 
   const devices = await loadDevices(service);
   if (devices.error) return { error: devices.error };
@@ -217,8 +218,8 @@ export async function deliverPushCampaign(draft: PushDraft, createdBy: string): 
   const { data: campaign, error: insertError } = await service
     .from("push_campaigns")
     .insert({
-      title: draft.title,
-      body: draft.body,
+      title: copy.title,
+      body: copy.body,
       audience: draft.audience,
       app: "member",
       link_path: destination.linkPath,
@@ -248,8 +249,8 @@ export async function deliverPushCampaign(draft: PushDraft, createdBy: string): 
   const inbox = users.map((userId) => ({
     campaign_id: campaign.id,
     user_id: userId,
-    title: draft.title,
-    body: draft.body,
+    title: copy.title,
+    body: copy.body,
     link_path: destination.linkPath,
   }));
 
@@ -267,8 +268,8 @@ export async function deliverPushCampaign(draft: PushDraft, createdBy: string): 
   }
 
   const push = await pushTokens(matched, {
-    title: draft.title,
-    body: draft.body,
+    title: copy.title,
+    body: copy.body,
     path: destination.linkPath,
     kind: destination.opens?.kind ?? destination.extraKind,
     id: destination.opens?.id ?? destination.extraId,
@@ -431,6 +432,22 @@ type ResolvedDestination = {
   extraId: string;
   when: string;
 };
+
+const REMINDER_TITLE = "Have a look";
+const REMINDER_BODY = "Your next adventure is waiting in the app.";
+
+function lockScreenCopy(draft: PushDraft, destination: ResolvedDestination) {
+  const title = draft.title.trim();
+  const body = draft.body.trim();
+  const name = destination.opens?.label.trim() ?? "";
+  if (draft.notice !== "custom" || !destination.opens || !name || title !== REMINDER_TITLE || body !== REMINDER_BODY) {
+    return { title: draft.title, body: draft.body };
+  }
+  return {
+    title: name.slice(0, 80),
+    body: destination.opens.kind === "event" ? "Open the event." : "Open the guide.",
+  };
+}
 
 async function resolveDestination(service: Service, draft: PushDraft): Promise<{ error: string } | ResolvedDestination> {
   const resolvedPlace = await resolvePlace(service, draft.place);
@@ -814,6 +831,22 @@ function chunks<T>(items: T[], size: number) {
   return batches;
 }
 
+export type MemberNotifyResult = {
+  inbox: number;
+  pushed: number;
+  failed: number;
+  missingToken: number;
+  error: string | null;
+};
+
+const EMPTY_NOTIFY: MemberNotifyResult = {
+  inbox: 0,
+  pushed: 0,
+  failed: 0,
+  missingToken: 0,
+  error: null,
+};
+
 /** Inbox row plus a native push for a known set of member accounts. */
 export async function notifyMemberUsers(input: {
   userIds: string[];
@@ -824,11 +857,12 @@ export async function notifyMemberUsers(input: {
   id: string;
   slug: string;
   notice: "custom" | "community";
-}) {
+  createdBy?: string;
+}): Promise<MemberNotifyResult> {
   const service = createServiceClient();
-  if (!service) return;
+  if (!service) return { ...EMPTY_NOTIFY, error: "Push is not configured on the server." };
   const userIds = [...new Set(input.userIds.filter(Boolean))];
-  if (!userIds.length) return;
+  if (!userIds.length) return EMPTY_NOTIFY;
 
   const devices: DeviceRow[] = [];
   for (const batch of chunks(userIds, 100)) {
@@ -839,6 +873,10 @@ export async function notifyMemberUsers(input: {
       .in("user_id", batch);
     if (!loaded.error && loaded.data) devices.push(...(loaded.data as DeviceRow[]));
   }
+  const withToken = new Set(
+    devices.filter((row) => Boolean(row.token)).map((row) => row.user_id),
+  );
+  const missingToken = userIds.filter((id) => !withToken.has(id)).length;
 
   const { data: campaign, error: insertError } = await service
     .from("push_campaigns")
@@ -855,10 +893,13 @@ export async function notifyMemberUsers(input: {
       notice_kind: input.notice,
       status: "sent",
       device_count: devices.length,
+      ...(input.createdBy ? { created_by: input.createdBy } : {}),
     })
     .select("id")
     .single();
-  if (insertError || !campaign) return;
+  if (insertError || !campaign) {
+    return { ...EMPTY_NOTIFY, missingToken, error: insertError?.message ?? "Could not record the update." };
+  }
 
   const inbox = userIds.map((userId) => ({
     campaign_id: campaign.id,
@@ -875,7 +916,7 @@ export async function notifyMemberUsers(input: {
         .from("push_campaigns")
         .update({ status: "failed", error: inserted.error.message, inbox_count: inboxCount })
         .eq("id", campaign.id);
-      return;
+      return { inbox: inboxCount, pushed: 0, failed: 0, missingToken, error: inserted.error.message };
     }
     inboxCount += inserted.data?.length ?? 0;
   }
@@ -903,4 +944,12 @@ export async function notifyMemberUsers(input: {
       status: push.error && push.pushed === 0 && push.attempted > 0 ? "failed" : "sent",
     })
     .eq("id", campaign.id);
+
+  return {
+    inbox: inboxCount,
+    pushed: push.pushed,
+    failed: push.failed,
+    missingToken,
+    error: push.error,
+  };
 }
