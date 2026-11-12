@@ -1,5 +1,6 @@
 import { bulkEventAction } from "@/app/admin/bulk-actions";
 import { BulkForm } from "@/components/admin/BulkForm";
+import { loadEventHosts } from "@/lib/event-host";
 import { listAdminEvents, type EventStatus } from "@/lib/events";
 import { formatEventWhen } from "@/lib/events";
 
@@ -24,11 +25,20 @@ export default async function AdminEventsPage({
     ? params.status
     : "review") as EventStatus | "all" | "changes";
   const events = await listAdminEvents(status);
+  const hosts = await loadEventHosts(
+    events.map((event) => event.organiserId),
+    { withAuthEmail: false },
+  );
   const returnTo = `/admin/events?status=${status}`;
 
   const list = (
     <div className="stack-list">
-      {events.map((event) => (
+      {events.map((event) => {
+        const host = hosts.get(event.organiserId);
+        const hostLine = host
+          ? `${host.name}${host.email || host.phone ? ` · ${host.email || host.phone}` : ""}`
+          : "No host named";
+        return (
         <article key={event.id} className="cr-bulk-row">
           <input
             className="cr-bulk-check"
@@ -45,6 +55,7 @@ export default async function AdminEventsPage({
               <p className="muted">
                 {formatEventWhen(event.startsAt, event.timezone)}
                 {event.category ? ` · ${event.category}` : ""}
+                {` · ${hostLine}`}
               </p>
             </div>
             <a className="btn btn-primary" href={`/admin/events/${event.id}`}>
@@ -52,7 +63,8 @@ export default async function AdminEventsPage({
             </a>
           </div>
         </article>
-      ))}
+        );
+      })}
     </div>
   );
 

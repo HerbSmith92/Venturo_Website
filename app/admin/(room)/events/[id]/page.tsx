@@ -1,4 +1,6 @@
 import { EventActions } from "@/components/admin/EventActions";
+import { EventOwner } from "@/components/admin/EventOwner";
+import { loadEventHost } from "@/lib/event-host";
 import {
   eventImage,
   formatCents,
@@ -15,6 +17,7 @@ export default async function AdminEventDetailPage({
   const { id } = await params;
   const event = await getEventById(id);
   if (!event) notFound();
+  const host = await loadEventHost(event.organiserId);
 
   return (
     <div className="cr-paper">
@@ -68,6 +71,8 @@ export default async function AdminEventDetailPage({
           </li>
         ))}
       </ul>
+
+      <EventOwner eventId={event.id} host={host} />
 
       <div style={{ marginTop: 32 }}>
         <EventActions eventId={event.id} status={event.status} />
