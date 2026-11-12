@@ -36,9 +36,16 @@ export default async function EventDetailPage({
 
   const user = await getCurrentUser();
   const fees = await getPlatformFees();
+  const occurrences = listOccurrences(event.startsAt, event.endsAt, event.repeatEvery, event.repeatUntil);
+  const requested = query.on ? new Date(query.on).getTime() : NaN;
+  const selected =
+    occurrences.find((item) => new Date(item.startsAt).getTime() === requested) ??
+    occurrences[0] ??
+    null;
+  const whenStart = selected?.startsAt ?? event.startsAt;
   const [saved, attendance] = await Promise.all([
-    user ? isSaved(user.id, "event", event.id) : Promise.resolve(false),
-    loadAttendancePreview(event.id),
+    user ? isSaved(user.id, "event", event.id, whenStart) : Promise.resolve(false),
+    loadAttendancePreview(event.id, whenStart),
   ]);
   const profile = user ? await loadMemberProfile(user.id) : null;
   const canView =
@@ -49,13 +56,6 @@ export default async function EventDetailPage({
     user?.role === "editor";
   if (!canView) notFound();
 
-  const occurrences = listOccurrences(event.startsAt, event.endsAt, event.repeatEvery, event.repeatUntil);
-  const requested = query.on ? new Date(query.on).getTime() : NaN;
-  const selected =
-    occurrences.find((item) => new Date(item.startsAt).getTime() === requested) ??
-    occurrences[0] ??
-    null;
-  const whenStart = selected?.startsAt ?? event.startsAt;
   const whenEnd = selected?.endsAt ?? event.endsAt;
   const soldForDate = selected ? await ticketsSoldForOccurrence(event.id, selected.startsAt) : new Map<string, number>();
   const publicTickets = event.ticketTypes
@@ -131,7 +131,13 @@ export default async function EventDetailPage({
               Sales Closed
             </span>
           )}
-          <SaveForm kind="event" targetId={event.id} saved={saved} next={`/events/${event.slug}`} />
+          <SaveForm
+            kind="event"
+            targetId={event.id}
+            saved={saved}
+            occurrence={whenStart}
+            next={`/events/${event.slug}?on=${encodeURIComponent(whenStart)}`}
+          />
           <InviteOthers title={event.title} path={`/events/${event.slug}`} />
         </div>
       </div>

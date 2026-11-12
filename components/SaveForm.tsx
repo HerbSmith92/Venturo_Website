@@ -6,16 +6,19 @@ export function SaveForm({
   targetId,
   saved,
   next,
+  occurrence,
 }: {
   kind: SaveKind;
   targetId: string;
   saved: boolean;
   next: string;
+  occurrence?: string | null;
 }) {
   return (
     <form action={toggleSave}>
       <input type="hidden" name="kind" value={kind} />
       <input type="hidden" name="target_id" value={targetId} />
+      {occurrence ? <input type="hidden" name="occurrence" value={occurrence} /> : null}
       <input type="hidden" name="next" value={next} />
       <button className="btn btn-secondary" type="submit">
         {saved ? "Saved" : "Save"}

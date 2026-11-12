@@ -16,9 +16,24 @@ export async function listSaves(userId: string, kind?: SaveKind) {
   return data as { kind: SaveKind; target_id: string; created_at: string }[];
 }
 
-export async function isSaved(userId: string, kind: SaveKind, targetId: string) {
+export async function isSaved(
+  userId: string,
+  kind: SaveKind,
+  targetId: string,
+  occurrenceStartsAt?: string | null,
+) {
   const supabase = await createClient();
   if (!supabase) return false;
+  if (kind === "event" && occurrenceStartsAt) {
+    const { data } = await supabase
+      .from("event_occurrence_interest")
+      .select("event_id")
+      .eq("user_id", userId)
+      .eq("event_id", targetId)
+      .eq("occurrence_starts_at", occurrenceStartsAt)
+      .maybeSingle();
+    return Boolean(data);
+  }
   const { data } = await supabase
     .from("member_saves")
     .select("target_id")

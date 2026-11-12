@@ -19,9 +19,21 @@ export async function toggleSave(formData: FormData) {
   const user = await requireMember(next);
   const kind = String(formData.get("kind") ?? "") as SaveKind;
   const targetId = String(formData.get("target_id") ?? "");
+  const occurrence = String(formData.get("occurrence") ?? "").trim();
   if (!["listing", "event", "guide"].includes(kind) || !targetId) redirect(next);
   const supabase = await createClient();
   if (!supabase) redirect(next);
+
+  if (kind === "event" && occurrence) {
+    const { error } = await supabase.rpc("toggle_event_occurrence_interest", {
+      p_event_id: targetId,
+      p_occurrence_starts_at: occurrence,
+    });
+    if (!error) await recordMemberActivity(user.id, "save", "web");
+    revalidatePath(next);
+    revalidatePath("/account/saved");
+    redirect(next);
+  }
 
   const { data } = await supabase
     .from("member_saves")
