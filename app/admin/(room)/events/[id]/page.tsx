@@ -20,7 +20,7 @@ export default async function AdminEventDetailPage({
   const host = await loadEventHost(event.organiserId);
 
   return (
-    <div className="cr-paper">
+    <section>
       <p className="eyebrow">Event Review</p>
       <h1>{event.title}</h1>
       <p className="muted">
@@ -83,6 +83,6 @@ export default async function AdminEventDetailPage({
           Open Public Page
         </a>
       </p>
-    </div>
+    </section>
   );
 }

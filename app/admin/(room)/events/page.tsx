@@ -69,7 +69,7 @@ export default async function AdminEventsPage({
   );
 
   return (
-    <div className="cr-paper">
+    <section>
       <p className="eyebrow">Control Room</p>
       <h1>Events</h1>
       <p className="muted">Approve member-hosted events before they go public.</p>
@@ -86,6 +86,6 @@ export default async function AdminEventsPage({
           {list}
         </BulkForm>
       )}
-    </div>
+    </section>
   );
 }

@@ -10413,6 +10413,27 @@ a.chip.on {
   border-color: var(--night);
 }
 
+.cr-event-host,
+.cr-event-host .muted,
+.cr-event-host a {
+  color: var(--snow);
+}
+
+.cr-event-host a {
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+
+.cr-event-host .cr-guide-results button {
+  background: color-mix(in srgb, var(--snow) 8%, transparent);
+  border-color: color-mix(in srgb, var(--snow) 18%, transparent);
+  color: var(--snow);
+}
+
+.cr-event-host .cr-guide-results button:hover {
+  border-color: var(--snow);
+}
+
 @media (max-width: 900px) {
   .home-rail {
     grid-auto-columns: calc((100% - 12px) / 2);

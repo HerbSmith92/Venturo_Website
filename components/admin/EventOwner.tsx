@@ -55,7 +55,7 @@ export function EventOwner({
   }
 
   return (
-    <section className="stack-list" style={{ marginTop: 28 }}>
+    <section className="stack-list cr-event-host" style={{ marginTop: 28 }}>
       <h2>Belongs to</h2>
       <p className="muted">
         The Event Host portal, payouts, & door follow this account. Use it when you need to ring or
