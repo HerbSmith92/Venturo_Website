@@ -62,6 +62,11 @@ export function SiteHeaderNav({ user }: { user: CurrentUser | null }) {
             {item.label}
           </a>
         ))}
+        {!user ? (
+          <a href="/subscribe" aria-current={current("/subscribe")}>
+            Subscriptions
+          </a>
+        ) : null}
       </nav>
 
       {user ? (
@@ -116,10 +121,16 @@ export function SiteHeaderNav({ user }: { user: CurrentUser | null }) {
                 </form>
               </>
             ) : (
-              <a href="/login" aria-current={pathname === "/login" ? "page" : undefined}>
-                <MenuIcon name="user" />
-                <span>Log In / Sign Up</span>
-              </a>
+              <>
+                <a href="/subscribe" aria-current={current("/subscribe")}>
+                  <MenuIcon name="card" />
+                  <span>Subscriptions</span>
+                </a>
+                <a href="/login" aria-current={pathname === "/login" ? "page" : undefined}>
+                  <MenuIcon name="user" />
+                  <span>Log In / Sign Up</span>
+                </a>
+              </>
             )}
           </nav>
         </div>
