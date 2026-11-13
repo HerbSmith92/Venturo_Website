@@ -23,6 +23,11 @@ export default async function SubscribePage({
         <p className="eyebrow">Subscribe</p>
         <h1>Membership on the website</h1>
         <p className="lede">R 19.99 a month for member prices. The app uses the same account.</p>
+        {!user ? (
+          <p className="subscribe-app-link">
+            Prefer the app? <a href="/subscribe">Subscribe on Apple or Google</a>.
+          </p>
+        ) : null}
         <StoreDownload />
       </section>
       {!user ? (

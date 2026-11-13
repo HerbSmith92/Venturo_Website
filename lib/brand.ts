@@ -22,6 +22,7 @@ export const ENTITLEMENT_ID =
   process.env.REVENUECAT_ENTITLEMENT_ID ?? "subscription_monthly_1";
 
 export const APP_STORE_URL = "https://apps.apple.com/za/app/venturo-app/id6755754211";
+export const PLAY_STORE_URL = "https://play.google.com/store/apps/details?id=com.app.venturo";
 
 const GENERIC_APP_STORE = "https://apps.apple.com";
 const GENERIC_PLAY_STORE = "https://play.google.com/store";
