@@ -6,6 +6,8 @@ Host door check-in (scan QR, guest counts, guest list) is in [`HOST_COMPANION_SC
 
 Member-app lock-screen tokens (APNs & FCM, `register_push_device`) are in [`PUSH_TOKENS.md`](PUSH_TOKENS.md).
 
+Member-app screen opens (`POST /api/analytics/screen`) are in [`ANALYTICS_SCREENS.md`](ANALYTICS_SCREENS.md).
+
 Per-event Menu (Dashboard through Settings) is in [`EVENT_HOST_MENU.md`](EVENT_HOST_MENU.md).
 
 Drop extra journeys, sitemaps, and wireframes here.

@@ -3,7 +3,14 @@ import {
   refreshRemoteAnalytics,
   type RemoteAnalytics,
 } from "@/lib/analytics-remote";
+import type { AnalyticsRange } from "@/lib/analytics-range";
 import { johannesburgDay, shiftDay, type DayPoint } from "@/lib/portal-home";
+import {
+  formatStay,
+  publicPageLabel,
+  screenLabel,
+  type AppItemKind,
+} from "@/lib/site-visit-path";
 import { createServiceClient } from "@/lib/supabase/admin";
 import { createClient } from "@/lib/supabase/server";
 
@@ -38,6 +45,37 @@ export type ControlRoomAnalytics = {
   iosError: string | null;
   androidError: string | null;
   remote: RemoteAnalytics;
+  pages: PageAnalyticsRow[];
+};
+
+export type PageAnalyticsRow = {
+  path: string;
+  label: string;
+  visits: number;
+  visitors: number;
+  stay: string;
+};
+
+export type ScreenAnalyticsRow = {
+  screen: string;
+  label: string;
+  opens: number;
+  visitors: number;
+};
+
+export type ItemAnalyticsRow = {
+  id: string;
+  name: string;
+  opens: number;
+  visitors: number;
+};
+
+export type AppAnalytics = {
+  screens: ScreenAnalyticsRow[];
+  listings: ItemAnalyticsRow[];
+  events: ItemAnalyticsRow[];
+  communities: ItemAnalyticsRow[];
+  guides: ItemAnalyticsRow[];
 };
 
 function emptySeries(days: number): DayPoint[] {
@@ -77,6 +115,7 @@ function blankAnalytics(): ControlRoomAnalytics {
     androidSource: "none",
     iosError: null,
     androidError: null,
+    pages: [],
     remote: {
       ios: { value: null, today: null, source: "none", error: null, fetchedAt: null },
       android: { value: null, today: null, source: "none", error: null, fetchedAt: null },
@@ -112,7 +151,7 @@ export function formatAnalyticsMoney(value: number | null, currency = "USD") {
   }
 }
 
-export async function loadControlRoomAnalytics(): Promise<ControlRoomAnalytics> {
+export async function loadControlRoomAnalytics(range: AnalyticsRange): Promise<ControlRoomAnalytics> {
   const blank = blankAnalytics();
   const supabase = createServiceClient() ?? (await createClient());
   if (!supabase) return blank;
@@ -141,6 +180,8 @@ export async function loadControlRoomAnalytics(): Promise<ControlRoomAnalytics> 
     downloadsRes,
     iosDaysRes,
     androidDaysRes,
+    pagesRes,
+    pageUniquesRes,
   ] = await Promise.all([
     supabase
       .from("site_visit_days")
@@ -185,6 +226,16 @@ export async function loadControlRoomAnalytics(): Promise<ControlRoomAnalytics> 
       .eq("platform", "android")
       .gte("day", shiftDay(today, -(DOWNLOAD_CHART_DAYS - 1)))
       .lte("day", today),
+    supabase
+      .from("site_visit_page_days")
+      .select("path, pageviews, visitors, dwell_seconds")
+      .gte("day", range.from)
+      .lte("day", range.to),
+    supabase
+      .from("site_visit_page_uniques")
+      .select("path, visitor_key")
+      .gte("day", range.from)
+      .lte("day", range.to),
   ]);
 
   const visitorMap = new Map<string, number>();
@@ -261,5 +312,188 @@ export async function loadControlRoomAnalytics(): Promise<ControlRoomAnalytics> 
     iosError: remote.ios.error,
     androidError: remote.android.error,
     remote,
+    pages: await summarisePages(
+      supabase as Awaited<ReturnType<typeof createClient>>,
+      pagesRes.data ?? [],
+      distinctCounts(pageUniquesRes.data ?? [], "path", "visitor_key"),
+    ),
   };
+}
+
+function distinctCounts(
+  rows: Record<string, unknown>[],
+  groupKey: string,
+  uniqueKey: string,
+) {
+  const sets = new Map<string, Set<string>>();
+  for (const row of rows) {
+    const group = String(row[groupKey] ?? "");
+    const unique = String(row[uniqueKey] ?? "");
+    if (!group || !unique) continue;
+    const set = sets.get(group) ?? new Set<string>();
+    set.add(unique);
+    sets.set(group, set);
+  }
+  const counts = new Map<string, number>();
+  for (const [group, set] of sets) counts.set(group, set.size);
+  return counts;
+}
+
+async function summarisePages(
+  supabase: Awaited<ReturnType<typeof createClient>>,
+  rows: { path: string; pageviews: number; visitors: number; dwell_seconds: number }[],
+  uniques: Map<string, number>,
+): Promise<PageAnalyticsRow[]> {
+  const byPath = new Map<string, { visits: number; dwell: number }>();
+  for (const row of rows) {
+    const path = String(row.path);
+    const current = byPath.get(path) ?? { visits: 0, dwell: 0 };
+    current.visits += Number(row.pageviews) || 0;
+    current.dwell += Number(row.dwell_seconds) || 0;
+    byPath.set(path, current);
+  }
+  const titles = await pageTitles(supabase, [...byPath.keys()]);
+  return [...byPath.entries()]
+    .map(([path, stats]) => ({
+      path,
+      label: publicPageLabel(path, titles),
+      visits: stats.visits,
+      visitors: uniques.get(path) ?? 0,
+      stay: formatStay(stats.dwell, stats.visits),
+    }))
+    .sort((a, b) => b.visits - a.visits || a.label.localeCompare(b.label, "en-ZA"));
+}
+
+async function pageTitles(supabase: Awaited<ReturnType<typeof createClient>>, paths: string[]) {
+  const titles = new Map<string, string>();
+  if (!supabase) return titles;
+  const eventSlugs = paths.map((path) => path.match(/^\/events\/([^/]+)$/)?.[1]).filter(Boolean) as string[];
+  const listingSlugs = paths.map((path) => path.match(/^\/directory\/([^/]+)$/)?.[1]).filter(Boolean) as string[];
+  const guideSlugs = paths
+    .map((path) => path.match(/^\/(?:event-guides|guides)\/([^/]+)$/)?.[1])
+    .filter(Boolean) as string[];
+  const communitySlugs = paths
+    .map((path) => path.match(/^\/communities\/([^/]+)$/)?.[1])
+    .filter(Boolean) as string[];
+  const [events, listings, guides, communities] = await Promise.all([
+    eventSlugs.length
+      ? supabase.from("events").select("slug, title").in("slug", eventSlugs)
+      : { data: [] as { slug: string; title: string }[] },
+    listingSlugs.length
+      ? supabase.from("directory_listings").select("slug, name").in("slug", listingSlugs)
+      : { data: [] as { slug: string; name: string }[] },
+    guideSlugs.length
+      ? supabase.from("curated_guides").select("slug, title").in("slug", guideSlugs)
+      : { data: [] as { slug: string; title: string }[] },
+    communitySlugs.length
+      ? supabase.from("communities").select("slug, title").in("slug", communitySlugs)
+      : { data: [] as { slug: string; title: string }[] },
+  ]);
+  for (const row of events.data ?? []) titles.set(`event:${row.slug}`, row.title);
+  for (const row of listings.data ?? []) titles.set(`listing:${row.slug}`, row.name);
+  for (const row of guides.data ?? []) titles.set(`guide:${row.slug}`, row.title);
+  for (const row of communities.data ?? []) titles.set(`community:${row.slug}`, row.title);
+  return titles;
+}
+
+export async function loadAppAnalytics(range: AnalyticsRange): Promise<AppAnalytics> {
+  const empty: AppAnalytics = { screens: [], listings: [], events: [], communities: [], guides: [] };
+  const supabase = createServiceClient() ?? (await createClient());
+  if (!supabase) return empty;
+
+  const [screenDays, screenUniques, itemDays, itemUniques] = await Promise.all([
+    supabase.from("app_screen_days").select("screen, opens").gte("day", range.from).lte("day", range.to),
+    supabase.from("app_screen_uniques").select("screen, user_id").gte("day", range.from).lte("day", range.to),
+    supabase.from("app_item_days").select("kind, item_id, opens").gte("day", range.from).lte("day", range.to),
+    supabase.from("app_item_uniques").select("kind, item_id, user_id").gte("day", range.from).lte("day", range.to),
+  ]);
+
+  const screenUnique = distinctCounts(screenUniques.data ?? [], "screen", "user_id");
+  const byScreen = new Map<string, number>();
+  for (const row of screenDays.data ?? []) {
+    const screen = String(row.screen);
+    byScreen.set(screen, (byScreen.get(screen) ?? 0) + (Number(row.opens) || 0));
+  }
+  const screens = [...byScreen.entries()]
+    .map(([screen, opens]) => ({
+      screen,
+      label: screenLabel(screen),
+      opens,
+      visitors: screenUnique.get(screen) ?? 0,
+    }))
+    .sort((a, b) => b.opens - a.opens || a.label.localeCompare(b.label, "en-ZA"));
+
+  const itemUnique = new Map<string, Set<string>>();
+  for (const row of itemUniques.data ?? []) {
+    const key = `${row.kind}:${row.item_id}`;
+    const set = itemUnique.get(key) ?? new Set<string>();
+    set.add(String(row.user_id));
+    itemUnique.set(key, set);
+  }
+  const byItem = new Map<string, { kind: AppItemKind; id: string; opens: number }>();
+  for (const row of itemDays.data ?? []) {
+    const kind = String(row.kind) as AppItemKind;
+    const id = String(row.item_id);
+    const key = `${kind}:${id}`;
+    const current = byItem.get(key) ?? { kind, id, opens: 0 };
+    current.opens += Number(row.opens) || 0;
+    byItem.set(key, current);
+  }
+
+  const ids = {
+    listing: [] as string[],
+    event: [] as string[],
+    community: [] as string[],
+    guide: [] as string[],
+  };
+  for (const item of byItem.values()) {
+    if (item.kind in ids) ids[item.kind].push(item.id);
+  }
+
+  const names = await itemNames(supabase as Awaited<ReturnType<typeof createClient>>, ids);
+  const toRows = (kind: AppItemKind): ItemAnalyticsRow[] =>
+    [...byItem.values()]
+      .filter((item) => item.kind === kind)
+      .map((item) => ({
+        id: item.id,
+        name: names.get(`${kind}:${item.id}`) ?? item.id,
+        opens: item.opens,
+        visitors: itemUnique.get(`${kind}:${item.id}`)?.size ?? 0,
+      }))
+      .sort((a, b) => b.opens - a.opens || a.name.localeCompare(b.name, "en-ZA"));
+
+  return {
+    screens,
+    listings: toRows("listing"),
+    events: toRows("event"),
+    communities: toRows("community"),
+    guides: toRows("guide"),
+  };
+}
+
+async function itemNames(
+  supabase: Awaited<ReturnType<typeof createClient>>,
+  ids: { listing: string[]; event: string[]; community: string[]; guide: string[] },
+) {
+  const names = new Map<string, string>();
+  if (!supabase) return names;
+  const [listings, events, communities, guides] = await Promise.all([
+    ids.listing.length
+      ? supabase.from("directory_listings").select("id, name").in("id", ids.listing)
+      : { data: [] as { id: string; name: string }[] },
+    ids.event.length
+      ? supabase.from("events").select("id, title").in("id", ids.event)
+      : { data: [] as { id: string; title: string }[] },
+    ids.community.length
+      ? supabase.from("communities").select("id, title").in("id", ids.community)
+      : { data: [] as { id: string; title: string }[] },
+    ids.guide.length
+      ? supabase.from("curated_guides").select("id, title").in("id", ids.guide)
+      : { data: [] as { id: string; title: string }[] },
+  ]);
+  for (const row of listings.data ?? []) names.set(`listing:${row.id}`, row.name);
+  for (const row of events.data ?? []) names.set(`event:${row.id}`, row.title);
+  for (const row of communities.data ?? []) names.set(`community:${row.id}`, row.title);
+  for (const row of guides.data ?? []) names.set(`guide:${row.id}`, row.title);
+  return names;
 }

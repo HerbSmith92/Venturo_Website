@@ -210,7 +210,16 @@ function menu(admin: boolean, name: string): Group[] {
       id: "settings",
       label: "Settings",
       headings: [
-        { id: "analytics", label: "Analytics", href: "/admin/analytics", leaves: [] },
+        {
+          id: "analytics",
+          label: "Analytics",
+          href: "/admin/analytics/overview",
+          leaves: [
+            { id: "analytics-overview", label: "Overview", href: "/admin/analytics/overview" },
+            { id: "analytics-website", label: "Website", href: "/admin/analytics" },
+            { id: "analytics-application", label: "Application", href: "/admin/analytics/application" },
+          ],
+        },
         { id: "fees", label: "Ticket fees", href: "/admin/fees", leaves: [] },
         { id: "payouts", label: "Host payouts", href: "/admin/payouts", leaves: [] },
         { id: "members", label: "Members", href: "/admin/members", leaves: [] },

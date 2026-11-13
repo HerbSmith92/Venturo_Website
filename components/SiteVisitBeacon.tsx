@@ -3,8 +3,10 @@
 import { usePathname } from "next/navigation";
 import { useEffect } from "react";
 
-function ping(kind: "view" | "pulse") {
-  const body = JSON.stringify({ kind });
+const PULSE_MS = 45_000;
+
+function ping(kind: "view" | "pulse", path: string, seconds?: number) {
+  const body = JSON.stringify({ kind, path, seconds });
   const blob = new Blob([body], { type: "application/json" });
   if (navigator.sendBeacon) {
     navigator.sendBeacon("/api/analytics/visit", blob);
@@ -30,11 +32,11 @@ export function SiteVisitBeacon() {
     } catch {
       counted = false;
     }
-    ping(counted ? "pulse" : "view");
+    ping(counted ? "pulse" : "view", path, counted ? 45 : undefined);
 
     const timer = window.setInterval(() => {
-      if (document.visibilityState === "visible") ping("pulse");
-    }, 45_000);
+      if (document.visibilityState === "visible") ping("pulse", path, 45);
+    }, PULSE_MS);
     return () => window.clearInterval(timer);
   }, [path]);
 
