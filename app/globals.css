@@ -481,6 +481,228 @@ select {
   flex-wrap: wrap;
 }
 
+.store-badges {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px 12px;
+}
+
+.store-badges a {
+  display: block;
+  line-height: 0;
+}
+
+.store-badges img {
+  height: 40px;
+  width: auto;
+}
+
+.store-badges .store-badge-google {
+  height: 60px;
+}
+
+.subscribe-app-link {
+  margin: -8px 0 24px;
+  max-width: 46ch;
+}
+
+.subscribe-app-link a {
+  color: var(--canary);
+}
+
+.subscribe-hero {
+  padding: 12px 0 56px;
+}
+
+.subscribe-hero-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1.05fr) minmax(280px, 0.95fr);
+  gap: 28px 48px;
+  align-items: center;
+}
+
+.subscribe-copy h1 {
+  max-width: 11ch;
+  font-size: clamp(40px, 5.2vw, 64px);
+}
+
+.subscribe-copy h1 span {
+  display: block;
+  color: var(--canary);
+}
+
+.subscribe-hero-lead {
+  margin: 16px 0 0;
+  max-width: 36ch;
+  font-size: 16px;
+  color: color-mix(in srgb, var(--snow) 84%, transparent);
+}
+
+.subscribe-price {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  margin: 22px 0 0;
+}
+
+.subscribe-price strong {
+  font-family: "Social Gothic Rough", "Arial Black", sans-serif;
+  font-size: clamp(32px, 4vw, 44px);
+  font-weight: 400;
+  letter-spacing: 0.02em;
+  line-height: 1;
+}
+
+.subscribe-price span,
+.subscribe-in-app,
+.subscribe-note {
+  color: color-mix(in srgb, var(--snow) 76%, transparent);
+}
+
+.subscribe-in-app {
+  margin: 10px 0 14px;
+}
+
+.subscribe-note {
+  margin: 12px 0 0;
+  font-size: 13px;
+}
+
+.subscribe-stage {
+  position: relative;
+  display: grid;
+  align-items: end;
+  justify-items: start;
+  min-height: 440px;
+  padding: 18px 18px 0;
+  border-radius: 24px;
+  background:
+    radial-gradient(circle at 82% 18%, var(--canary) 0 46px, transparent 48px),
+    linear-gradient(180deg, color-mix(in srgb, var(--snow) 88%, var(--jade)) 0%, color-mix(in srgb, var(--jade) 48%, var(--snow)) 100%);
+  overflow: hidden;
+}
+
+.subscribe-stage img {
+  width: min(78%, 380px);
+  height: auto;
+  margin: 36px 0 0;
+}
+
+.subscribe-sticker {
+  position: absolute;
+  top: 20px;
+  right: 16px;
+  z-index: 1;
+  max-width: 148px;
+  margin: 0;
+  padding: 12px 14px;
+  border-radius: 16px;
+  background: var(--snow);
+  color: var(--night);
+  font-family: "Social Gothic Rough", "Arial Black", sans-serif;
+  font-size: 16px;
+  font-weight: 400;
+  line-height: 1.15;
+  letter-spacing: 0.02em;
+  transform: rotate(6deg);
+}
+
+.subscribe-steps {
+  background: var(--snow);
+  color: var(--night);
+  padding: 56px 0 72px;
+}
+
+.subscribe-steps h2 {
+  max-width: 16ch;
+  margin-bottom: 28px;
+  font-size: clamp(32px, 4vw, 48px);
+}
+
+.subscribe-steps ol {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 22px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.subscribe-steps li {
+  display: grid;
+  grid-template-columns: 44px minmax(0, 1fr);
+  gap: 12px;
+  align-items: start;
+}
+
+.subscribe-steps li > span,
+.subscribe-same > span {
+  display: grid;
+  place-items: center;
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
+  background: var(--canary);
+  color: var(--night);
+  font-family: "Social Gothic Rough", "Arial Black", sans-serif;
+  font-size: 20px;
+  font-weight: 400;
+}
+
+.subscribe-steps h3 {
+  margin-bottom: 4px;
+  font-size: 18px;
+}
+
+.subscribe-steps li p,
+.subscribe-same p {
+  font-size: 14px;
+  color: color-mix(in srgb, var(--night) 68%, transparent);
+}
+
+.subscribe-same {
+  display: grid;
+  grid-template-columns: 44px minmax(0, 1fr);
+  gap: 14px;
+  align-items: center;
+  margin-top: 32px;
+  padding: 16px 18px;
+  border-radius: 18px;
+  background: color-mix(in srgb, var(--night) 6%, var(--snow));
+}
+
+.subscribe-same > span {
+  border-radius: 12px;
+}
+
+@media (max-width: 800px) {
+  .subscribe-hero-grid,
+  .subscribe-steps ol {
+    grid-template-columns: 1fr;
+  }
+
+  .subscribe-stage {
+    min-height: 0;
+    justify-items: center;
+  }
+
+  .subscribe-stage img {
+    width: min(100%, 340px);
+    margin: 8px 0 0;
+  }
+
+  .subscribe-sticker {
+    position: static;
+    justify-self: end;
+    margin-bottom: 4px;
+  }
+
+  .subscribe-copy h1 {
+    max-width: 14ch;
+  }
+}
+
 /* Landing: full-bleed Discover hero, then the experience directory. */
 body:has(.landing) .chrome {
   position: fixed;
