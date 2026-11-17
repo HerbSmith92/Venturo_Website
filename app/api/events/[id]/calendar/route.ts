@@ -12,9 +12,9 @@ function utcStamp(value: string) {
 
 export async function GET(
   request: Request,
-  { params }: { params: Promise<{ slug: string }> },
+  { params }: { params: Promise<{ id: string }> },
 ) {
-  const { slug } = await params;
+  const { id: slug } = await params;
   const event = await getEventBySlug(slug);
   if (!event || (event.status !== "approved" && event.status !== "cancelled")) {
     return NextResponse.json({ error: "Event not found." }, { status: 404 });
