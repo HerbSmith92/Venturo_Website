@@ -72,13 +72,25 @@ export default async function AdminEventDetailPage({
         ))}
       </ul>
 
+      {event.bookingMethod === "external" ? (
+        <p className="notice" style={{ marginTop: 24 }}>
+          External booking
+          {event.externalProviderName ? ` · ${event.externalProviderName}` : ""}.
+          {event.organiserDisplayName ? ` Organised by ${event.organiserDisplayName}.` : ""}
+          Booking happens off Venturo.
+        </p>
+      ) : null}
+
       <EventOwner eventId={event.id} host={host} />
 
       <div style={{ marginTop: 32 }}>
         <EventActions eventId={event.id} status={event.status} />
       </div>
 
-      <p style={{ marginTop: 24 }}>
+      <p className="hero-actions" style={{ marginTop: 24 }}>
+        <a href={`/admin/events/${event.id}/edit`} className="btn btn-primary">
+          Edit event
+        </a>
         <a href={`/events/${event.slug}`} className="btn btn-secondary">
           Open Public Page
         </a>

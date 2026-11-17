@@ -72,7 +72,17 @@ export default async function AdminEventsPage({
     <section>
       <p className="eyebrow">Control Room</p>
       <h1>Events</h1>
-      <p className="muted">Approve member-hosted events before they go public.</p>
+      <p className="muted">
+        Create Venturo or external third-party events, then approve them before they go public.
+      </p>
+      <p className="hero-actions" style={{ marginTop: 16 }}>
+        <a className="btn btn-primary" href="/admin/events/new">
+          Add event
+        </a>
+        <a className="btn btn-secondary" href="/admin/events/new?kind=external">
+          Add external event
+        </a>
+      </p>
       {params.error ? <p className="error">{params.error}</p> : null}
 
       {events.length === 0 ? (
