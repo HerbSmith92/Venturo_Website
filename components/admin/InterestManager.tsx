@@ -1,22 +1,32 @@
 "use client";
 
 import { useState } from "react";
+import {
+  MediaUploadField,
+  StatusBadge,
+  UnsavedGuard,
+} from "@/components/admin/manage";
 import type { CatalogAdmin, CatalogInterest } from "@/lib/catalog-admin";
+import { scheduleStatus } from "@/lib/control-room-schedule";
 
-const FALLBACK = "/brand/vee/venturo-activity-digital.png";
+type Draft = CatalogInterest & { dirty?: boolean };
 
 export function InterestManager({ catalog }: { catalog: CatalogAdmin }) {
-  const [items, setItems] = useState(catalog.interests);
+  const [items, setItems] = useState<Draft[]>(catalog.interests);
   const [busy, setBusy] = useState<string | null>(null);
   const [message, setMessage] = useState<string | null>(null);
   const [newTitle, setNewTitle] = useState("");
   const [newKind, setNewKind] = useState(catalog.kinds[0]?.id ?? "");
 
-  function patch(id: string, change: Partial<CatalogInterest>) {
-    setItems((current) => current.map((item) => (item.id === id ? { ...item, ...change } : item)));
+  const dirty = items.some((item) => item.dirty);
+
+  function patch(id: string, change: Partial<Draft>) {
+    setItems((current) =>
+      current.map((item) => (item.id === id ? { ...item, ...change, dirty: true } : item)),
+    );
   }
 
-  async function save(item: CatalogInterest) {
+  async function save(item: Draft) {
     setBusy(item.id);
     setMessage(null);
     const response = await fetch("/api/admin/catalog", {
@@ -35,10 +45,17 @@ export function InterestManager({ catalog }: { catalog: CatalogAdmin }) {
     });
     const body = (await response.json()) as { error?: string };
     setBusy(null);
-    setMessage(response.ok ? "Interest saved." : body.error || "Could not save interest.");
+    if (response.ok) {
+      setItems((current) =>
+        current.map((row) => (row.id === item.id ? { ...row, dirty: false } : row)),
+      );
+      setMessage("Interest saved.");
+    } else {
+      setMessage(body.error || "Could not save interest.");
+    }
   }
 
-  async function upload(item: CatalogInterest, file: File) {
+  async function upload(item: Draft, file: File) {
     setBusy(item.id);
     setMessage(null);
     const form = new FormData();
@@ -47,8 +64,12 @@ export function InterestManager({ catalog }: { catalog: CatalogAdmin }) {
     const response = await fetch("/api/admin/interests/icon", { method: "POST", body: form });
     const body = (await response.json()) as { error?: string; url?: string };
     setBusy(null);
-    if (response.ok && body.url) patch(item.id, { icon_path: body.url });
-    setMessage(response.ok ? "Icon replaced." : body.error || "Could not upload icon.");
+    if (response.ok && body.url) {
+      patch(item.id, { icon_path: body.url, dirty: false });
+      setMessage("Icon replaced.");
+    } else {
+      setMessage(body.error || "Could not upload icon.");
+    }
   }
 
   async function createInterest() {
@@ -73,6 +94,7 @@ export function InterestManager({ catalog }: { catalog: CatalogAdmin }) {
 
   return (
     <section className="studio-card" style={{ marginBottom: 32 }}>
+      <UnsavedGuard dirty={dirty} />
       <p className="eyebrow">Catalogue management</p>
       <h2>Names, descriptions &amp; icons</h2>
       <p className="muted">
@@ -87,82 +109,100 @@ export function InterestManager({ catalog }: { catalog: CatalogAdmin }) {
         <label className="field">
           <span>Category</span>
           <select value={newKind} onChange={(event) => setNewKind(event.target.value)}>
-            {catalog.kinds.map((kind) => <option key={kind.id} value={kind.id}>{kind.title}</option>)}
+            {catalog.kinds.map((kind) => (
+              <option key={kind.id} value={kind.id}>
+                {kind.title}
+              </option>
+            ))}
           </select>
         </label>
         <button className="btn btn-primary" disabled={busy === "new"} onClick={() => void createInterest()}>
           Add interest
         </button>
       </div>
-      {message ? <p className="notice" role="status">{message}</p> : null}
+      {message ? (
+        <p className="notice" role="status">
+          {message}
+        </p>
+      ) : null}
       <div className="grid">
-        {items.map((item) => (
-          <article className="card" key={item.id}>
-            <div className="card-body">
-              <div className="interest-icon-previews">
-                <span style={{ background: "#EBEBF3", padding: 12 }}>
-                  <img src={item.icon_path || FALLBACK} alt="" width={64} height={64} />
-                </span>
-                <span style={{ background: "#2A2D35", padding: 12 }}>
-                  <img src={item.icon_path || FALLBACK} alt="" width={64} height={64} />
-                </span>
-              </div>
-              <label className="field">
-                <span>Name</span>
-                <input value={item.title} onChange={(event) => patch(item.id, { title: event.target.value })} />
-              </label>
-              <label className="field">
-                <span>Description</span>
-                <textarea
-                  rows={3}
-                  value={item.description ?? ""}
-                  onChange={(event) => patch(item.id, { description: event.target.value })}
-                />
-              </label>
-              <label className="field">
-                <span>Category</span>
-                <select
-                  value={item.activity_kind_id}
-                  onChange={(event) => patch(item.id, { activity_kind_id: event.target.value })}
-                >
-                  {catalog.kinds.map((kind) => <option key={kind.id} value={kind.id}>{kind.title}</option>)}
-                </select>
-              </label>
-              <label className="field">
-                <span>Display order</span>
-                <input
-                  type="number"
-                  min={0}
-                  value={item.sort_order}
-                  onChange={(event) => patch(item.id, { sort_order: Number(event.target.value) || 0 })}
-                />
-              </label>
-              <label className="check-row">
-                <input
-                  type="checkbox"
-                  checked={item.is_active}
-                  onChange={(event) => patch(item.id, { is_active: event.target.checked })}
-                />
-                <span>Active</span>
-              </label>
-              <label className="btn btn-secondary">
-                Replace icon
-                <input
-                  hidden
-                  type="file"
-                  accept="image/png,image/jpeg,image/webp"
-                  onChange={(event) => {
-                    const file = event.target.files?.[0];
-                    if (file) void upload(item, file);
+        {items.map((item) => {
+          const status = scheduleStatus({
+            isActive: item.is_active,
+            startsAt: null,
+            endsAt: null,
+          });
+          return (
+            <article className="card" key={item.id}>
+              <div className="card-body">
+                <div className="cr-manage-option-head">
+                  <StatusBadge status={status} />
+                  {item.dirty ? <span className="muted">Unsaved</span> : null}
+                </div>
+                <MediaUploadField
+                  label="Icon"
+                  url={item.icon_path}
+                  busy={busy === item.id}
+                  guidance={{
+                    recommended: "Square 512 × 512 PNG or WebP.",
+                    transparentOk: true,
+                    maxMb: 1,
                   }}
+                  onFile={(file) => void upload(item, file)}
                 />
-              </label>
-              <button className="btn btn-primary" disabled={busy === item.id} onClick={() => void save(item)}>
-                {busy === item.id ? "Saving…" : "Save interest"}
-              </button>
-            </div>
-          </article>
-        ))}
+                <label className="field">
+                  <span>Name</span>
+                  <input value={item.title} onChange={(event) => patch(item.id, { title: event.target.value })} />
+                </label>
+                <label className="field">
+                  <span>Description</span>
+                  <textarea
+                    rows={3}
+                    value={item.description ?? ""}
+                    onChange={(event) => patch(item.id, { description: event.target.value })}
+                  />
+                </label>
+                <label className="field">
+                  <span>Category</span>
+                  <select
+                    value={item.activity_kind_id}
+                    onChange={(event) => patch(item.id, { activity_kind_id: event.target.value })}
+                  >
+                    {catalog.kinds.map((kind) => (
+                      <option key={kind.id} value={kind.id}>
+                        {kind.title}
+                      </option>
+                    ))}
+                  </select>
+                </label>
+                <label className="field">
+                  <span>Display order</span>
+                  <input
+                    type="number"
+                    min={0}
+                    value={item.sort_order}
+                    onChange={(event) => patch(item.id, { sort_order: Number(event.target.value) || 0 })}
+                  />
+                </label>
+                <label className="check-row">
+                  <input
+                    type="checkbox"
+                    checked={item.is_active}
+                    onChange={(event) => patch(item.id, { is_active: event.target.checked })}
+                  />
+                  <span>Active</span>
+                </label>
+                <button
+                  className="btn btn-primary"
+                  disabled={busy === item.id || !item.dirty}
+                  onClick={() => void save(item)}
+                >
+                  {busy === item.id ? "Saving…" : "Save interest"}
+                </button>
+              </div>
+            </article>
+          );
+        })}
       </div>
     </section>
   );

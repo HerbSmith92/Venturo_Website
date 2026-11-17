@@ -74,6 +74,26 @@ feature.
 - A deactivated interest may remain in historical content/user selections but is
   not offered for new selection.
 
+### Onboarding catalogues & app home
+
+- Personas: `GET /api/catalog/personas`
+- Adventure levels: `GET /api/catalog/adventure-levels` (preserve `rank`)
+- Bucket list: `GET /api/catalog/bucket-list`
+- App home: `GET /api/app/home?screen=discover|events|community`
+- Older clients may ignore unknown catalogue/home fields and keep using local
+  fallbacks. Newer clients should treat empty rows as hidden and respect
+  schedule windows in `Africa/Johannesburg`.
+
+### Wallet
+
+- Token artwork: `GET /api/wallet/token` (`imageUrl` may be null)
+- Achievements: `GET /api/wallet/achievements`
+- Achievement progress uses scanned ticket attendance
+  (`event_tickets.scanned_at`). RSVP/booking alone does not qualify.
+- Unsupported until signals exist: activity completion, interest-linked
+  completion, bucket-list completion, distinct business visits.
+- Publishing token artwork must not alter balances or history.
+
 ### Notifications & deep links
 
 - Read and replace preferences through

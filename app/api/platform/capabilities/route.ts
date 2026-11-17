@@ -25,8 +25,23 @@ export async function GET() {
       },
       endpoints: {
         interests: "/api/catalog/interests",
+        personas: "/api/catalog/personas",
+        adventureLevels: "/api/catalog/adventure-levels",
+        bucketList: "/api/catalog/bucket-list",
+        appHome: "/api/app/home?screen={discover|events|community}",
+        walletToken: "/api/wallet/token",
+        achievements: "/api/wallet/achievements",
         notificationPreferences: "/api/account/notification-preferences",
         analytics: "/api/analytics/screen",
+      },
+      catalogs: {
+        interests: true,
+        personas: true,
+        adventureLevels: true,
+        bucketList: true,
+        appHomeConfigured: true,
+        walletTokenConfigured: true,
+        achievementsConfigured: true,
       },
     },
     {

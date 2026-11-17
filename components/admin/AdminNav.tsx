@@ -39,11 +39,21 @@ function planned(group: string, screen: string) {
   return `/admin/planned?${params.toString()}`;
 }
 
-function rowLeaves(group: string): Leaf[] {
+function appViewPath(screen: "discover" | "events" | "community", leaf: string) {
+  const slug = leaf
+    .toLowerCase()
+    .replace(/^\+\s*/, "")
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-|-$/g, "");
+  return `/admin/application/${screen}/${slug}`;
+}
+
+function rowLeaves(group: "Discover" | "Events" | "Community"): Leaf[] {
+  const screen = group.toLowerCase() as "discover" | "events" | "community";
   return ROW_ITEMS.map((label) => ({
     id: `${group}-${label}`,
     label,
-    href: planned(group, label),
+    href: appViewPath(screen, label),
   }));
 }
 
@@ -164,28 +174,28 @@ function menu(admin: boolean, name: string): Group[] {
         {
           id: "app-discover",
           label: "Discover",
-          href: planned("Application View", "Discover"),
+          href: "/admin/application/discover",
           leaves: rowLeaves("Discover"),
         },
         {
           id: "app-events",
           label: "Events",
-          href: planned("Application View", "Events"),
+          href: "/admin/application/events",
           leaves: rowLeaves("Events"),
         },
         {
           id: "app-community",
           label: "Community",
-          href: planned("Application View", "Community"),
+          href: "/admin/application/community",
           leaves: rowLeaves("Community"),
         },
         {
           id: "app-wallet",
           label: "Wallet",
-          href: planned("Application View", "Wallet"),
+          href: "/admin/wallet",
           leaves: [
-            { id: "token", label: "Token Image", href: planned("Wallet", "Token Image") },
-            { id: "achievements", label: "Achievements", href: planned("Wallet", "Achievements") },
+            { id: "token", label: "Token Image", href: "/admin/wallet/token" },
+            { id: "achievements", label: "Achievements", href: "/admin/wallet/achievements" },
           ],
         },
       ],
@@ -200,10 +210,10 @@ function menu(admin: boolean, name: string): Group[] {
       id: "onboarding",
       label: "Onboarding",
       headings: [
-        { id: "interests", label: "Interests", href: planned("Onboarding", "Interests"), leaves: [] },
-        { id: "how-you-go-out", label: "How You Go Out", href: planned("Onboarding", "How You Go Out"), leaves: [] },
-        { id: "adventure-level", label: "Adventure Level", href: planned("Onboarding", "Adventure Level"), leaves: [] },
-        { id: "bucket-list", label: "Bucket List", href: planned("Onboarding", "Bucket List"), leaves: [] },
+        { id: "interests", label: "Interests", href: "/admin/onboarding/interests", leaves: [] },
+        { id: "how-you-go-out", label: "How You Go Out", href: "/admin/onboarding/how-you-go-out", leaves: [] },
+        { id: "adventure-level", label: "Adventure Level", href: "/admin/onboarding/adventure-level", leaves: [] },
+        { id: "bucket-list", label: "Bucket List", href: "/admin/onboarding/bucket-list", leaves: [] },
       ],
     },
     {
@@ -263,11 +273,21 @@ function headingMatches(heading: Heading, path: string, here: string) {
   if (heading.id === "payouts") return path.startsWith("/admin/payouts");
   if (heading.id === "members") return path.startsWith("/admin/members");
   if (heading.id === "add-users") return path.startsWith("/admin/staff");
+  if (heading.id === "app-discover") return path.startsWith("/admin/application/discover");
+  if (heading.id === "app-events") return path.startsWith("/admin/application/events");
+  if (heading.id === "app-community") return path.startsWith("/admin/application/community");
+  if (heading.id === "app-wallet") return path.startsWith("/admin/wallet");
+  if (heading.id === "interests") return path.startsWith("/admin/onboarding/interests") || path === "/admin/interests";
+  if (heading.id === "how-you-go-out") return path.startsWith("/admin/onboarding/how-you-go-out");
+  if (heading.id === "adventure-level") return path.startsWith("/admin/onboarding/adventure-level");
+  if (heading.id === "bucket-list") return path.startsWith("/admin/onboarding/bucket-list");
   if (path === "/admin/planned") {
     if (heading.href === here) return true;
     return heading.leaves.some((leaf) => leaf.href === here);
   }
-  return false;
+  if (heading.href && path === heading.href) return true;
+  if (heading.href && path.startsWith(`${heading.href}/`)) return true;
+  return heading.leaves.some((leaf) => leaf.href === path || leaf.href === here);
 }
 
 export function AdminNav({
