@@ -23,6 +23,8 @@ export type CatalogInterest = {
   kind_title: string;
   sort_order: number;
   is_active: boolean;
+  description: string | null;
+  icon_path: string | null;
 };
 
 export type CatalogAdmin = {
@@ -41,7 +43,7 @@ export async function loadCatalogAdmin(): Promise<CatalogAdmin> {
     service.from("personas").select("id, key, title, subtitle, sort_order, is_active").order("sort_order"),
     service
       .from("interests")
-      .select("id, key, title, activity_kind_id, sort_order, is_active, activity_kinds ( title )")
+      .select("id, key, title, activity_kind_id, sort_order, is_active, description, icon_path, activity_kinds ( title )")
       .order("sort_order")
       .order("title"),
     service.from("activity_kinds").select("id, key, title").eq("is_active", true).order("sort_order"),
@@ -54,6 +56,8 @@ export async function loadCatalogAdmin(): Promise<CatalogAdmin> {
     activity_kind_id: string;
     sort_order: number;
     is_active: boolean;
+    description: string | null;
+    icon_path: string | null;
     activity_kinds: { title: string } | { title: string }[] | null;
   };
 
@@ -70,6 +74,8 @@ export async function loadCatalogAdmin(): Promise<CatalogAdmin> {
         kind_title: kind?.title ?? "Uncategorised",
         sort_order: row.sort_order,
         is_active: row.is_active,
+        description: row.description,
+        icon_path: row.icon_path,
       };
     }),
   };

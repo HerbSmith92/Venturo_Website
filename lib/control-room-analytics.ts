@@ -13,6 +13,7 @@ import {
 } from "@/lib/site-visit-path";
 import { createServiceClient } from "@/lib/supabase/admin";
 import { createClient } from "@/lib/supabase/server";
+import { platformFeatures } from "@/lib/platform-features";
 
 const LIVE_WINDOW_MS = 5 * 60 * 1000;
 const CHART_DAYS = 7;
@@ -46,6 +47,17 @@ export type ControlRoomAnalytics = {
   androidError: string | null;
   remote: RemoteAnalytics;
   pages: PageAnalyticsRow[];
+  sessions: number;
+  pagesPerSession: number;
+  activeSeconds: number;
+  clicks: number;
+  rsvps: number;
+  purchases: number;
+  locations: { country: string; region: string; city: string; visitors: number }[];
+  sources: { source: string; medium: string; campaign: string; visitors: number }[];
+  trafficClasses: { traffic_class: string; is_staff: boolean; sessions: number }[];
+  classificationReasons: { reason: string; sessions: number }[];
+  usingDetailedAnalytics: boolean;
 };
 
 export type PageAnalyticsRow = {
@@ -87,6 +99,16 @@ function emptySeries(days: number): DayPoint[] {
   return points;
 }
 
+function seriesForRange(from: string, to: string): DayPoint[] {
+  const points: DayPoint[] = [];
+  let day = from;
+  while (day <= to && points.length < 366) {
+    points.push({ day, value: 0 });
+    day = shiftDay(day, 1);
+  }
+  return points;
+}
+
 function blankAnalytics(): ControlRoomAnalytics {
   const series = emptySeries(CHART_DAYS);
   return {
@@ -116,6 +138,17 @@ function blankAnalytics(): ControlRoomAnalytics {
     iosError: null,
     androidError: null,
     pages: [],
+    sessions: 0,
+    pagesPerSession: 0,
+    activeSeconds: 0,
+    clicks: 0,
+    rsvps: 0,
+    purchases: 0,
+    locations: [],
+    sources: [],
+    trafficClasses: [],
+    classificationReasons: [],
+    usingDetailedAnalytics: false,
     remote: {
       ios: { value: null, today: null, source: "none", error: null, fetchedAt: null },
       android: { value: null, today: null, source: "none", error: null, fetchedAt: null },
@@ -151,7 +184,28 @@ export function formatAnalyticsMoney(value: number | null, currency = "USD") {
   }
 }
 
-export async function loadControlRoomAnalytics(range: AnalyticsRange): Promise<ControlRoomAnalytics> {
+type WebsiteSummary = {
+  totals?: {
+    pageviews?: number;
+    visitors?: number;
+    sessions?: number;
+    active_seconds?: number;
+    clicks?: number;
+    rsvps?: number;
+    purchases?: number;
+  };
+  daily?: { day: string; pageviews: number; visitors: number }[];
+  pages?: { path: string; pageviews: number; visitors: number; active_seconds: number }[];
+  locations?: { country: string; region: string; city: string; visitors: number }[];
+  sources?: { source: string; medium: string; campaign: string; visitors: number }[];
+  classes?: { traffic_class: string; is_staff: boolean; sessions: number }[];
+  reasons?: { reason: string; sessions: number }[];
+};
+
+export async function loadControlRoomAnalytics(
+  range: AnalyticsRange,
+  includeExcluded = false,
+): Promise<ControlRoomAnalytics> {
   const blank = blankAnalytics();
   const supabase = createServiceClient() ?? (await createClient());
   if (!supabase) return blank;
@@ -161,6 +215,18 @@ export async function loadControlRoomAnalytics(range: AnalyticsRange): Promise<C
   const start7 = shiftDay(today, -6);
   const liveSince = new Date(Date.now() - LIVE_WINDOW_MS).toISOString();
   const weekStartIso = `${start7}T00:00:00+02:00`;
+  let liveQuery = platformFeatures.enhancedAnalytics
+    ? supabase
+        .from("analytics_sessions")
+        .select("id", { count: "exact", head: true })
+        .gte("last_seen_at", liveSince)
+    : supabase
+        .from("site_visit_presence")
+        .select("visitor_key", { count: "exact", head: true })
+        .gte("last_seen", liveSince);
+  if (platformFeatures.enhancedAnalytics && !includeExcluded) {
+    liveQuery = liveQuery.eq("is_staff", false).in("traffic_class", ["likely_human", "unknown"]);
+  }
 
   let remote = await loadRemoteAnalyticsFromCache();
   try {
@@ -182,16 +248,14 @@ export async function loadControlRoomAnalytics(range: AnalyticsRange): Promise<C
     androidDaysRes,
     pagesRes,
     pageUniquesRes,
+    detailedRes,
   ] = await Promise.all([
     supabase
       .from("site_visit_days")
       .select("day, pageviews, visitors")
       .gte("day", start14)
       .lte("day", today),
-    supabase
-      .from("site_visit_presence")
-      .select("visitor_key", { count: "exact", head: true })
-      .gte("last_seen", liveSince),
+    liveQuery,
     supabase.from("profiles").select("id", { count: "exact", head: true }),
     supabase
       .from("profiles")
@@ -236,6 +300,13 @@ export async function loadControlRoomAnalytics(range: AnalyticsRange): Promise<C
       .select("path, visitor_key")
       .gte("day", range.from)
       .lte("day", range.to),
+    platformFeatures.enhancedAnalytics
+      ? supabase.rpc("website_analytics_summary", {
+          p_from: range.from,
+          p_to: range.to,
+          p_include_excluded: includeExcluded,
+        })
+      : Promise.resolve({ data: null, error: null }),
   ]);
 
   const visitorMap = new Map<string, number>();
@@ -278,20 +349,34 @@ export async function loadControlRoomAnalytics(range: AnalyticsRange): Promise<C
   const snapshotAndroid = Number(snapshot?.android_downloads);
   const iosDownloads = remote.ios.value ?? (Number.isFinite(snapshotIos) ? snapshotIos : 0);
   const androidDownloads = remote.android.value ?? (Number.isFinite(snapshotAndroid) ? snapshotAndroid : 0);
+  const detailed = !detailedRes.error && detailedRes.data
+    ? (detailedRes.data as WebsiteSummary)
+    : null;
+  const detailedDaily = new Map(
+    (detailed?.daily ?? []).map((row) => [String(row.day), row]),
+  );
+  const detailedPages = detailed
+    ? await summariseDetailedPages(
+        supabase as Awaited<ReturnType<typeof createClient>>,
+        detailed.pages ?? [],
+      )
+    : null;
+  const totals = detailed?.totals;
+  const sessions = Number(totals?.sessions) || 0;
 
   return {
     onSiteNow: liveRes.count ?? 0,
-    visitsToday,
-    pageviewsToday,
-    visits7d,
-    pageviews7d,
-    visitorSeries: blank.visitorSeries.map((point) => ({
+    visitsToday: detailedDaily.get(today)?.visitors ?? visitsToday,
+    pageviewsToday: detailedDaily.get(today)?.pageviews ?? pageviewsToday,
+    visits7d: detailed ? Number(totals?.visitors) || 0 : visits7d,
+    pageviews7d: detailed ? Number(totals?.pageviews) || 0 : pageviews7d,
+    visitorSeries: seriesForRange(range.from, range.to).map((point) => ({
       day: point.day,
-      value: visitorMap.get(point.day) ?? 0,
+      value: detailedDaily.get(point.day)?.visitors ?? visitorMap.get(point.day) ?? 0,
     })),
-    pageviewSeries: blank.pageviewSeries.map((point) => ({
+    pageviewSeries: seriesForRange(range.from, range.to).map((point) => ({
       day: point.day,
-      value: pageviewMap.get(point.day) ?? 0,
+      value: detailedDaily.get(point.day)?.pageviews ?? pageviewMap.get(point.day) ?? 0,
     })),
     accounts: accountsRes.count ?? 0,
     accounts7d: accounts7Res.count ?? 0,
@@ -312,11 +397,24 @@ export async function loadControlRoomAnalytics(range: AnalyticsRange): Promise<C
     iosError: remote.ios.error,
     androidError: remote.android.error,
     remote,
-    pages: await summarisePages(
-      supabase as Awaited<ReturnType<typeof createClient>>,
-      pagesRes.data ?? [],
-      distinctCounts(pageUniquesRes.data ?? [], "path", "visitor_key"),
-    ),
+    pages:
+      detailedPages ??
+      (await summarisePages(
+        supabase as Awaited<ReturnType<typeof createClient>>,
+        pagesRes.data ?? [],
+        distinctCounts(pageUniquesRes.data ?? [], "path", "visitor_key"),
+      )),
+    sessions,
+    pagesPerSession: sessions ? (Number(totals?.pageviews) || 0) / sessions : 0,
+    activeSeconds: Number(totals?.active_seconds) || 0,
+    clicks: Number(totals?.clicks) || 0,
+    rsvps: Number(totals?.rsvps) || 0,
+    purchases: Number(totals?.purchases) || 0,
+    locations: detailed?.locations ?? [],
+    sources: detailed?.sources ?? [],
+    trafficClasses: detailed?.classes ?? [],
+    classificationReasons: detailed?.reasons ?? [],
+    usingDetailedAnalytics: Boolean(detailed),
   };
 }
 
@@ -360,6 +458,22 @@ async function summarisePages(
       visits: stats.visits,
       visitors: uniques.get(path) ?? 0,
       stay: formatStay(stats.dwell, stats.visits),
+    }))
+    .sort((a, b) => b.visits - a.visits || a.label.localeCompare(b.label, "en-ZA"));
+}
+
+async function summariseDetailedPages(
+  supabase: Awaited<ReturnType<typeof createClient>>,
+  rows: { path: string; pageviews: number; visitors: number; active_seconds: number }[],
+): Promise<PageAnalyticsRow[]> {
+  const titles = await pageTitles(supabase, rows.map((row) => row.path));
+  return rows
+    .map((row) => ({
+      path: row.path,
+      label: publicPageLabel(row.path, titles),
+      visits: Number(row.pageviews) || 0,
+      visitors: Number(row.visitors) || 0,
+      stay: formatStay(Number(row.active_seconds) || 0, Number(row.pageviews) || 0),
     }))
     .sort((a, b) => b.visits - a.visits || a.label.localeCompare(b.label, "en-ZA"));
 }

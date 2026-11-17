@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { confirmPaystackTicket } from "@/lib/paystack-fulfill";
 import { bearerToken, userFromBearer } from "@/lib/supabase/bearer";
+import { recordWebsiteConversion } from "@/lib/analytics-conversions";
 
 export async function POST(request: Request) {
   const token = bearerToken(request);
@@ -37,8 +38,20 @@ export async function POST(request: Request) {
 
   const { data: tickets } = await user.supabase
     .from("event_tickets")
-    .select("id, code, event_ticket_types ( name ), events ( title )")
+    .select("id, code, event_ticket_types ( name ), events ( title, slug )")
     .eq("order_id", orderId);
+
+  const firstEvent = tickets?.[0]?.events;
+  const event = Array.isArray(firstEvent) ? firstEvent[0] : firstEvent;
+  if (order.status === "paid") {
+    await recordWebsiteConversion({
+      name: "purchase",
+      path: event?.slug ? `/events/${event.slug}` : "/events",
+      userId: user.id,
+      orderId,
+      valueCents: order.total_cents,
+    });
+  }
 
   return NextResponse.json({
     status: order.status,

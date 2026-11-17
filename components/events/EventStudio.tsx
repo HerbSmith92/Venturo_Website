@@ -28,6 +28,7 @@ import {
   toggleEventPersona,
   withCurrentOption,
   type EventImageKind,
+  type EventBookingMethod,
   type MemberDiscountKind,
   type PlatformFees,
   type TicketKind,
@@ -146,6 +147,10 @@ export function EventStudio({
   const [visibility, setVisibility] = useState<"public" | "private">(event.visibility);
   const [showMap, setShowMap] = useState(event.showMap);
   const [prohibitedItems, setProhibitedItems] = useState(event.prohibitedItems ?? "");
+  const [bookingMethod, setBookingMethod] = useState<EventBookingMethod>(event.bookingMethod);
+  const [externalProviderName, setExternalProviderName] = useState(event.externalProviderName ?? "");
+  const [externalBookingUrl, setExternalBookingUrl] = useState(event.externalBookingUrl ?? "");
+  const [waitlistEnabled, setWaitlistEnabled] = useState(event.waitlistEnabled);
   const [tickets, setTickets] = useState<TicketDraft[]>(() => fromEventTickets(event));
   const [addOpen, setAddOpen] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -235,6 +240,10 @@ export function EventStudio({
       showMap,
       visibility,
       prohibitedItems: prohibitedItems || null,
+      bookingMethod,
+      externalProviderName: bookingMethod === "external" ? externalProviderName : null,
+      externalBookingUrl: bookingMethod === "external" ? externalBookingUrl : null,
+      waitlistEnabled: bookingMethod !== "external" && waitlistEnabled,
       fromPriceCents: publicPrices.length ? Math.min(...publicPrices) : membersOnly ? null : 0,
       memberFromPriceCents: memberPrices.length ? Math.min(...memberPrices) : null,
       membersOnly,
@@ -266,6 +275,10 @@ export function EventStudio({
     showMap,
     visibility,
     prohibitedItems,
+    bookingMethod,
+    externalProviderName,
+    externalBookingUrl,
+    waitlistEnabled,
     tickets,
   ]);
 
@@ -294,6 +307,10 @@ export function EventStudio({
       visibility,
       showMap,
       prohibitedItems,
+      bookingMethod,
+      externalProviderName,
+      externalBookingUrl,
+      waitlistEnabled,
       ticketTypes: tickets.map((ticket) => ({
         id: ticket.id,
         name: ticket.name,
@@ -685,9 +702,57 @@ export function EventStudio({
           ) : null}
 
           {showTickets ? (
-          <StudioSection title="Ticket Types">
+          <StudioSection title="Booking">
+            <label className="field">
+              <span>Booking method</span>
+              <select
+                value={bookingMethod}
+                onChange={(change) => setBookingMethod(change.target.value as EventBookingMethod)}
+              >
+                <option value="free_rsvp">Free RSVP</option>
+                <option value="venturo_ticketing">Venturo Ticketing</option>
+                <option value="external">External Booking</option>
+              </select>
+            </label>
+            {bookingMethod === "external" ? (
+              <div className="form-grid">
+                <label className="field">
+                  <span>Provider name</span>
+                  <input
+                    value={externalProviderName}
+                    onChange={(change) => setExternalProviderName(change.target.value)}
+                    placeholder="Quicket"
+                  />
+                </label>
+                <label className="field">
+                  <span>HTTPS booking link</span>
+                  <input
+                    type="url"
+                    value={externalBookingUrl}
+                    onChange={(change) => setExternalBookingUrl(change.target.value)}
+                    placeholder="https://…"
+                  />
+                </label>
+                <p className="notice">
+                  Booking happens on the provider&apos;s website. Outbound clicks are not counted as
+                  confirmed bookings, attendance or Venturo revenue.
+                </p>
+              </div>
+            ) : (
+              <>
+                <label className="check-row">
+                  <input
+                    type="checkbox"
+                    checked={waitlistEnabled}
+                    onChange={(change) => setWaitlistEnabled(change.target.checked)}
+                  />
+                  <span>Offer a waitlist when this occurrence is full</span>
+                </label>
+                <h3>{bookingMethod === "free_rsvp" ? "RSVP admission" : "Ticket types"}</h3>
             <p className="muted">
-              On a paid ticket, you decide who pays the booking fee and the commission.
+              {bookingMethod === "free_rsvp"
+                ? "Add a free admission type. Signed-in members with completed consent can RSVP in one tap."
+                : "On a paid ticket, you decide who pays the booking fee and the commission."}
             </p>
             {tickets.length === 0 && <p className="notice">Add ticket types before you go live.</p>}
             <ul className="studio-tickets">
@@ -732,6 +797,8 @@ export function EventStudio({
                 </div>
               )}
             </div>
+              </>
+            )}
           </StudioSection>
           ) : null}
 

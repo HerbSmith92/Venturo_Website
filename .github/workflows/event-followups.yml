@@ -1,0 +1,22 @@
+name: Event follow-ups
+
+on:
+  schedule:
+    - cron: "*/5 * * * *"
+  workflow_dispatch:
+
+concurrency:
+  group: venturo-event-followups
+  cancel-in-progress: false
+
+jobs:
+  run:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Process reminders, reports and notifications
+        run: |
+          curl --fail-with-body --retry 2 \
+            --request POST \
+            --header "Authorization: Bearer ${{ secrets.CRON_SECRET }}" \
+            https://www.venturo.co.za/api/cron/event-followups

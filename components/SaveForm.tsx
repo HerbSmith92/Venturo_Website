@@ -7,12 +7,16 @@ export function SaveForm({
   saved,
   next,
   occurrence,
+  label,
+  savedLabel,
 }: {
   kind: SaveKind;
   targetId: string;
   saved: boolean;
   next: string;
   occurrence?: string | null;
+  label?: string;
+  savedLabel?: string;
 }) {
   return (
     <form action={toggleSave}>
@@ -21,7 +25,7 @@ export function SaveForm({
       {occurrence ? <input type="hidden" name="occurrence" value={occurrence} /> : null}
       <input type="hidden" name="next" value={next} />
       <button className="btn btn-secondary" type="submit">
-        {saved ? "Saved" : "Save"}
+        {saved ? (savedLabel ?? "Saved") : (label ?? "Save")}
       </button>
     </form>
   );

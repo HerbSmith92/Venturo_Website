@@ -5,6 +5,8 @@ import { getCurrentUser } from "@/lib/auth";
 import { getCommunityById, listCommunityEventLinks } from "@/lib/communities";
 import { portalEventHref } from "@/lib/portal";
 import { notFound, redirect } from "next/navigation";
+import { canManageCommunity } from "@/lib/community-host";
+import { isStaff } from "@/lib/roles";
 
 export default async function ClaimedCommunityPage({
   params,
@@ -18,7 +20,7 @@ export default async function ClaimedCommunityPage({
   const user = await getCurrentUser();
   if (!user) redirect(`/login?next=/account/communities/${id}`);
   const community = await getCommunityById(id);
-  if (!community || community.claimedBy !== user.id) notFound();
+  if (!community || !(await canManageCommunity(user.id, id, isStaff(user.role)))) notFound();
   const events = await listCommunityEventLinks(community.id);
 
   return (
@@ -28,6 +30,11 @@ export default async function ClaimedCommunityPage({
         <p className="lede muted">
           Community Details, Founder Details, then Contact &amp; Socials.
         </p>
+        <div className="hero-actions">
+          <a className="btn btn-secondary" href={`/account/communities/${id}/analytics`}>Analytics</a>
+          <a className="btn btn-secondary" href={`/account/communities/${id}/followers`}>Followers</a>
+          <a className="btn btn-secondary" href={`/account/communities/${id}/communications`}>Announcements</a>
+        </div>
         {done ? <p className="notice">Saved.</p> : null}
         {error ? <p className="error">{error}</p> : null}
 

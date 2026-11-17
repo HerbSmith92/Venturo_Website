@@ -74,6 +74,7 @@ export function AccountNav({
       label: "You",
       items: [
         { href: "/account", label: "Profile", icon: "user" },
+        { href: "/account/notifications", label: "Notifications", icon: "megaphone" },
         { href: "/account/saved", label: "Saved", icon: "bookmark" },
         { href: "/account/tickets", label: "Tickets", icon: "ticket" },
         { href: "/account/reviews", label: "Reviews", icon: "star" },

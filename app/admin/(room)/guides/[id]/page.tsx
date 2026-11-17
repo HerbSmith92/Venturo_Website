@@ -6,7 +6,7 @@ import { loadGuideAuthors, linkedAuthorIdForUser } from "@/lib/control-room-auth
 import { loadEditorCatalog } from "@/lib/control-room";
 import { listAdminEvents } from "@/lib/events";
 import { mapEventSource } from "@/lib/guide-carousel";
-import { listGuideEventIds } from "@/lib/guides";
+import { listGuideEventLinks } from "@/lib/guides";
 import { canManageGuide, guideViewerFor } from "@/lib/guide-access";
 import { isAdmin, isStaff } from "@/lib/roles";
 
@@ -29,14 +29,14 @@ export default async function GuideEditPage({
   }
 
   const linkedListing = guide.listing_id ? await loadSpotlightListingDetails(guide.listing_id) : null;
-  const [catalog, events, linkedIds, places, authors] = await Promise.all([
+  const [catalog, events, linkedEvents, places, authors] = await Promise.all([
     loadEditorCatalog(),
     listAdminEvents("approved"),
-    listGuideEventIds(id),
+    listGuideEventLinks(id),
     loadGuidePlaces(),
     loadGuideAuthors(),
   ]);
-  const linked = new Set(linkedIds);
+  const linked = new Set(linkedEvents.map((item) => item.eventId));
   const notice =
     done === "duplicated"
       ? "Duplicated as a new draft. Change the dates & publish when you are ready."
@@ -63,6 +63,7 @@ export default async function GuideEditPage({
       events={events.map((event) => ({ id: event.id, title: event.title }))}
       carouselEvents={events.filter((event) => linked.has(event.id)).map(mapEventSource)}
       linkedEventIds={[...linked]}
+      linkedEventDetails={linkedEvents}
       places={places}
       authors={authors}
       canPublish={admin}

@@ -13,6 +13,7 @@ export type RepeatEvery = "week" | "month" | `${RepeatOrdinal}-${RepeatWeekday}`
 export type EventVisibility = "public" | "private";
 export type TicketKind = "paid" | "free" | "donation";
 export type MemberDiscountKind = "none" | "percent" | "amount";
+export type EventBookingMethod = "free_rsvp" | "venturo_ticketing" | "external";
 
 export type EventTicketType = {
   id: string;
@@ -66,6 +67,10 @@ export type VenturoEvent = {
   reviewNote: string | null;
   parking: string | null;
   prohibitedItems: string | null;
+  bookingMethod: EventBookingMethod;
+  externalProviderName: string | null;
+  externalBookingUrl: string | null;
+  waitlistEnabled: boolean;
   fromPriceCents: number | null;
   memberFromPriceCents: number | null;
   membersOnly: boolean;

@@ -9,6 +9,9 @@ import { tidyCellphone } from "@/lib/phone";
 import { portalEventHref } from "@/lib/portal";
 import { createClient } from "@/lib/supabase/server";
 import { CONSENT_REQUIRED, recordMemberConsent } from "@/lib/policy-consent";
+import { canManageCommunity } from "@/lib/community-host";
+import { isStaff } from "@/lib/roles";
+import { createServiceClient } from "@/lib/supabase/admin";
 
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 
@@ -79,11 +82,20 @@ export async function claimCommunityNow(formData: FormData) {
   if (!UUID.test(id)) redirect(`/communities/${slug}/claim?error=That+community+could+not+be+claimed.`);
   const supabase = await createClient();
   if (!supabase) redirect(`/communities/${slug}/claim?error=Could+not+claim+that+community.`);
-  const { error } = await supabase.rpc("claim_community", { p_community_id: id });
+  const { error } = await supabase.from("community_claim_requests").upsert(
+    {
+      community_id: id,
+      requested_by: user.id,
+      evidence: String(formData.get("evidence") ?? "").trim().slice(0, 1000) || null,
+      status: "pending",
+      reviewed_by: null,
+      reviewed_at: null,
+    },
+    { onConflict: "community_id,requested_by" },
+  );
   if (error) redirect(`/communities/${slug}/claim?error=${encodeURIComponent(error.message)}`);
-  revalidatePath(`/communities/${slug}`);
-  revalidatePath("/account/communities");
-  redirect(`/account/communities/${id}`);
+  revalidatePath("/admin/communities");
+  redirect(`/communities/${slug}/claim?requested=1`);
 }
 
 export async function saveClaimedCommunity(formData: FormData) {
@@ -91,23 +103,29 @@ export async function saveClaimedCommunity(formData: FormData) {
   const id = String(formData.get("id") ?? "");
   if (!user) redirect(`/login?next=/account/communities/${id}`);
   if (!UUID.test(id)) redirect("/account/communities?error=That+community+could+not+be+saved.");
-  const supabase = await createClient();
-  if (!supabase) redirect(`/account/communities/${id}?error=Could+not+save+that+community.`);
-
-  const { error } = await supabase.rpc("save_claimed_community", {
-    p_community_id: id,
-    p_title: String(formData.get("title") ?? ""),
-    p_about: String(formData.get("about") ?? ""),
-    p_areas: areasFrom(String(formData.get("areas") ?? "")),
-    p_contact_email: String(formData.get("contact_email") ?? ""),
-    p_phone: String(formData.get("phone") ?? ""),
-    p_website_url: String(formData.get("website_url") ?? ""),
-    p_instagram_url: String(formData.get("instagram_url") ?? ""),
-    p_facebook_url: String(formData.get("facebook_url") ?? ""),
-    p_tiktok_url: String(formData.get("tiktok_url") ?? ""),
-    p_founder_name: String(formData.get("founder_name") ?? ""),
-    p_founder_email: String(formData.get("founder_email") ?? ""),
-  });
+  if (!(await canManageCommunity(user.id, id, isStaff(user.role)))) redirect("/account/communities");
+  const service = createServiceClient();
+  if (!service) redirect(`/account/communities/${id}?error=Could+not+save+that+community.`);
+  const title = String(formData.get("title") ?? "").trim();
+  if (!title) redirect(`/account/communities/${id}?error=A+name+is+required.`);
+  const areas = areasFrom(String(formData.get("areas") ?? ""));
+  const clean = (name: string) => String(formData.get(name) ?? "").trim() || null;
+  const { error } = await service.from("communities").update({
+    title,
+    about: clean("about"),
+    areas,
+    place_label: areas.join(" · ") || null,
+    contact_email: clean("contact_email"),
+    phone: clean("phone"),
+    website_url: clean("website_url"),
+    instagram_url: clean("instagram_url"),
+    facebook_url: clean("facebook_url"),
+    tiktok_url: clean("tiktok_url"),
+    founder_name: clean("founder_name"),
+    founder_email: clean("founder_email"),
+    updated_by: user.id,
+    updated_at: new Date().toISOString(),
+  }).eq("id", id).not("status", "in", '("archived","suspended")');
   if (error) redirect(`/account/communities/${id}?error=${encodeURIComponent(error.message)}`);
 
   const community = await getCommunityById(id);
@@ -124,7 +142,7 @@ export async function addClaimedCommunityEvent(formData: FormData) {
   if (!user) redirect(`/login?next=/account/communities/${id}`);
   if (!UUID.test(id)) redirect("/account/communities?error=That+event+could+not+be+added.");
   const community = await getCommunityById(id);
-  if (!community || community.claimedBy !== user.id) {
+  if (!community || !(await canManageCommunity(user.id, id, isStaff(user.role)))) {
     redirect(`/account/communities/${id}?error=You+can+only+add+events+to+a+community+you+have+claimed.`);
   }
   if (!title) redirect(`/account/communities/${id}?error=Give+the+event+a+name.`);

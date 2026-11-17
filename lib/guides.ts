@@ -71,6 +71,7 @@ export type PublicGuide = {
   intro: string | null;
   body: string | null;
   shape: "roundup" | "spotlight";
+  guideKind: "activities" | "events" | "mixed";
   author: GuideAuthorPublic | null;
   items: GuideRecommendation[];
   listingId: string | null;
@@ -136,6 +137,7 @@ type GuideRow = {
   intro: string | null;
   body?: string | null;
   shape?: "roundup" | "spotlight" | null;
+  guide_kind?: "activities" | "events" | "mixed" | null;
   status?: string;
   publish_at?: string | null;
   expire_at?: string | null;
@@ -275,7 +277,7 @@ const GUIDE_ITEMS_SELECT = `
 `;
 
 const GUIDE_SELECT = `
-  id, title, slug, intro, body, shape, status, publish_at, expire_at, listing_id, story, photos, cover, published_snapshot, updated_at, view_count, like_count,
+  id, title, slug, intro, body, shape, guide_kind, status, publish_at, expire_at, listing_id, story, photos, cover, published_snapshot, updated_at, view_count, like_count,
   guide_authors ( id, display_name, slug, tagline, bio, photo_url, photo_storage_key, cover_url, cover_storage_key, instagram_url, tiktok_url, facebook_url, website_url, user_id ),
   ${GUIDE_ITEMS_SELECT}
 `;
@@ -342,7 +344,7 @@ async function fetchLiveGuides(limit?: number): Promise<GuideCardData[]> {
         intro: (typeof snapshot?.intro === "string" ? snapshot.intro : row.intro),
         cover: spotlightCover ?? items[0]?.image ?? FALLBACK_IMAGE,
         itemCount: items.length,
-        about: "activities",
+        about: row.guide_kind === "events" ? "events" : "activities",
         shape: row.shape === "spotlight" ? "spotlight" : "roundup",
         authorName: author?.name ?? null,
         authorId: author?.id ?? null,
@@ -420,6 +422,7 @@ export async function getPublicGuideBySlug(slug: string): Promise<PublicGuide | 
     intro,
     body: row.body ?? null,
     shape: row.shape === "spotlight" ? "spotlight" : "roundup",
+    guideKind: row.guide_kind === "events" || row.guide_kind === "mixed" ? row.guide_kind : "activities",
     author: authorFromEmbed(row.guide_authors),
     items,
     listingId,
@@ -436,13 +439,22 @@ export async function getPublicGuideBySlug(slug: string): Promise<PublicGuide | 
 export { formatFromPrice, categoryColour, categoryLabel };
 
 export async function listGuideEventIds(guideId: string) {
+  return (await listGuideEventLinks(guideId)).map((row) => row.eventId);
+}
+
+export async function listGuideEventLinks(guideId: string) {
   const supabase = await createClient();
   if (!supabase) return [];
   const { data, error } = await supabase
     .from("curated_guide_events")
-    .select("event_id, sort_order")
+    .select("event_id, sort_order, editorial_note, presentation")
     .eq("guide_id", guideId)
     .order("sort_order");
   if (error || !data) return [];
-  return data.map((row) => row.event_id as string);
+  return data.map((row) => ({
+    eventId: row.event_id as string,
+    sortOrder: Number(row.sort_order) || 0,
+    editorialNote: row.editorial_note as string | null,
+    presentation: (row.presentation as "card" | "feature" | "compact" | null) ?? "card",
+  }));
 }

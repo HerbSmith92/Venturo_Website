@@ -46,7 +46,7 @@ export type PushDraft = {
 };
 
 export type PushOpenOption = {
-  kind: "guide" | "event";
+  kind: "guide" | "event" | "community";
   id: string;
   title: string;
   detail: string | null;
@@ -853,10 +853,12 @@ export async function notifyMemberUsers(input: {
   title: string;
   body: string;
   linkPath: string;
-  kind: "guide" | "event";
+  kind: "guide" | "event" | "community";
   id: string;
   slug: string;
-  notice: "custom" | "community";
+  notice: "custom" | "community" | "remind" | "event_update";
+  /** Phone opens the message first. The event id stays on the payload for the button. */
+  present?: "event_update";
   createdBy?: string;
 }): Promise<MemberNotifyResult> {
   const service = createServiceClient();
@@ -907,6 +909,7 @@ export async function notifyMemberUsers(input: {
     title: input.title.slice(0, 80),
     body: input.body.slice(0, 240),
     link_path: input.linkPath,
+    notice_kind: input.notice,
   }));
   let inboxCount = 0;
   for (const batch of chunks(inbox, 500)) {
@@ -925,7 +928,7 @@ export async function notifyMemberUsers(input: {
     title: input.title.slice(0, 80),
     body: input.body.slice(0, 240),
     path: input.linkPath,
-    kind: input.kind,
+    kind: input.present ?? input.kind,
     id: input.id,
     slug: input.slug,
     when: "",

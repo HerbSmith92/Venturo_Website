@@ -93,6 +93,7 @@ export function GuideEditor({
   events,
   carouselEvents = [],
   linkedEventIds,
+  linkedEventDetails = [],
   places,
   authors = [],
   canPublish = true,
@@ -106,6 +107,12 @@ export function GuideEditor({
   events: { id: string; title: string }[];
   carouselEvents?: import("@/lib/guide-carousel").CarouselEventSource[];
   linkedEventIds: string[];
+  linkedEventDetails?: Array<{
+    eventId: string;
+    sortOrder: number;
+    editorialNote: string | null;
+    presentation: "card" | "feature" | "compact";
+  }>;
   places: GuidePlace[];
   authors?: GuideAuthor[];
   canPublish?: boolean;
@@ -1294,8 +1301,11 @@ export function GuideEditor({
           <input type="hidden" name="guide_id" value={guide.id} />
           {events.length === 0 ? <p className="muted">No live events yet.</p> : null}
           <div className="cr-guide-event-list">
-            {events.map((event) => (
-              <label key={event.id} className="cr-guide-event">
+            {events.map((event, index) => {
+              const detail = linkedEventDetails.find((item) => item.eventId === event.id);
+              return (
+              <div key={event.id} className="cr-guide-event">
+                <label>
                 <input
                   type="checkbox"
                   name="event_ids"
@@ -1303,8 +1313,31 @@ export function GuideEditor({
                   defaultChecked={linkedEventIds.includes(event.id)}
                 />
                 <span>{event.title}</span>
-              </label>
-            ))}
+                </label>
+                <input
+                  type="number"
+                  name={`event_order_${event.id}`}
+                  aria-label={`Placement order for ${event.title}`}
+                  defaultValue={detail?.sortOrder ?? index}
+                  min={0}
+                />
+                <input
+                  name={`event_note_${event.id}`}
+                  aria-label={`Editorial note for ${event.title}`}
+                  defaultValue={detail?.editorialNote ?? ""}
+                  placeholder="Optional editorial note"
+                />
+                <select
+                  name={`event_presentation_${event.id}`}
+                  aria-label={`Card style for ${event.title}`}
+                  defaultValue={detail?.presentation ?? "card"}
+                >
+                  <option value="card">Card</option>
+                  <option value="feature">Feature</option>
+                  <option value="compact">Compact</option>
+                </select>
+              </div>
+            )})}
           </div>
           {events.length > 0 ? (
             <button className="btn btn-secondary" type="submit">

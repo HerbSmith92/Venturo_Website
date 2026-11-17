@@ -1,5 +1,6 @@
 import { getCurrentUser } from "@/lib/auth";
 import { listPublishedCommunities } from "@/lib/communities";
+import { DiscoverBanner } from "@/components/DiscoverBanner";
 
 export default async function CommunitiesPage({
   searchParams,
@@ -20,15 +21,18 @@ export default async function CommunitiesPage({
 
   return (
     <main className="shell">
-      <section className="discover-banner community-banner">
-        <img src="/brand/landing/find-your-kind-of-fun.png" alt="" />
-        <div>
-          <p className="eyebrow">People first</p>
-          <h1>Communities</h1>
-          <p>Groups that hold a space for people to come together.</p>
-        </div>
-      </section>
-      <section className="section">
+      <DiscoverBanner
+        eyebrow="Communities"
+        title="Find your kind of people."
+        copy="Discover communities built around the things you love. Meet up, try something new & make time for good company."
+        image="/brand/landing/find-your-kind-of-fun.png"
+        imageAlt="Venturo community characters gathering together"
+        actions={[
+          { label: "Explore communities", href: "#community-results", primary: true },
+          { label: "List your community", href: user ? "/account/community" : "/login?next=/account/community" },
+        ]}
+      />
+      <section className="section" id="community-results">
         <form className="field" method="get" action="/communities">
           <span>Search communities</span>
           <input name="q" defaultValue={q} placeholder="Name, place, or interest" />

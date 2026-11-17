@@ -3,6 +3,8 @@ import { loadExcludedIds } from "@/lib/search-misses";
 import { sortInterests, type InterestSortDir, type InterestSortKey } from "@/lib/interest-rank";
 import { formatCount } from "@/lib/overview/metrics";
 import { createServiceClient } from "@/lib/supabase/admin";
+import { loadCatalogAdmin } from "@/lib/catalog-admin";
+import { InterestManager } from "@/components/admin/InterestManager";
 
 export const dynamic = "force-dynamic";
 
@@ -38,6 +40,7 @@ export default async function InterestCoveragePage({
   const sort = sortKey(params.sort);
   const dir = sortDir(params.dir, sort);
   const service = createServiceClient();
+  const catalog = await loadCatalogAdmin();
   const excluded = await loadExcludedIds(service);
   const result = await loadInterestCoverage({
     service,
@@ -58,6 +61,7 @@ export default async function InterestCoveragePage({
         </div>
         <a href="/admin">Back to overview</a>
       </header>
+      <InterestManager catalog={catalog} />
       {result.state === "unavailable" ? <p className="ops-empty">{result.reason}</p> : null}
       {result.state === "ready" && rows.length === 0 ? <p className="ops-empty">No main interests are in the catalogue.</p> : null}
       {result.state === "ready" && rows.length > 0 ? (

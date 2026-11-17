@@ -1,5 +1,6 @@
 import { EventMap } from "@/components/EventMap";
 import { EventDatePicker } from "@/components/events/EventDatePicker";
+import { AddToCalendar } from "@/components/events/AddToCalendar";
 import { EventPageHero } from "@/components/events/EventPageHero";
 import { EventViewBeacon } from "@/components/events/EventViewBeacon";
 import { UsageBeacon } from "@/components/UsageBeacon";
@@ -20,6 +21,9 @@ import { formatEventWhen } from "@/lib/event-types";
 import { ticketsSoldForOccurrence } from "@/lib/orders";
 import { loadMemberProfile } from "@/lib/profile";
 import { isSaved } from "@/lib/saves";
+import { hasMemberConsent } from "@/lib/policy-consent";
+import { listStoredEventOccurrences } from "@/lib/event-occurrences";
+import { joinEventWaitlist, rsvpFreeEvent } from "@/app/event-booking-actions";
 import { notFound } from "next/navigation";
 
 export default async function EventDetailPage({
@@ -27,7 +31,17 @@ export default async function EventDetailPage({
   searchParams,
 }: {
   params: Promise<{ slug: string }>;
-  searchParams: Promise<{ cancelled?: string; c?: string; invite?: string; basket?: string; on?: string }>;
+  searchParams: Promise<{
+    cancelled?: string;
+    c?: string;
+    invite?: string;
+    basket?: string;
+    on?: string;
+    rsvp?: string;
+    order?: string;
+    waitlist?: string;
+    bookingError?: string;
+  }>;
 }) {
   const { slug } = await params;
   const query = await searchParams;
@@ -47,7 +61,11 @@ export default async function EventDetailPage({
     user ? isSaved(user.id, "event", event.id, whenStart) : Promise.resolve(false),
     loadAttendancePreview(event.id, whenStart),
   ]);
-  const profile = user ? await loadMemberProfile(user.id) : null;
+  const [profile, storedOccurrences, consented] = await Promise.all([
+    user ? loadMemberProfile(user.id) : Promise.resolve(null),
+    listStoredEventOccurrences(event.id),
+    user ? hasMemberConsent(user.id) : Promise.resolve(false),
+  ]);
   const canView =
     event.status === "approved" ||
     event.status === "cancelled" ||
@@ -57,6 +75,10 @@ export default async function EventDetailPage({
   if (!canView) notFound();
 
   const whenEnd = selected?.endsAt ?? event.endsAt;
+  const selectedStored =
+    storedOccurrences.find((item) => Math.abs(Date.parse(item.startsAt) - Date.parse(whenStart)) < 1000) ??
+    storedOccurrences[0] ??
+    null;
   const soldForDate = selected ? await ticketsSoldForOccurrence(event.id, selected.startsAt) : new Map<string, number>();
   const publicTickets = event.ticketTypes
     .filter((ticket) => ticket.listed)
@@ -70,7 +92,9 @@ export default async function EventDetailPage({
     publicTickets.length > 0 &&
     publicTickets.every((ticket) => ticket.quantity - ticket.soldCount <= 0);
   const address = eventAddressText(event);
-  const ticketsReady = event.status === "approved" && event.ticketTypes.length > 0;
+  const ticketsReady =
+    event.status === "approved" &&
+    (event.bookingMethod === "external" || event.ticketTypes.length > 0);
   const windowLabel = formatEventWindow(whenStart, whenEnd, event.timezone);
   const repeatLabel = event.repeatEvery
     ? `${repeatPhrase(event.repeatEvery)}${event.repeatUntil ? ` until ${formatEventWhen(event.repeatUntil, event.timezone)}` : ""}`
@@ -137,6 +161,8 @@ export default async function EventDetailPage({
             saved={saved}
             occurrence={whenStart}
             next={`/events/${event.slug}?on=${encodeURIComponent(whenStart)}`}
+            label="Interested"
+            savedLabel="Interested"
           />
           <InviteOthers title={event.title} path={`/events/${event.slug}`} />
         </div>
@@ -180,6 +206,26 @@ export default async function EventDetailPage({
         {query.invite && event.status === "approved" ? (
           <p className="notice">You&apos;re invited. Tickets are below.</p>
         ) : null}
+        {query.rsvp ? (
+          <div className="notice" role="status">
+            <strong>You&apos;re going.</strong> {windowLabel}
+            {place ? ` · ${place}` : ""}
+            <div className="hero-actions" style={{ marginTop: 12 }}>
+              <AddToCalendar
+                slug={event.slug}
+                title={event.title}
+                startsAt={whenStart}
+                endsAt={whenEnd}
+                location={address}
+              />
+              <a className="btn btn-secondary" href={`/account/tickets${query.order ? `?order=${encodeURIComponent(query.order)}` : ""}`}>
+                View confirmation
+              </a>
+            </div>
+          </div>
+        ) : null}
+        {query.waitlist ? <p className="notice">You&apos;re on the waitlist. We&apos;ll let you know if a place opens.</p> : null}
+        {query.bookingError ? <p className="error">{query.bookingError}</p> : null}
 
         <div className="event-detail-grid">
           <article className="event-story">
@@ -232,10 +278,18 @@ export default async function EventDetailPage({
 
           <aside className="event-ticket-panel" id="tickets">
             <div className="colour-bar" aria-hidden="true" />
-            <p className="eyebrow">Tickets</p>
-            <h2>Claim Your Spot</h2>
+            <p className="eyebrow">{event.bookingMethod === "free_rsvp" ? "RSVP" : event.bookingMethod === "external" ? "External booking" : "Tickets"}</p>
+            <h2>
+              {event.bookingMethod === "free_rsvp"
+                ? "RSVP free"
+                : event.bookingMethod === "external"
+                  ? `Book with ${event.externalProviderName || "the provider"}`
+                  : "Get tickets"}
+            </h2>
             <p className="muted">
-              {past
+              {event.bookingMethod === "external"
+                ? `Booking takes place on ${event.externalProviderName || "the provider"}'s website. An outbound click is not a confirmed Venturo booking.`
+                : past
                 ? "Tickets are closed because this date has passed."
                 : event.membersOnly
                   ? user?.plan === "paid"
@@ -250,11 +304,35 @@ export default async function EventDetailPage({
             ) : past ? (
               <p className="notice">This event has passed.</p>
             ) : soldOut ? (
-              <p className="notice">Sold out.</p>
+              event.waitlistEnabled && selectedStored ? (
+                <form action={joinEventWaitlist}>
+                  <input type="hidden" name="event_id" value={event.id} />
+                  <input type="hidden" name="occurrence_id" value={selectedStored.id} />
+                  <input type="hidden" name="ticket_type_id" value={publicTickets[0]?.id ?? ""} />
+                  <input type="hidden" name="next" value={`/events/${event.slug}?on=${encodeURIComponent(whenStart)}`} />
+                  <button className="btn btn-primary" type="submit">Join waitlist</button>
+                </form>
+              ) : (
+                <p className="notice">Sold out.</p>
+              )
             ) : event.status !== "approved" ? (
               <p className="notice">Tickets unlock once the event is approved.</p>
+            ) : event.bookingMethod === "external" ? (
+              <a
+                className="btn btn-primary"
+                href={`/go/event-booking/${event.id}${selectedStored ? `?occurrence=${encodeURIComponent(selectedStored.id)}&source=event_page` : "?source=event_page"}`}
+                rel="nofollow external"
+              >
+                Continue to {event.externalProviderName || "booking provider"}
+              </a>
             ) : publicTickets.length === 0 ? (
               <p className="muted">Coming soon.</p>
+            ) : event.bookingMethod === "free_rsvp" && user && consented && Boolean(profile?.phone.trim()) ? (
+              <form action={rsvpFreeEvent}>
+                <input type="hidden" name="event_slug" value={event.slug} />
+                <input type="hidden" name="occurrence_starts_at" value={whenStart} />
+                <button className="btn btn-primary" type="submit">RSVP free</button>
+              </form>
             ) : (
               <TicketCheckoutForm
                 eventSlug={event.slug}
@@ -272,6 +350,18 @@ export default async function EventDetailPage({
                 needsConsent
               />
             )}
+            <p className="muted" style={{ marginTop: 16 }}>
+              Interested saves this event for later. It does not reserve a place.
+            </p>
+            {!past && event.status === "approved" ? (
+              <AddToCalendar
+                slug={event.slug}
+                title={event.title}
+                startsAt={whenStart}
+                endsAt={whenEnd}
+                location={address}
+              />
+            ) : null}
           </aside>
         </div>
       </section>

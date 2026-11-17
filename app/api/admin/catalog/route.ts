@@ -29,6 +29,8 @@ export async function POST(request: Request) {
     subtitle?: string;
     kindId?: string;
     isActive?: boolean;
+    description?: string;
+    sortOrder?: number;
   };
 
   if (body.entity !== "persona" && body.entity !== "interest") {
@@ -82,6 +84,9 @@ export async function POST(request: Request) {
     title,
     activity_kind_id: kindId,
     is_active: body.isActive !== false,
+    description: asText(body.description, 240) || null,
+    ...(Number.isInteger(body.sortOrder) ? { sort_order: Math.max(0, Number(body.sortOrder)) } : {}),
+    updated_at: new Date().toISOString(),
   };
   if (body.id) {
     const { error } = await service.from("interests").update(payload).eq("id", body.id);

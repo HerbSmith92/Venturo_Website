@@ -1,4 +1,5 @@
 import type { TicketKind } from "@/lib/event-types";
+import { encryptPayoutAccount } from "@/lib/payout-security";
 import { digitsOnly, isAllowedBankName } from "@/lib/sa-banks";
 import { createClient } from "@/lib/supabase/server";
 
@@ -37,7 +38,12 @@ export async function savePayoutProfile(userId: string, firstName: string, payou
     account_holder: holder,
     bank_name: bankName,
     account_number_last4: last4 || "0000",
-    account_number_enc: Buffer.from(account).toString("base64"),
+    account_number_enc: encryptPayoutAccount(account),
+    encryption_version: 1,
+    verification_status: "pending",
+    verification_reference: null,
+    verified_at: null,
+    changed_at: new Date().toISOString(),
     branch_code: payout.branchCode?.trim() || null,
     updated_at: new Date().toISOString(),
   });

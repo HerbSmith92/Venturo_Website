@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { getCurrentUser } from "@/lib/auth";
 import { savePayoutProfile, type PayoutInput } from "@/lib/event-input";
+import { hasRecentPayoutAuthentication } from "@/lib/payout-security";
 import { createClient } from "@/lib/supabase/server";
 
 export async function GET() {
@@ -24,6 +25,12 @@ export async function POST(request: Request) {
   const user = await getCurrentUser();
   if (!user) {
     return NextResponse.json({ error: "Log in first." }, { status: 401 });
+  }
+  if (!(await hasRecentPayoutAuthentication())) {
+    return NextResponse.json(
+      { error: "Verify your email again before changing payout details." },
+      { status: 403 },
+    );
   }
 
   const body = (await request.json()) as PayoutInput;

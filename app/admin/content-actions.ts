@@ -291,13 +291,27 @@ export async function saveGuideEvents(formData: FormData) {
     .map(String)
     .map((id) => id.trim())
     .filter(Boolean);
+  const eventLinks = eventIds
+    .map((eventId, index) => ({
+      event_id: eventId,
+      sort_order: Math.max(0, Number(formData.get(`event_order_${eventId}`)) || index),
+      editorial_note: String(formData.get(`event_note_${eventId}`) ?? "").trim().slice(0, 500) || null,
+      presentation: ["card", "feature", "compact"].includes(
+        String(formData.get(`event_presentation_${eventId}`) ?? ""),
+      )
+        ? String(formData.get(`event_presentation_${eventId}`))
+        : "card",
+    }))
+    .sort((a, b) => a.sort_order - b.sort_order);
   await supabase.from("curated_guide_events").delete().eq("guide_id", guideId);
   if (eventIds.length) {
     const { error } = await supabase.from("curated_guide_events").insert(
-      eventIds.map((eventId, index) => ({
+      eventLinks.map((event, index) => ({
         guide_id: guideId,
-        event_id: eventId,
+        event_id: event.event_id,
         sort_order: index,
+        editorial_note: event.editorial_note,
+        presentation: event.presentation,
       })),
     );
     if (error) redirect(`/admin/guides/${guideId}?error=${encodeURIComponent(error.message)}`);

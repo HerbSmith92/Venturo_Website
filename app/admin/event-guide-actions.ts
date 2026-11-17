@@ -27,7 +27,9 @@ export async function createCuratedEventGuide() {
     redirect("/admin/guides?error=Could+not+create+that+guide.");
   }
 
-  const { data, error } = await supabase.rpc("admin_create_curated_event_guide");
+  const { data, error } = await supabase.rpc("admin_create_curated_guide", {
+    p_shape: "roundup",
+  });
   const row = (Array.isArray(data) ? data[0] : data) as { id?: string } | null;
   if (error || !row?.id) {
     redirect(
@@ -35,8 +37,15 @@ export async function createCuratedEventGuide() {
     );
   }
 
+  const { error: kindError } = await supabase
+    .from("curated_guides")
+    .update({ guide_kind: "events" })
+    .eq("id", row.id);
+  if (kindError) {
+    redirect(`/admin/guides?error=${encodeURIComponent(kindError.message)}`);
+  }
   revalidateEventGuides();
-  redirect(`/admin/event-guides/${row.id}`);
+  redirect(`/admin/guides/${row.id}`);
 }
 
 export async function saveCuratedEventGuide(
