@@ -15,6 +15,38 @@ export type TicketKind = "paid" | "free" | "donation";
 export type MemberDiscountKind = "none" | "percent" | "amount";
 export type EventBookingMethod = "free_rsvp" | "venturo_ticketing" | "external";
 
+/** Shared booking fields for website, iOS & Android (same Supabase columns / JSON keys). */
+export type PublicEventBooking = {
+  bookingMethod: EventBookingMethod;
+  organiserDisplayName: string | null;
+  externalProviderName: string | null;
+  externalBookingUrl: string | null;
+  externalBookingButtonLabel: string | null;
+  /** Tracked redirect that logs External booking clicks then opens the HTTPS destination. */
+  externalBookingTrackedPath: string | null;
+};
+
+export function publicEventBooking(event: {
+  id: string;
+  bookingMethod: EventBookingMethod;
+  organiserDisplayName: string | null;
+  externalProviderName: string | null;
+  externalBookingUrl: string | null;
+  externalBookingButtonLabel: string | null;
+}): PublicEventBooking {
+  const external = event.bookingMethod === "external";
+  return {
+    bookingMethod: event.bookingMethod,
+    organiserDisplayName: event.organiserDisplayName,
+    externalProviderName: external ? event.externalProviderName : null,
+    externalBookingUrl: external ? event.externalBookingUrl : null,
+    externalBookingButtonLabel: external
+      ? event.externalBookingButtonLabel?.trim() || "Book now"
+      : null,
+    externalBookingTrackedPath: external ? `/go/event-booking/${event.id}` : null,
+  };
+}
+
 export type EventTicketType = {
   id: string;
   eventId: string;
@@ -64,12 +96,15 @@ export type VenturoEvent = {
   visibility: EventVisibility;
   status: EventStatus;
   organiserId: string;
+  /** Public organiser name for third-party listings (not the Venturo uploader). */
+  organiserDisplayName: string | null;
   reviewNote: string | null;
   parking: string | null;
   prohibitedItems: string | null;
   bookingMethod: EventBookingMethod;
   externalProviderName: string | null;
   externalBookingUrl: string | null;
+  externalBookingButtonLabel: string | null;
   waitlistEnabled: boolean;
   fromPriceCents: number | null;
   memberFromPriceCents: number | null;

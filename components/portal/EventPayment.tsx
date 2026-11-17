@@ -81,6 +81,26 @@ export function EventPayment({
     summary.freeCount ? `${formatCount(summary.freeCount)} free RSVP` : null,
   ].filter(Boolean);
 
+  if (event.bookingMethod === "external") {
+    return (
+      <section>
+        <p className="eyebrow">Payment</p>
+        <h2>External booking</h2>
+        <p className="lede muted">
+          Booking & payment take place on {event.externalProviderName || "the provider"}&apos;s
+          website. This listing is excluded from Venturo payout reports unless a separate financial
+          arrangement is configured.
+        </p>
+        <div className="studio-card">
+          <p className="notice">
+            Track event-page views, Interested &amp; External booking clicks on the dashboard. They
+            are not tickets sold or host payout.
+          </p>
+        </div>
+      </section>
+    );
+  }
+
   return (
     <section>
       <p className="eyebrow">Payment</p>

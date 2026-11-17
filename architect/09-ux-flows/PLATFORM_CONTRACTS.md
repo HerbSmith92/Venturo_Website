@@ -12,8 +12,18 @@
 
 - `free_rsvp`: primary action “RSVP free”.
 - `venturo_ticketing`: primary action “Get tickets”.
-- `external`: primary action identifies the provider and says booking happens on its website.
-- External clicks are engagement only. They never create attendance, sales or payout records.
+- `external`: primary action uses `external_booking_button_label` (default **Book now**),
+  names `external_provider_name`, and opens the tracked `/go/event-booking/{eventId}` link
+  (website: new tab). Supporting copy: booking & payment take place on the provider’s site.
+- `organiser_display_name` is the public organiser for third-party listings. It is separate
+  from `organiser_id` (the Venturo account that uploaded the listing). A third-party
+  organiser does not need a host account for an admin listing.
+- External clicks are engagement only (“External booking clicks”). They never create
+  attendance, RSVPs, tickets, sales or Venturo payout records unless a separately
+  configured financial arrangement exists.
+- Interested remains available on external listings for reminders. Reminder wording for
+  interested members: “Still keen? Book your spot through {provider}.”
+- Confirmed external bookings appear only when a supported integration supplies them.
 
 ## Notifications
 
@@ -53,12 +63,18 @@ feature.
 
 ### Events, booking & calendar
 
-- Clients read `booking_method`, `external_booking_url`, `external_provider_name`
-  and the selected `event_occurrences.id`.
+- Clients read `booking_method`, `external_booking_url`, `external_provider_name`,
+  `external_booking_button_label`, `organiser_display_name` and the selected
+  `event_occurrences.id` (from Supabase or `GET /api/events/{idOrSlug}/booking`).
 - `free_rsvp` shows **RSVP free**, `venturo_ticketing` shows **Get tickets** and
-  `external` opens the tracked `/go/event-booking/{eventId}` web link.
-- Interested never means booked. A confirmed RSVP or ticket supersedes Interested
-  for reminder and UI state.
+  `external` shows the button label (default **Book now**) and opens the tracked
+  `/go/event-booking/{eventId}` web link (prefer in-app browser / external browser;
+  do not invent a native checkout). Preserve affiliate/UTM query params already on
+  the stored HTTPS URL; the go route may also forward safe attribution params.
+- Interested never means booked. It must not reserve capacity or issue a ticket.
+  A confirmed RSVP or ticket supersedes Interested for reminder and UI state.
+- Event cards, collections and guide links open the Venturo event detail first;
+  booking is started from that page.
 - A sign-in round trip preserves the event slug and occurrence start.
 - Calendar clients may create a native calendar item from occurrence data or open
   `/api/events/{slug}/calendar?on={occurrenceStartsAt}`. Permission denial must
@@ -129,6 +145,9 @@ Website and app audiences remain separate in reporting.
 - Use EventKit for native calendar actions and APNs payload/open handling.
 - Refresh the interest catalogue on launch/background refresh and after an editor
   change notification.
+- External booking: read the shared booking fields, show organiser + provider copy,
+  open `/go/event-booking/{eventId}` (Safari View Controller / system browser). Do
+  not open Venturo checkout for `booking_method = external`.
 
 ### Android
 
@@ -137,9 +156,19 @@ Website and app audiences remain separate in reporting.
 - Route the same HTTPS paths as iOS.
 - Use Calendar Provider intents/APIs and FCM data payload/open handling.
 - Refresh the same dynamic catalogue; do not maintain an Android-only taxonomy.
+- External booking: same contract as iOS — Custom Tabs / external browser via the
+  tracked go link; keep Interested local to Venturo.
 
 No native app source is present in this repository. Those entitlements, manifests,
 route handlers and store builds must be completed in the iOS/Android repositories.
+
+### Mobile gaps (external booking)
+
+- Confirm event detail maps `organiser_display_name`, `external_booking_button_label`
+  and provider supporting copy.
+- Confirm analytics labels outbound opens as External booking clicks (not tickets
+  sold / confirmed attendees).
+- Confirm cancelled / ended / unavailable states hide or disable Book now.
 
 ## Staged rollout & rollback
 

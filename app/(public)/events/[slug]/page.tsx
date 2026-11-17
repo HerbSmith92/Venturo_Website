@@ -249,6 +249,12 @@ export default async function EventDetailPage({
             <div className="event-live-block">
               <p className="eyebrow">Information</p>
               <dl className="event-info-list">
+                {event.organiserDisplayName ? (
+                  <div>
+                    <dt>Organised by</dt>
+                    <dd>{event.organiserDisplayName}</dd>
+                  </div>
+                ) : null}
                 <div>
                   <dt>Age Requirement</dt>
                   <dd>{event.ageRestriction || "All ages"}</dd>
@@ -283,12 +289,17 @@ export default async function EventDetailPage({
               {event.bookingMethod === "free_rsvp"
                 ? "RSVP free"
                 : event.bookingMethod === "external"
-                  ? `Book with ${event.externalProviderName || "the provider"}`
+                  ? event.externalBookingButtonLabel?.trim() || "Book now"
                   : "Get tickets"}
             </h2>
+            {event.bookingMethod === "external" && event.organiserDisplayName ? (
+              <p>
+                Organised by <strong>{event.organiserDisplayName}</strong>
+              </p>
+            ) : null}
             <p className="muted">
               {event.bookingMethod === "external"
-                ? `Booking takes place on ${event.externalProviderName || "the provider"}'s website. An outbound click is not a confirmed Venturo booking.`
+                ? `Book through ${event.externalProviderName || "the provider"}. Booking & payment take place on their website.`
                 : past
                 ? "Tickets are closed because this date has passed."
                 : event.membersOnly
@@ -300,7 +311,11 @@ export default async function EventDetailPage({
                     : "Public tickets are open to every profile. Exclusive member tickets need a membership."}
             </p>
             {event.status === "cancelled" ? (
-              <p className="error">This event is cancelled. Tickets are closed.</p>
+              <p className="error">
+                {event.bookingMethod === "external"
+                  ? "This event is cancelled. External booking is closed."
+                  : "This event is cancelled. Tickets are closed."}
+              </p>
             ) : past ? (
               <p className="notice">This event has passed.</p>
             ) : soldOut ? (
@@ -316,15 +331,24 @@ export default async function EventDetailPage({
                 <p className="notice">Sold out.</p>
               )
             ) : event.status !== "approved" ? (
-              <p className="notice">Tickets unlock once the event is approved.</p>
+              <p className="notice">
+                {event.bookingMethod === "external"
+                  ? "Booking unlocks once the event is approved."
+                  : "Tickets unlock once the event is approved."}
+              </p>
             ) : event.bookingMethod === "external" ? (
-              <a
-                className="btn btn-primary"
-                href={`/go/event-booking/${event.id}${selectedStored ? `?occurrence=${encodeURIComponent(selectedStored.id)}&source=event_page` : "?source=event_page"}`}
-                rel="nofollow external"
-              >
-                Continue to {event.externalProviderName || "booking provider"}
-              </a>
+              event.externalBookingUrl ? (
+                <a
+                  className="btn btn-primary"
+                  href={`/go/event-booking/${event.id}${selectedStored ? `?occurrence=${encodeURIComponent(selectedStored.id)}&source=event_page` : "?source=event_page"}`}
+                  target="_blank"
+                  rel="noopener noreferrer nofollow"
+                >
+                  {event.externalBookingButtonLabel?.trim() || "Book now"}
+                </a>
+              ) : (
+                <p className="notice">Booking is temporarily unavailable.</p>
+              )
             ) : publicTickets.length === 0 ? (
               <p className="muted">Coming soon.</p>
             ) : event.bookingMethod === "free_rsvp" && user && consented && Boolean(profile?.phone.trim()) ? (
@@ -351,7 +375,9 @@ export default async function EventDetailPage({
               />
             )}
             <p className="muted" style={{ marginTop: 16 }}>
-              Interested saves this event for later. It does not reserve a place.
+              {event.bookingMethod === "external"
+                ? "Interested saves this event for reminders. It does not reserve a place or confirm a booking."
+                : "Interested saves this event for later. It does not reserve a place."}
             </p>
             {!past && event.status === "approved" ? (
               <AddToCalendar
