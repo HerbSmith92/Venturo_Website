@@ -18,6 +18,7 @@ import {
   slugifyTitle,
   unitPriceCents,
   type EventStatus,
+  type EventBookingMethod,
   type EventTicketType,
   type EventVisibility,
   type MemberDiscountKind,
@@ -31,6 +32,7 @@ import { listOccurrences, nextOccurrence } from "@/lib/event-repeat";
 import type { RepeatEvery } from "@/lib/event-types";
 
 export type {
+  EventBookingMethod,
   EventStatus,
   EventTicketType,
   EventVisibility,
@@ -88,6 +90,10 @@ type EventRow = {
   review_note: string | null;
   parking: string | null;
   prohibited_items: string | null;
+  booking_method: EventBookingMethod;
+  external_provider_name: string | null;
+  external_booking_url: string | null;
+  waitlist_enabled: boolean;
   event_ticket_types?: TicketTypeRow[] | null;
 };
 
@@ -195,6 +201,10 @@ function mapEvent(row: EventRow): VenturoEvent {
     reviewNote: row.review_note,
     parking: row.parking,
     prohibitedItems: row.prohibited_items,
+    bookingMethod: row.booking_method ?? "venturo_ticketing",
+    externalProviderName: row.external_provider_name,
+    externalBookingUrl: row.external_booking_url,
+    waitlistEnabled: Boolean(row.waitlist_enabled),
     fromPriceCents: publicPrices.length
       ? Math.min(...publicPrices)
       : membersOnly
@@ -213,6 +223,7 @@ const EVENT_SELECT = `
   venue_name, address_line1, address_line2, city, postal_code, country,
   latitude, longitude, show_map, visibility, status, organiser_id, review_note,
   parking, prohibited_items,
+  booking_method, external_provider_name, external_booking_url, waitlist_enabled,
   event_ticket_types (
     id, event_id, name, description, kind, price_cents, member_price_cents,
     member_discount_kind, member_discount_value, members_only, pass_fees_to_buyer,
@@ -518,6 +529,10 @@ export type CreateEventInput = {
   visibility?: EventVisibility;
   parking?: string;
   prohibitedItems?: string;
+  bookingMethod?: EventBookingMethod;
+  externalProviderName?: string;
+  externalBookingUrl?: string;
+  waitlistEnabled?: boolean;
   ticketTypes?: {
     id?: string;
     name: string;
@@ -534,6 +549,25 @@ export type CreateEventInput = {
   }[];
   submitForReview?: boolean;
 };
+
+async function syncStoredOccurrences(
+  supabase: NonNullable<Awaited<ReturnType<typeof createClient>>>,
+  eventId: string,
+  input: Pick<CreateEventInput, "startsAt" | "endsAt" | "repeatEvery" | "repeatUntil">,
+) {
+  if (!input.startsAt) return;
+  const occurrences = listOccurrences(
+    input.startsAt,
+    input.endsAt ?? "",
+    input.repeatEvery ?? null,
+    input.repeatUntil ?? null,
+  );
+  const { error } = await supabase.rpc("sync_event_occurrences", {
+    p_event_id: eventId,
+    p_occurrences: occurrences,
+  });
+  if (error) throw new Error(error.message);
+}
 
 export async function createEventDraft(userId: string, input: CreateEventInput) {
   const supabase = await createClient();
@@ -573,6 +607,12 @@ export async function createEventDraft(userId: string, input: CreateEventInput) 
       visibility: input.visibility || "public",
       parking: input.parking?.trim() || null,
       prohibited_items: input.prohibitedItems?.trim() || null,
+      booking_method: input.bookingMethod ?? "venturo_ticketing",
+      external_provider_name:
+        input.bookingMethod === "external" ? input.externalProviderName?.trim() || null : null,
+      external_booking_url:
+        input.bookingMethod === "external" ? input.externalBookingUrl?.trim() || null : null,
+      waitlist_enabled: input.bookingMethod === "external" ? false : Boolean(input.waitlistEnabled),
       status,
       organiser_id: userId,
       created_by: userId,
@@ -620,6 +660,8 @@ export async function createEventDraft(userId: string, input: CreateEventInput) 
     );
     if (ticketError) throw new Error(ticketError.message);
   }
+
+  await syncStoredOccurrences(supabase, event.id, input);
 
   return event as { id: string; slug: string };
 }
@@ -708,6 +750,17 @@ export async function saveEventDraft(
       },
     });
     if (rpcError) throw new Error(rpcError.message);
+    if (input.bookingMethod) {
+      const { error: bookingError } = await supabase.rpc("set_event_booking_method", {
+        p_event_id: eventId,
+        p_method: input.bookingMethod,
+        p_provider_name: input.externalProviderName?.trim() || null,
+        p_external_url: input.externalBookingUrl?.trim() || null,
+        p_waitlist_enabled: Boolean(input.waitlistEnabled),
+      });
+      if (bookingError) throw new Error(bookingError.message);
+    }
+    await syncStoredOccurrences(supabase, eventId, input);
     return { id: existing.id as string, slug: existing.slug as string };
   }
 
@@ -748,6 +801,18 @@ export async function saveEventDraft(
 
   if (updateError) throw new Error(updateError.message);
 
+  if (input.bookingMethod) {
+    const { error: bookingError } = await supabase.rpc("set_event_booking_method", {
+      p_event_id: eventId,
+      p_method: input.bookingMethod,
+      p_provider_name: input.externalProviderName?.trim() || null,
+      p_external_url: input.externalBookingUrl?.trim() || null,
+      p_waitlist_enabled: Boolean(input.waitlistEnabled),
+    });
+    if (bookingError) throw new Error(bookingError.message);
+  }
+  await syncStoredOccurrences(supabase, eventId, input);
+
   if (input.ticketTypes) {
     const { data: currentTickets, error: ticketLoadError } = await supabase
       .from("event_ticket_types")
@@ -782,6 +847,9 @@ export function eventReadyToGoLive(input: {
   ticketTypes?: TicketInput[];
   bannerUrl?: string | null;
   listingImageUrl?: string | null;
+  bookingMethod?: EventBookingMethod;
+  externalProviderName?: string;
+  externalBookingUrl?: string;
 }) {
   if (!input.title.trim()) return "Give the event a name.";
   if (!input.description.trim()) return "Add a short description.";
@@ -790,7 +858,17 @@ export function eventReadyToGoLive(input: {
   if (new Date(input.endsAt).getTime() < new Date(input.startsAt).getTime()) {
     return "End time must be after the start time.";
   }
-  if (!input.ticketTypes?.length) return "Add at least one ticket type.";
+  if (input.bookingMethod === "external") {
+    if (!input.externalProviderName?.trim()) return "Add the external booking provider.";
+    try {
+      const url = new URL(input.externalBookingUrl ?? "");
+      if (url.protocol !== "https:") return "External booking needs an HTTPS link.";
+    } catch {
+      return "Add a valid external booking link.";
+    }
+  } else if (!input.ticketTypes?.length) {
+    return "Add at least one ticket type.";
+  }
   if (!input.bannerUrl?.trim()) return "Add the event page picture for the website & the app.";
   if (!input.listingImageUrl?.trim()) {
     return "Add the feed post. What's On, the app, & guide posts use it.";
@@ -819,6 +897,9 @@ export async function goLiveEvent(
     ticketTypes: event.ticketTypes,
     bannerUrl: event.bannerUrl,
     listingImageUrl: event.listingImageUrl,
+    bookingMethod: event.bookingMethod,
+    externalProviderName: event.externalProviderName ?? undefined,
+    externalBookingUrl: event.externalBookingUrl ?? undefined,
   });
   if (ready) throw new Error(ready);
 

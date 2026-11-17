@@ -221,8 +221,9 @@ export async function loadGuideQueue(
     .from("curated_guides")
     .select(
       `
-      id, title, slug, status, publish_at, expire_at, updated_at, shape, created_by, author_id,
+      id, title, slug, status, publish_at, expire_at, updated_at, shape, guide_kind, created_by, author_id,
       curated_guide_items ( id, sort_order, directory_listings ( listing_media ( public_url, is_cover, sort_order, is_pending ) ) ),
+      curated_guide_events ( event_id, sort_order ),
       guide_authors ( display_name, photo_url )
     `,
     )
@@ -251,7 +252,7 @@ export async function loadGuideQueue(
   if (error || !data) return [];
 
   return (
-    data as {
+    data as unknown as {
       id: string;
       title: string;
       slug: string;
@@ -260,6 +261,7 @@ export async function loadGuideQueue(
       expire_at: string | null;
       updated_at: string;
       shape?: string | null;
+      guide_kind?: "activities" | "events" | "mixed" | null;
       created_by?: string;
       author_id?: string | null;
       curated_guide_items?: {
@@ -267,6 +269,7 @@ export async function loadGuideQueue(
         sort_order?: number | null;
         directory_listings?: ListingRow | ListingRow[] | null;
       }[];
+      curated_guide_events?: { event_id: string; sort_order?: number | null }[];
       guide_authors?: { display_name: string; photo_url?: string | null } | { display_name: string; photo_url?: string | null }[] | null;
     }[]
   )
@@ -281,8 +284,11 @@ export async function loadGuideQueue(
         publish_at: row.publish_at,
         expire_at: row.expire_at,
         updated_at: row.updated_at,
-        item_count: row.curated_guide_items?.length ?? 0,
-        about: "activities" as const,
+        item_count:
+          row.guide_kind === "events"
+            ? row.curated_guide_events?.length ?? 0
+            : row.curated_guide_items?.length ?? 0,
+        about: row.guide_kind === "events" ? "events" as const : "activities" as const,
         shape: row.shape || "roundup",
         author_name: author.author_name,
         author_photo: author.author_photo,

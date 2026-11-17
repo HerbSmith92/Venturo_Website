@@ -1,5 +1,6 @@
 import { CategoryChips } from "@/components/CategoryChips";
 import { DirectorySearch } from "@/components/DirectorySearch";
+import { DiscoverBanner } from "@/components/DiscoverBanner";
 import { ListingCard } from "@/components/ListingCard";
 import { getCurrentUser } from "@/lib/auth";
 import { searchDirectory } from "@/lib/listings";
@@ -61,14 +62,18 @@ export default async function DirectoryPage({
 
   return (
     <main className="shell">
-      <section className="discover-banner">
-        <img src="/brand/landing/next-adventure.jpg" alt="" />
-        <div>
-          <p className="eyebrow">Directory</p>
-          <h1>Find places to go &amp; things to do</h1>
-        </div>
-      </section>
-      <section className="section">
+      <DiscoverBanner
+        eyebrow="Activities"
+        title="Find your kind of fun."
+        copy="Discover activities near you, from everyday escapes to bucket-list adventures."
+        image="/brand/landing/next-adventure.jpg"
+        imageAlt="People heading out on their next Venturo adventure"
+        actions={[
+          { label: "Explore activities", href: "#activity-results", primary: true },
+          { label: "List your business", href: "/list-your-business" },
+        ]}
+      />
+      <section className="section" id="activity-results">
         <DirectorySearch
           q={query.q ?? ""}
           place={query.place ?? ""}

@@ -44,6 +44,7 @@ export async function createTicketOrder(input: {
   inviteToken?: string;
   occurrenceStartsAt?: string;
   occurrenceEndsAt?: string;
+  bookingSource?: "free_rsvp" | "venturo_ticketing" | "complimentary" | "invite";
   /** Paystack returns into the iOS app instead of the website account. */
   appCheckout?: boolean;
   activityPlatform?: ActivityPlatform;
@@ -54,6 +55,12 @@ export async function createTicketOrder(input: {
   const event = await getEventBySlug(input.eventSlug);
   if (!event || event.status !== "approved") {
     throw new Error("That event is not on sale.");
+  }
+  if (event.bookingMethod === "external") {
+    throw new Error("Booking for this event happens on the provider's website.");
+  }
+  if (input.bookingSource === "free_rsvp" && event.bookingMethod !== "free_rsvp") {
+    throw new Error("Free RSVP is not available for this event.");
   }
 
   const fees = await getPlatformFees();
@@ -75,6 +82,16 @@ export async function createTicketOrder(input: {
   const soldForDate = occurrenceStarts
     ? await ticketsSoldForOccurrence(event.id, occurrenceStarts)
     : null;
+  let occurrenceId: string | null = null;
+  if (occurrenceStarts) {
+    const { data: occurrence } = await supabase
+      .from("event_occurrences")
+      .select("id")
+      .eq("event_id", event.id)
+      .eq("starts_at", occurrenceStarts)
+      .maybeSingle();
+    occurrenceId = occurrence?.id ?? null;
+  }
 
   const picked: { ticket: EventTicketType; quantity: number }[] = [];
   for (const line of input.lines) {
@@ -187,6 +204,8 @@ export async function createTicketOrder(input: {
       invite_id: inviteId,
       occurrence_starts_at: occurrenceStarts,
       occurrence_ends_at: occurrenceEnds,
+      occurrence_id: occurrenceId,
+      booking_source: input.bookingSource ?? (inviteId ? "invite" : "venturo_ticketing"),
     })
     .select("id, m_payment_id, total_cents")
     .single();
@@ -208,6 +227,27 @@ export async function createTicketOrder(input: {
     })),
   );
   if (itemsError) throw new Error(itemsError.message);
+
+  if (total > 0) {
+    if (!occurrenceId) throw new Error("This event date is not ready for checkout.");
+    for (const line of resolved) {
+      const { error: holdError } = await supabase.rpc("reserve_event_inventory", {
+        p_occurrence_id: occurrenceId,
+        p_ticket_type_id: line.ticket.id,
+        p_quantity: line.quantity,
+        p_idempotency_key: `${order.id}:${line.ticket.id}`,
+        p_order_id: order.id,
+      });
+      if (holdError) {
+        const service = createServiceClient();
+        if (service) {
+          await service.from("event_inventory_holds").update({ status: "released" }).eq("order_id", order.id);
+          await service.from("event_orders").update({ status: "failed" }).eq("id", order.id);
+        }
+        throw new Error(holdError.message);
+      }
+    }
+  }
 
   const publicOrigin = getPublicSiteUrl(input.origin);
   const urls = {

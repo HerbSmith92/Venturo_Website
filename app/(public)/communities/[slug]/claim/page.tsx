@@ -10,10 +10,10 @@ export default async function ClaimCommunityPage({
   searchParams,
 }: {
   params: Promise<{ slug: string }>;
-  searchParams: Promise<{ error?: string }>;
+  searchParams: Promise<{ error?: string; requested?: string }>;
 }) {
   const { slug } = await params;
-  const { error } = await searchParams;
+  const { error, requested } = await searchParams;
   const community = await getCommunityBySlug(slug);
   if (!community || community.status !== "published") notFound();
 
@@ -37,16 +37,21 @@ export default async function ClaimCommunityPage({
             <p className="eyebrow">Community</p>
             <h1>Claim {community.title}</h1>
             <p className="lede muted">
-              You are signed in as {user.email}. Claim it to edit the page & add events.
+              You are signed in as {user.email}. Venturo reviews claims before granting manager access.
             </p>
+            {requested ? <p className="notice">Claim sent for review. We’ll keep the community protected while Venturo verifies it.</p> : null}
             {error ? <p className="error">{error}</p> : null}
-            <form action={claimCommunityNow}>
+            {!requested ? <form action={claimCommunityNow}>
               <input type="hidden" name="id" value={community.id} />
               <input type="hidden" name="slug" value={community.slug} />
+              <label className="field">
+                <span>How are you connected to this community?</span>
+                <textarea name="evidence" required rows={4} placeholder="Share your role, official email or another way we can verify you." />
+              </label>
               <button className="btn btn-primary" type="submit">
-                Claim This Community
+                Send Claim For Review
               </button>
-            </form>
+            </form> : null}
           </>
         ) : (
           <>

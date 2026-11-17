@@ -3,6 +3,7 @@ import { unstable_cache } from "next/cache";
 import { PUBLIC_CATALOG_TAG } from "@/lib/public-cache";
 import { createAnonClient } from "@/lib/supabase/anon";
 import { createClient } from "@/lib/supabase/server";
+import { createServiceClient } from "@/lib/supabase/admin";
 import type { CommunityEventLink, CommunityPhoto, CommunityRecord, CommunityStatus } from "@/lib/community-shared";
 
 export type { CommunityEventLink, CommunityPhoto, CommunityRecord, CommunityStatus };
@@ -88,8 +89,22 @@ export const listPublishedCommunities = cache(() =>
 );
 
 export async function listClaimedCommunities(userId: string) {
-  const supabase = await createClient();
+  const supabase = createServiceClient() ?? (await createClient());
   if (!supabase) return [];
+  const { data: managed } = await supabase
+    .from("community_managers")
+    .select("community_id")
+    .eq("user_id", userId)
+    .eq("status", "active");
+  const managedIds = (managed ?? []).map((row) => String(row.community_id));
+  if (managedIds.length) {
+    const { data, error } = await supabase
+      .from("communities")
+      .select(SELECT)
+      .in("id", managedIds)
+      .order("title");
+    if (!error && data) return (data as CommunityRow[]).map(mapCommunity);
+  }
   const { data, error } = await supabase
     .from("communities")
     .select(SELECT)

@@ -105,6 +105,7 @@ export async function toggleFollow(formData: FormData) {
     await supabase.from("community_follows").insert({
       user_id: user.id,
       community_id: communityId,
+      host_visible: formData.get("host_visible") === "on",
     });
     await recordMemberActivity(user.id, "follow", "web");
   }

@@ -4,6 +4,9 @@ import { isStaff } from "@/lib/roles";
 import { appItemId, appItemKind, screenKey } from "@/lib/site-visit-path";
 import { bearerToken, identityFromBearer } from "@/lib/supabase/bearer";
 import { createServiceClient } from "@/lib/supabase/admin";
+import { platformFeatures } from "@/lib/platform-features";
+
+const ACTIONS = new Set(["screen_view", "click", "rsvp", "purchase", "calendar_add", "notification_open"]);
 
 export async function POST(request: Request) {
   const token = bearerToken(request);
@@ -17,16 +20,47 @@ export async function POST(request: Request) {
     screen?: string;
     itemKind?: string;
     itemId?: string;
+    action?: string;
+    idempotencyKey?: string;
+    properties?: Record<string, unknown>;
   } | null;
   const screen = screenKey(body?.screen);
   if (!screen) return NextResponse.json({ error: "Send a screen id." }, { status: 400 });
   const itemKind = appItemKind(body?.itemKind);
   const itemId = appItemId(body?.itemId);
+  const action = ACTIONS.has(String(body?.action ?? "")) ? String(body?.action) : "screen_view";
+  const idempotencyKey =
+    typeof body?.idempotencyKey === "string" && /^[A-Za-z0-9:_-]{8,200}$/.test(body.idempotencyKey)
+      ? body.idempotencyKey
+      : null;
 
   const admin = createServiceClient();
   if (!admin) return new NextResponse(null, { status: 204 });
 
   const day = johannesburgDay();
+  const properties = Object.fromEntries(
+    Object.entries(body?.properties ?? {})
+      .slice(0, 10)
+      .map(([key, value]) => [
+        key.slice(0, 50),
+        typeof value === "string" ? value.slice(0, 200) : typeof value === "number" || typeof value === "boolean" ? value : null,
+      ]),
+  );
+  if (platformFeatures.enhancedAnalytics) {
+    const { error: engagementError } = await admin.from("app_engagement_events").insert({
+      user_id: identity.id,
+      name: action,
+      screen,
+      item_kind: itemKind,
+      item_id: itemId,
+      idempotency_key: idempotencyKey,
+      properties,
+    });
+    if (engagementError && engagementError.code !== "23505") {
+      console.error("[app engagement]", engagementError.message);
+    }
+  }
+  if (action !== "screen_view") return new NextResponse(null, { status: 204 });
   const { error: uniqueError } = await admin.from("app_screen_uniques").insert({
     day,
     screen,

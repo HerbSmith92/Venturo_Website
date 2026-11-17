@@ -10,6 +10,13 @@ import {
 import type { VenturoEvent } from "@/lib/event-types";
 import { listEventsByIds } from "@/lib/events";
 import { redirect } from "next/navigation";
+import { listCommunityFollowPreferences, loadCommunityHostAnalytics } from "@/lib/community-host";
+import { resolveAnalyticsRange } from "@/lib/analytics-range";
+import {
+  reportCommunityMessages,
+  updateCommunityFollowPreferences,
+} from "@/app/community-tools-actions";
+import { toggleFollow } from "@/app/member-actions";
 
 function hasEnded(event: VenturoEvent, now: number) {
   const stamp = event.endsAt || event.startsAt;
@@ -23,12 +30,16 @@ function CommunityBlock({
   kicker,
   events,
   showMemberPrice,
+  preferences,
+  managerStats,
 }: {
   community: CommunityRecord;
   href: string;
   kicker: string;
   events: VenturoEvent[];
   showMemberPrice: boolean;
+  preferences?: { hostVisible: boolean; emailEnabled: boolean; pushEnabled: boolean; muted: boolean };
+  managerStats?: { views: number; followers: number };
 }) {
   return (
     <article className="community-all-block">
@@ -53,6 +64,38 @@ function CommunityBlock({
           ))}
         </div>
       )}
+      {preferences ? (
+        <details>
+          <summary>Follower privacy &amp; notifications</summary>
+          <form action={updateCommunityFollowPreferences} className="stack-list" style={{ marginTop: 12 }}>
+            <input type="hidden" name="community_id" value={community.id} />
+            <label><input type="checkbox" name="host_visible" defaultChecked={preferences.hostVisible} /> Let managers see my display name, profile photo &amp; follow date</label>
+            <label><input type="checkbox" name="email_enabled" defaultChecked={preferences.emailEnabled} /> Email announcements</label>
+            <label><input type="checkbox" name="push_enabled" defaultChecked={preferences.pushEnabled} /> Push announcements</label>
+            <label><input type="checkbox" name="muted" defaultChecked={preferences.muted} /> Mute all general announcements</label>
+            <p className="muted">Managers never receive your email, phone number or precise location.</p>
+            <button className="btn btn-secondary" type="submit">Save Preferences</button>
+          </form>
+          <form action={reportCommunityMessages} style={{ marginTop: 16 }}>
+            <input type="hidden" name="community_id" value={community.id} />
+            <label className="field">
+              <span>Report unwanted messages</span>
+              <textarea name="reason" rows={2} required placeholder="Tell Venturo what happened." />
+            </label>
+            <button className="btn btn-secondary" type="submit">Send Report</button>
+          </form>
+          <form action={toggleFollow} style={{ marginTop: 16 }}>
+            <input type="hidden" name="community_id" value={community.id} />
+            <input type="hidden" name="next" value="/account/communities" />
+            <button className="btn btn-secondary" type="submit">Unfollow Community</button>
+          </form>
+        </details>
+      ) : null}
+      {managerStats ? (
+        <p className="muted">
+          Last 7 days: {managerStats.views} website views · {managerStats.followers} current followers
+        </p>
+      ) : null}
     </article>
   );
 }
@@ -61,9 +104,10 @@ export default async function AccountCommunitiesPage() {
   const user = await getCurrentUser();
   if (!user) redirect("/login?next=/account/communities");
 
-  const [claimed, followedAll] = await Promise.all([
+  const [claimed, followedAll, followPreferences] = await Promise.all([
     listClaimedCommunities(user.id),
     listFollowedCommunities(user.id),
+    listCommunityFollowPreferences(user.id),
   ]);
   const ownedIds = new Set(claimed.map((community) => community.id));
   const followed = followedAll.filter((community) => !ownedIds.has(community.id));
@@ -72,6 +116,17 @@ export default async function AccountCommunitiesPage() {
   const byId = new Map(events.map((event) => [event.id, event]));
   const now = Date.now();
   const showMemberPrice = user.plan === "paid";
+  const overviewRows = await Promise.all(
+    claimed.map(async (community) => [
+      community.id,
+      await loadCommunityHostAnalytics(
+        community.id,
+        community.slug,
+        resolveAnalyticsRange({ range: "7d" }),
+      ),
+    ] as const),
+  );
+  const managerStats = new Map(overviewRows);
 
   function upcoming(communityId: string) {
     return (eventIds.get(communityId) ?? [])
@@ -112,6 +167,10 @@ export default async function AccountCommunitiesPage() {
             kicker={communityStatusLabel(community.status)}
             events={upcoming(community.id)}
             showMemberPrice={showMemberPrice}
+            managerStats={{
+              views: managerStats.get(community.id)?.website.views ?? 0,
+              followers: managerStats.get(community.id)?.followers.total ?? 0,
+            }}
           />
         ))
       )}
@@ -130,6 +189,7 @@ export default async function AccountCommunitiesPage() {
             kicker="Following"
             events={upcoming(community.id)}
             showMemberPrice={showMemberPrice}
+            preferences={followPreferences.get(community.id)}
           />
         ))
       )}

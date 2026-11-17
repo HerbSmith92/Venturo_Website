@@ -64,7 +64,7 @@ export default async function GuideDetailPage({
   const body = listingGuide?.body ?? eventGuide?.body ?? null;
   const author = listingGuide?.author ?? eventGuide?.author ?? null;
   const nextPath = `/guides/${guide.slug}`;
-  const kind: GuideKind = listingGuide ? "activities" : "events";
+  const kind: GuideKind = listingGuide?.guideKind === "events" || eventGuide ? "events" : "activities";
   const viewCount = listingGuide?.viewCount ?? eventGuide?.viewCount ?? 0;
   const likeCount = listingGuide?.likeCount ?? eventGuide?.likeCount ?? 0;
 
@@ -78,7 +78,7 @@ export default async function GuideDetailPage({
   ]);
   const moreGuides = otherGuides.filter((item) => item.id !== guideId).slice(0, 5);
   const linkedEvents = (await Promise.all(eventIds.map((id) => getEventById(id)))).filter(
-    (event) => event && event.status === "approved",
+    (event) => event && (event.status === "approved" || event.status === "cancelled"),
   );
 
   if (listingGuide?.shape === "spotlight") {
@@ -138,7 +138,7 @@ export default async function GuideDetailPage({
         title={title}
         intro={intro}
         body={body}
-        about={kind}
+        about={listingGuide?.guideKind === "events" || eventGuide ? "events" : "activities"}
         publishedAt={listingGuide?.publishedAt ?? null}
         author={author}
         listingItems={listingGuide?.items}

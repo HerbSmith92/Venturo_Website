@@ -9,7 +9,7 @@ import { formatGuideTally, type GuideKind } from "@/lib/guide-engagement";
 import type { GuideAuthorPublic } from "@/lib/guide-authors";
 import type { EventGuideRecommendation } from "@/lib/event-guides";
 import type { GuideCardData, GuideRecommendation } from "@/lib/guides";
-import type { VenturoEvent } from "@/lib/event-types";
+import { formatEventWindow, type VenturoEvent } from "@/lib/event-types";
 
 function guideDate(value?: string | null) {
   if (!value) return null;
@@ -21,6 +21,14 @@ function guideDate(value?: string | null) {
     month: "short",
     year: "numeric",
   }).format(date);
+}
+
+function linkedEventState(event: VenturoEvent) {
+  if (event.status === "cancelled") return "Cancelled";
+  if (event.endsAt && Date.parse(event.endsAt) < Date.now()) return "Ended";
+  if (event.bookingMethod === "free_rsvp") return "RSVP free";
+  if (event.bookingMethod === "external") return `External booking · ${event.externalProviderName || "Provider"}`;
+  return "Get tickets";
 }
 
 export function CollectionGuide({
@@ -122,16 +130,24 @@ export function CollectionGuide({
             </div>
             {linkedEvents && linkedEvents.length > 0 ? (
               <div className="guide-collection-events">
-                <h2>Linked events</h2>
-                <ul>
-                  {linkedEvents.map((event) =>
-                    event ? (
-                      <li key={event.id}>
-                        <a href={`/events/${event.slug}`}>{event.title}</a>
-                      </li>
-                    ) : null,
-                  )}
-                </ul>
+                <h2>Events in this guide</h2>
+                <div className="grid">
+                  {linkedEvents.map((event) => (
+                    <a className="card" href={`/events/${event.slug}`} key={event.id}>
+                      {event.listingImageUrl || event.bannerUrl ? (
+                        <div className="card-image card-image-post">
+                          <img src={event.listingImageUrl || event.bannerUrl || ""} alt="" />
+                        </div>
+                      ) : null}
+                      <div className="card-body">
+                        <p className="card-kicker">{linkedEventState(event)}</p>
+                        <h3>{event.title}</h3>
+                        <p className="card-meta">{formatEventWindow(event.startsAt, event.endsAt, event.timezone)}</p>
+                        <p className="card-meta">{[event.venueName, event.city].filter(Boolean).join(" · ")}</p>
+                      </div>
+                    </a>
+                  ))}
+                </div>
               </div>
             ) : null}
             {author ? (

@@ -1,7 +1,7 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import { createCuratedEventGuide, duplicateCuratedEventGuide } from "@/app/admin/event-guide-actions";
+import { createCuratedEventGuide } from "@/app/admin/event-guide-actions";
 import { createCuratedGuide, duplicateCuratedGuide } from "@/app/admin/guide-actions";
 import { BulkForm } from "@/components/admin/BulkForm";
 import { bulkGuideAction } from "@/app/admin/bulk-actions";
@@ -29,7 +29,7 @@ const TABS: { id: Tab; label: string }[] = [
 ];
 
 function hrefFor(guide: GuideQueueRow) {
-  return guide.about === "events" ? `/admin/event-guides/${guide.id}` : `/admin/guides/${guide.id}`;
+  return `/admin/guides/${guide.id}`;
 }
 
 function authorInitial(name: string | null) {
@@ -177,7 +177,7 @@ export function GuidesDashboard({
                       <details>
                         <summary aria-label={`More for ${guide.title}`}>···</summary>
                         <div>
-                          <form action={guide.about === "events" ? duplicateCuratedEventGuide : duplicateCuratedGuide}>
+                          <form action={duplicateCuratedGuide}>
                             <input type="hidden" name="id" value={guide.id} />
                             <button type="submit">Duplicate</button>
                           </form>

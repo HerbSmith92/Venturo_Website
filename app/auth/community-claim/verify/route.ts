@@ -48,6 +48,9 @@ export async function POST(request: Request) {
   }
 
   const userId = data.user?.id;
+  if (!userId) {
+    return NextResponse.json({ error: "The verified account could not be loaded." }, { status: 400 });
+  }
   if (userId) {
     await provisionMember(userId, firstName, phone ?? undefined);
     await recordMemberConsent(userId, "community-claim");
@@ -58,10 +61,20 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: passwordError.message }, { status: 400 });
   }
 
-  const { error: claimError } = await supabase.rpc("claim_community", { p_community_id: communityId });
+  const { error: claimError } = await supabase.from("community_claim_requests").upsert(
+    {
+      community_id: communityId,
+      requested_by: userId,
+      evidence: "Account and email verified during claim request.",
+      status: "pending",
+      reviewed_by: null,
+      reviewed_at: null,
+    },
+    { onConflict: "community_id,requested_by" },
+  );
   if (claimError) {
     return NextResponse.json({ error: claimError.message }, { status: 400 });
   }
 
-  return NextResponse.json({ redirect: `/account/communities/${communityId}` });
+  return NextResponse.json({ redirect: "/account/communities?claim=requested" });
 }
