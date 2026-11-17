@@ -31,13 +31,20 @@ export async function POST(
     ticketTypes: body.ticketTypes,
     bannerUrl: body.bannerUrl,
     listingImageUrl: body.listingImageUrl,
+    organiserDisplayName: body.organiserDisplayName ?? undefined,
+    bookingMethod: body.bookingMethod,
+    externalProviderName: body.externalProviderName,
+    externalBookingUrl: body.externalBookingUrl,
+    externalBookingButtonLabel: body.externalBookingButtonLabel ?? undefined,
   });
   if (ready) {
     return NextResponse.json({ error: ready }, { status: 400 });
   }
 
   try {
-    await requirePaidPayout(user.id, body.ticketTypes ?? []);
+    if (body.bookingMethod !== "external") {
+      await requirePaidPayout(user.id, body.ticketTypes ?? []);
+    }
     const staff = isStaff(user.role);
     await saveEventDraft(user.id, id, body, staff);
     await recordHostTermsConsent(user.id, "event-submit");

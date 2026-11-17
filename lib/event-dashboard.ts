@@ -1,5 +1,6 @@
 import { formatCents } from "@/lib/events";
 import { johannesburgDay, type DayPoint } from "@/lib/portal-home";
+import { createServiceClient } from "@/lib/supabase/admin";
 import { createClient } from "@/lib/supabase/server";
 import type { VenturoEvent } from "@/lib/event-types";
 
@@ -8,6 +9,8 @@ export type EventDashboardData = {
   ticketsSold: number;
   visits: number;
   conversion: number;
+  interested: number;
+  externalBookingClicks: number;
   viewedSeries: DayPoint[];
   soldSeries: DayPoint[];
   revenueSeries: DayPoint[];
@@ -32,6 +35,8 @@ export async function getEventDashboard(event: VenturoEvent): Promise<EventDashb
     ticketsSold: 0,
     visits: 0,
     conversion: 0,
+    interested: 0,
+    externalBookingClicks: 0,
     viewedSeries: series,
     soldSeries: series.map((point) => ({ ...point })),
     revenueSeries: series.map((point) => ({ ...point })),
@@ -44,7 +49,8 @@ export async function getEventDashboard(event: VenturoEvent): Promise<EventDashb
   const endDay = series[series.length - 1]?.day;
   if (!startDay || !endDay) return blank;
 
-  const [viewsRes, ticketsRes, ordersRes, lifetimeViews, lifetimeTickets, lifetimeOrders] =
+  const service = createServiceClient();
+  const [viewsRes, ticketsRes, ordersRes, lifetimeViews, lifetimeTickets, lifetimeOrders, interestedRes, outboundRes] =
     await Promise.all([
       supabase
         .from("event_view_days")
@@ -65,6 +71,15 @@ export async function getEventDashboard(event: VenturoEvent): Promise<EventDashb
         .select("subtotal_cents")
         .eq("event_id", event.id)
         .eq("status", "paid"),
+      service
+        ? service.from("event_occurrence_interest").select("user_id").eq("event_id", event.id)
+        : Promise.resolve({ data: [] as { user_id: string }[] }),
+      service
+        ? service
+            .from("event_outbound_booking_clicks")
+            .select("id", { count: "exact", head: true })
+            .eq("event_id", event.id)
+        : Promise.resolve({ count: 0 }),
     ]);
 
   const viewMap = new Map<string, number>();
@@ -90,11 +105,24 @@ export async function getEventDashboard(event: VenturoEvent): Promise<EventDashb
     0,
   );
 
+  const interested = new Set((interestedRes.data ?? []).map((row) => row.user_id)).size;
+  const externalBookingClicks = outboundRes.count ?? 0;
+  const conversion =
+    event.bookingMethod === "external"
+      ? visits > 0
+        ? (externalBookingClicks / visits) * 100
+        : 0
+      : visits > 0
+        ? (ticketsSold / visits) * 100
+        : 0;
+
   return {
     incomeCents,
     ticketsSold,
     visits,
-    conversion: visits > 0 ? (ticketsSold / visits) * 100 : 0,
+    conversion,
+    interested,
+    externalBookingClicks,
     viewedSeries: series.map((point) => ({ day: point.day, value: viewMap.get(point.day) ?? 0 })),
     soldSeries: series.map((point) => ({ day: point.day, value: soldMap.get(point.day) ?? 0 })),
     revenueSeries: series.map((point) => ({

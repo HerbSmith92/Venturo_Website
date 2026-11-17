@@ -25,13 +25,57 @@ export default async function PortalEventReportPage({
           .maybeSingle()
       : { data: null };
 
+  let pageViews = 0;
+  let outboundClicks = 0;
+  let interested = 0;
+  if (service) {
+    const [viewsResult, outboundResult, interestResult] = await Promise.all([
+      service.from("event_view_days").select("views").eq("event_id", id),
+      service
+        .from("event_outbound_booking_clicks")
+        .select("id", { count: "exact", head: true })
+        .eq("event_id", id),
+      service.from("event_occurrence_interest").select("user_id").eq("event_id", id),
+    ]);
+    pageViews = (viewsResult.data ?? []).reduce((sum, row) => sum + (Number(row.views) || 0), 0);
+    outboundClicks = outboundResult.count ?? 0;
+    interested = new Set((interestResult.data ?? []).map((row) => row.user_id)).size;
+  }
+  const external = event.bookingMethod === "external";
+
   return (
     <main className="portal-page">
       <EventChrome event={event} current="dashboard">
         <section className="studio-card">
           <p className="eyebrow">Event-day report</p>
           <h1>{event.title}</h1>
-          {!report ? (
+          {external ? (
+            <>
+              <p className="muted">
+                External listing · {event.externalProviderName || "provider"}. Booking happens off
+                Venturo, so this report tracks discovery & outbound clicks — not tickets sold or
+                payouts.
+              </p>
+              <div className="portal-stat-grid">
+                <article className="portal-stat">
+                  <p className="eyebrow">Event-page views</p>
+                  <strong>{pageViews}</strong>
+                </article>
+                <article className="portal-stat">
+                  <p className="eyebrow">Interested</p>
+                  <strong>{interested}</strong>
+                </article>
+                <article className="portal-stat">
+                  <p className="eyebrow">External booking clicks</p>
+                  <strong>{outboundClicks ?? 0}</strong>
+                </article>
+              </div>
+              <p className="muted" style={{ marginTop: 16 }}>
+                Confirmed external bookings appear only when a supported integration supplies that
+                information.
+              </p>
+            </>
+          ) : !report ? (
             <p className="notice">The event-day report has not been generated yet.</p>
           ) : (
             <>
@@ -44,13 +88,31 @@ export default async function PortalEventReportPage({
                 ({report.timezone})
               </p>
               <div className="portal-stat-grid">
-                <article className="portal-stat"><p className="eyebrow">Free RSVPs</p><strong>{report.confirmed_rsvps}</strong></article>
-                <article className="portal-stat"><p className="eyebrow">Valid tickets</p><strong>{report.valid_tickets}</strong></article>
-                <article className="portal-stat"><p className="eyebrow">Interested</p><strong>{report.interested}</strong></article>
-                <article className="portal-stat"><p className="eyebrow">Expected attendance</p><strong>{report.expected_attendance}</strong></article>
+                <article className="portal-stat">
+                  <p className="eyebrow">Event-page views</p>
+                  <strong>{pageViews}</strong>
+                </article>
+                <article className="portal-stat">
+                  <p className="eyebrow">Free RSVPs</p>
+                  <strong>{report.confirmed_rsvps}</strong>
+                </article>
+                <article className="portal-stat">
+                  <p className="eyebrow">Valid tickets</p>
+                  <strong>{report.valid_tickets}</strong>
+                </article>
+                <article className="portal-stat">
+                  <p className="eyebrow">Interested</p>
+                  <strong>{report.interested}</strong>
+                </article>
+                <article className="portal-stat">
+                  <p className="eyebrow">Expected attendance</p>
+                  <strong>{report.expected_attendance}</strong>
+                </article>
               </div>
               <p style={{ marginTop: 24 }}>
-                <a className="btn btn-primary" href={`/portal/events/${id}/door`}>Open live guest list</a>
+                <a className="btn btn-primary" href={`/portal/events/${id}/door`}>
+                  Open live guest list
+                </a>
               </p>
             </>
           )}

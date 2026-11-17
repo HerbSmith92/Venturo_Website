@@ -15,28 +15,47 @@ function safeExternalUrl(value: string | null | undefined) {
   }
 }
 
+/** Forward attribution params from the go link without overwriting the stored booking URL. */
+function mergeAttribution(destination: URL, incoming: URL) {
+  const keep = ["utm_source", "utm_medium", "utm_campaign", "utm_term", "utm_content", "ref", "affiliate"];
+  for (const key of keep) {
+    const value = incoming.searchParams.get(key);
+    if (value && !destination.searchParams.has(key)) {
+      destination.searchParams.set(key, value);
+    }
+  }
+  return destination;
+}
+
 export async function GET(
   request: Request,
   { params }: { params: Promise<{ eventId: string }> },
 ) {
   const { eventId } = await params;
   const service = createServiceClient();
+  const incoming = new URL(request.url);
   if (!service) return NextResponse.redirect(new URL("/events", request.url));
 
   const { data: event } = await service
     .from("events")
-    .select("id, status, visibility, booking_method, external_booking_url")
+    .select("id, slug, status, visibility, booking_method, external_booking_url, ends_at")
     .eq("id", eventId)
     .maybeSingle();
-  const destination =
-    event?.status === "approved" &&
-    event?.visibility === "public" &&
-    event?.booking_method === "external"
-      ? safeExternalUrl(event.external_booking_url)
-      : null;
-  if (!destination) return NextResponse.redirect(new URL("/events", request.url));
 
-  const incoming = new URL(request.url);
+  const eventPath = event?.slug ? `/events/${event.slug}` : "/events";
+  if (!event || event.status === "cancelled") {
+    return NextResponse.redirect(new URL(eventPath, request.url));
+  }
+  if (event.status !== "approved" || event.visibility !== "public" || event.booking_method !== "external") {
+    return NextResponse.redirect(new URL(eventPath, request.url));
+  }
+  if (event.ends_at && Date.parse(event.ends_at) < Date.now()) {
+    return NextResponse.redirect(new URL(eventPath, request.url));
+  }
+
+  const destination = safeExternalUrl(event.external_booking_url);
+  if (!destination) return NextResponse.redirect(new URL(eventPath, request.url));
+
   const occurrenceId = incoming.searchParams.get("occurrence");
   const store = await cookies();
   const visitorKey = visitorKeyFromCookie(store.get(VISITOR_COOKIE)?.value);
@@ -50,5 +69,5 @@ export async function GET(
     campaign: incoming.searchParams.get("utm_campaign"),
   });
 
-  return NextResponse.redirect(destination, 302);
+  return NextResponse.redirect(mergeAttribution(destination, incoming), 302);
 }

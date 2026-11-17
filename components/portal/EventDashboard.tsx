@@ -339,23 +339,57 @@ export function EventDashboard({
       ) : null}
 
       <div className="event-dash-stats portal-stat-grid">
-        <article className="portal-stat">
-          <p className="eyebrow">Total Income</p>
-          <strong>{formatCents(data.incomeCents)}</strong>
-        </article>
-        <article className="portal-stat">
-          <p className="eyebrow">Total Tickets Sold</p>
-          <strong>{formatCount(data.ticketsSold)}</strong>
-        </article>
-        <article className="portal-stat">
-          <p className="eyebrow">Total Visits</p>
-          <strong>{formatCount(data.visits)}</strong>
-        </article>
-        <article className="portal-stat">
-          <p className="eyebrow">Conversion Rate</p>
-          <strong>{formatDashboardRate(data.conversion)}</strong>
-        </article>
+        {event.bookingMethod === "external" ? (
+          <>
+            <article className="portal-stat">
+              <p className="eyebrow">Event-page views</p>
+              <strong>{formatCount(data.visits)}</strong>
+            </article>
+            <article className="portal-stat">
+              <p className="eyebrow">Interested</p>
+              <strong>{formatCount(data.interested)}</strong>
+            </article>
+            <article className="portal-stat">
+              <p className="eyebrow">External booking clicks</p>
+              <strong>{formatCount(data.externalBookingClicks)}</strong>
+            </article>
+            <article className="portal-stat">
+              <p className="eyebrow">Click rate</p>
+              <strong>{formatDashboardRate(data.conversion)}</strong>
+            </article>
+          </>
+        ) : (
+          <>
+            <article className="portal-stat">
+              <p className="eyebrow">Total Income</p>
+              <strong>{formatCents(data.incomeCents)}</strong>
+            </article>
+            <article className="portal-stat">
+              <p className="eyebrow">Total Tickets Sold</p>
+              <strong>{formatCount(data.ticketsSold)}</strong>
+            </article>
+            <article className="portal-stat">
+              <p className="eyebrow">Total Visits</p>
+              <strong>{formatCount(data.visits)}</strong>
+            </article>
+            <article className="portal-stat">
+              <p className="eyebrow">Conversion Rate</p>
+              <strong>{formatDashboardRate(data.conversion)}</strong>
+            </article>
+            <article className="portal-stat">
+              <p className="eyebrow">Interested</p>
+              <strong>{formatCount(data.interested)}</strong>
+            </article>
+          </>
+        )}
       </div>
+      {event.bookingMethod === "external" ? (
+        <p className="muted" style={{ marginTop: 12 }}>
+          External booking clicks are engagement only — not tickets sold, RSVPs or Venturo
+          payouts. Confirmed external bookings appear only when a supported integration supplies
+          them.
+        </p>
+      ) : null}
 
       <div className="portal-event-graphs event-dash-graphs">
         <PortalBarChart
@@ -364,20 +398,24 @@ export function EventDashboard({
           points={data.viewedSeries}
           color="var(--sapphire)"
         />
-        <PortalBarChart
-          label="Sold"
-          summary={formatCount(data.ticketsSold)}
-          stat={{ label: "Conversion", value: formatDashboardRate(data.conversion) }}
-          points={data.soldSeries}
-          color="var(--jade)"
-        />
-        <PortalBarChart
-          label="Revenue (R)"
-          summary={formatCents(data.incomeCents)}
-          points={data.revenueSeries}
-          color="var(--canary)"
-          kind="rand"
-        />
+        {event.bookingMethod === "external" ? null : (
+          <>
+            <PortalBarChart
+              label="Sold"
+              summary={formatCount(data.ticketsSold)}
+              stat={{ label: "Conversion", value: formatDashboardRate(data.conversion) }}
+              points={data.soldSeries}
+              color="var(--jade)"
+            />
+            <PortalBarChart
+              label="Revenue (R)"
+              summary={formatCents(data.incomeCents)}
+              points={data.revenueSeries}
+              color="var(--canary)"
+              kind="rand"
+            />
+          </>
+        )}
       </div>
 
       {previewOpen ? (

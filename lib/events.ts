@@ -87,12 +87,14 @@ type EventRow = {
   visibility: EventVisibility;
   status: EventStatus;
   organiser_id: string;
+  organiser_display_name: string | null;
   review_note: string | null;
   parking: string | null;
   prohibited_items: string | null;
   booking_method: EventBookingMethod;
   external_provider_name: string | null;
   external_booking_url: string | null;
+  external_booking_button_label: string | null;
   waitlist_enabled: boolean;
   event_ticket_types?: TicketTypeRow[] | null;
 };
@@ -198,12 +200,14 @@ function mapEvent(row: EventRow): VenturoEvent {
     visibility: row.visibility,
     status: row.status,
     organiserId: row.organiser_id,
+    organiserDisplayName: row.organiser_display_name ?? null,
     reviewNote: row.review_note,
     parking: row.parking,
     prohibitedItems: row.prohibited_items,
     bookingMethod: row.booking_method ?? "venturo_ticketing",
-    externalProviderName: row.external_provider_name,
-    externalBookingUrl: row.external_booking_url,
+    externalProviderName: row.external_provider_name ?? null,
+    externalBookingUrl: row.external_booking_url ?? null,
+    externalBookingButtonLabel: row.external_booking_button_label ?? null,
     waitlistEnabled: Boolean(row.waitlist_enabled),
     fromPriceCents: publicPrices.length
       ? Math.min(...publicPrices)
@@ -221,9 +225,9 @@ const EVENT_SELECT = `
   id, slug, title, description, age_restriction, audience_gender, format, category, tags,
   banner_url, listing_image_url, story_image_url, starts_at, ends_at, repeat_every, repeat_until, timezone,
   venue_name, address_line1, address_line2, city, postal_code, country,
-  latitude, longitude, show_map, visibility, status, organiser_id, review_note,
+  latitude, longitude, show_map, visibility, status, organiser_id, organiser_display_name, review_note,
   parking, prohibited_items,
-  booking_method, external_provider_name, external_booking_url, waitlist_enabled,
+  booking_method, external_provider_name, external_booking_url, external_booking_button_label, waitlist_enabled,
   event_ticket_types (
     id, event_id, name, description, kind, price_cents, member_price_cents,
     member_discount_kind, member_discount_value, members_only, pass_fees_to_buyer,
@@ -529,9 +533,11 @@ export type CreateEventInput = {
   visibility?: EventVisibility;
   parking?: string;
   prohibitedItems?: string;
+  organiserDisplayName?: string | null;
   bookingMethod?: EventBookingMethod;
   externalProviderName?: string;
   externalBookingUrl?: string;
+  externalBookingButtonLabel?: string | null;
   waitlistEnabled?: boolean;
   ticketTypes?: {
     id?: string;
@@ -607,11 +613,16 @@ export async function createEventDraft(userId: string, input: CreateEventInput) 
       visibility: input.visibility || "public",
       parking: input.parking?.trim() || null,
       prohibited_items: input.prohibitedItems?.trim() || null,
+      organiser_display_name: input.organiserDisplayName?.trim() || null,
       booking_method: input.bookingMethod ?? "venturo_ticketing",
       external_provider_name:
         input.bookingMethod === "external" ? input.externalProviderName?.trim() || null : null,
       external_booking_url:
         input.bookingMethod === "external" ? input.externalBookingUrl?.trim() || null : null,
+      external_booking_button_label:
+        input.bookingMethod === "external"
+          ? input.externalBookingButtonLabel?.trim() || "Book now"
+          : null,
       waitlist_enabled: input.bookingMethod === "external" ? false : Boolean(input.waitlistEnabled),
       status,
       organiser_id: userId,
@@ -757,8 +768,19 @@ export async function saveEventDraft(
         p_provider_name: input.externalProviderName?.trim() || null,
         p_external_url: input.externalBookingUrl?.trim() || null,
         p_waitlist_enabled: Boolean(input.waitlistEnabled),
+        p_button_label: input.externalBookingButtonLabel?.trim() || null,
       });
       if (bookingError) throw new Error(bookingError.message);
+    }
+    if (input.organiserDisplayName !== undefined) {
+      const { error: organiserError } = await supabase
+        .from("events")
+        .update({
+          organiser_display_name: input.organiserDisplayName?.trim() || null,
+          updated_at: new Date().toISOString(),
+        })
+        .eq("id", eventId);
+      if (organiserError) throw new Error(organiserError.message);
     }
     await syncStoredOccurrences(supabase, eventId, input);
     return { id: existing.id as string, slug: existing.slug as string };
@@ -795,6 +817,10 @@ export async function saveEventDraft(
       visibility: input.visibility || "public",
       ...(input.parking !== undefined ? { parking: input.parking?.trim() || null } : {}),
       prohibited_items: input.prohibitedItems?.trim() || null,
+      organiser_display_name:
+        input.organiserDisplayName !== undefined
+          ? input.organiserDisplayName?.trim() || null
+          : undefined,
       updated_at: new Date().toISOString(),
     })
     .eq("id", eventId);
@@ -808,6 +834,7 @@ export async function saveEventDraft(
       p_provider_name: input.externalProviderName?.trim() || null,
       p_external_url: input.externalBookingUrl?.trim() || null,
       p_waitlist_enabled: Boolean(input.waitlistEnabled),
+      p_button_label: input.externalBookingButtonLabel?.trim() || null,
     });
     if (bookingError) throw new Error(bookingError.message);
   }
@@ -847,9 +874,11 @@ export function eventReadyToGoLive(input: {
   ticketTypes?: TicketInput[];
   bannerUrl?: string | null;
   listingImageUrl?: string | null;
+  organiserDisplayName?: string;
   bookingMethod?: EventBookingMethod;
   externalProviderName?: string;
   externalBookingUrl?: string;
+  externalBookingButtonLabel?: string;
 }) {
   if (!input.title.trim()) return "Give the event a name.";
   if (!input.description.trim()) return "Add a short description.";
@@ -859,10 +888,17 @@ export function eventReadyToGoLive(input: {
     return "End time must be after the start time.";
   }
   if (input.bookingMethod === "external") {
-    if (!input.externalProviderName?.trim()) return "Add the external booking provider.";
+    if (!input.organiserDisplayName?.trim()) {
+      return "Add the event organiser (the business or community running it).";
+    }
+    if (!input.externalProviderName?.trim()) return "Add the booking provider, e.g. Quicket.";
     try {
       const url = new URL(input.externalBookingUrl ?? "");
       if (url.protocol !== "https:") return "External booking needs an HTTPS link.";
+      if (url.username || url.password) return "Remove login details from the booking link.";
+      if (["localhost", "127.0.0.1", "::1"].includes(url.hostname.toLowerCase())) {
+        return "Use a public HTTPS booking link.";
+      }
     } catch {
       return "Add a valid external booking link.";
     }
@@ -897,9 +933,11 @@ export async function goLiveEvent(
     ticketTypes: event.ticketTypes,
     bannerUrl: event.bannerUrl,
     listingImageUrl: event.listingImageUrl,
+    organiserDisplayName: event.organiserDisplayName ?? undefined,
     bookingMethod: event.bookingMethod,
     externalProviderName: event.externalProviderName ?? undefined,
     externalBookingUrl: event.externalBookingUrl ?? undefined,
+    externalBookingButtonLabel: event.externalBookingButtonLabel ?? undefined,
   });
   if (ready) throw new Error(ready);
 

@@ -147,9 +147,13 @@ export function EventStudio({
   const [visibility, setVisibility] = useState<"public" | "private">(event.visibility);
   const [showMap, setShowMap] = useState(event.showMap);
   const [prohibitedItems, setProhibitedItems] = useState(event.prohibitedItems ?? "");
+  const [organiserDisplayName, setOrganiserDisplayName] = useState(event.organiserDisplayName ?? "");
   const [bookingMethod, setBookingMethod] = useState<EventBookingMethod>(event.bookingMethod);
   const [externalProviderName, setExternalProviderName] = useState(event.externalProviderName ?? "");
   const [externalBookingUrl, setExternalBookingUrl] = useState(event.externalBookingUrl ?? "");
+  const [externalBookingButtonLabel, setExternalBookingButtonLabel] = useState(
+    event.externalBookingButtonLabel ?? "Book now",
+  );
   const [waitlistEnabled, setWaitlistEnabled] = useState(event.waitlistEnabled);
   const [tickets, setTickets] = useState<TicketDraft[]>(() => fromEventTickets(event));
   const [addOpen, setAddOpen] = useState(false);
@@ -240,9 +244,11 @@ export function EventStudio({
       showMap,
       visibility,
       prohibitedItems: prohibitedItems || null,
+      organiserDisplayName: organiserDisplayName.trim() || null,
       bookingMethod,
       externalProviderName: bookingMethod === "external" ? externalProviderName : null,
       externalBookingUrl: bookingMethod === "external" ? externalBookingUrl : null,
+      externalBookingButtonLabel: bookingMethod === "external" ? externalBookingButtonLabel || "Book now" : null,
       waitlistEnabled: bookingMethod !== "external" && waitlistEnabled,
       fromPriceCents: publicPrices.length ? Math.min(...publicPrices) : membersOnly ? null : 0,
       memberFromPriceCents: memberPrices.length ? Math.min(...memberPrices) : null,
@@ -275,9 +281,11 @@ export function EventStudio({
     showMap,
     visibility,
     prohibitedItems,
+    organiserDisplayName,
     bookingMethod,
     externalProviderName,
     externalBookingUrl,
+    externalBookingButtonLabel,
     waitlistEnabled,
     tickets,
   ]);
@@ -307,9 +315,11 @@ export function EventStudio({
       visibility,
       showMap,
       prohibitedItems,
+      organiserDisplayName,
       bookingMethod,
       externalProviderName,
       externalBookingUrl,
+      externalBookingButtonLabel,
       waitlistEnabled,
       ticketTypes: tickets.map((ticket) => ({
         id: ticket.id,
@@ -704,6 +714,19 @@ export function EventStudio({
           {showTickets ? (
           <StudioSection title="Booking">
             <label className="field">
+              <span>Organiser</span>
+              <input
+                value={organiserDisplayName}
+                onChange={(change) => setOrganiserDisplayName(change.target.value)}
+                placeholder="The business or community running this event"
+              />
+            </label>
+            <p className="muted">
+              Shown on the public event page. Keep this separate from the Venturo account that
+              uploaded the listing — third-party organisers do not need a host login for an admin
+              listing.
+            </p>
+            <label className="field">
               <span>Booking method</span>
               <select
                 value={bookingMethod}
@@ -717,25 +740,34 @@ export function EventStudio({
             {bookingMethod === "external" ? (
               <div className="form-grid">
                 <label className="field">
-                  <span>Provider name</span>
+                  <span>Booking provider</span>
                   <input
                     value={externalProviderName}
                     onChange={(change) => setExternalProviderName(change.target.value)}
-                    placeholder="Quicket"
+                    placeholder="Quicket, Howler, organiser website…"
                   />
                 </label>
                 <label className="field">
-                  <span>HTTPS booking link</span>
+                  <span>External booking URL</span>
                   <input
                     type="url"
                     value={externalBookingUrl}
                     onChange={(change) => setExternalBookingUrl(change.target.value)}
-                    placeholder="https://…"
+                    placeholder="https://www.quicket.co.za/events/…"
+                  />
+                </label>
+                <label className="field">
+                  <span>Button label</span>
+                  <input
+                    value={externalBookingButtonLabel}
+                    onChange={(change) => setExternalBookingButtonLabel(change.target.value)}
+                    placeholder="Book now"
                   />
                 </label>
                 <p className="notice">
-                  Booking happens on the provider&apos;s website. Outbound clicks are not counted as
-                  confirmed bookings, attendance or Venturo revenue.
+                  Book now opens the provider site in a new tab. Outbound clicks are tracked as
+                  External booking clicks — not tickets sold, RSVPs or Venturo payouts. Interested
+                  still works for reminders.
                 </p>
               </div>
             ) : (

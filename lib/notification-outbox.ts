@@ -11,6 +11,7 @@ type ReminderEvent = {
   slug: string;
   venue_name: string | null;
   booking_method: "free_rsvp" | "venturo_ticketing" | "external";
+  external_provider_name: string | null;
 };
 
 type DueOccurrence = {
@@ -75,7 +76,7 @@ export async function scheduleEventReminderJobs(now = new Date()) {
   const horizon = new Date(now.getTime() + 25 * 60 * 60 * 1000);
   const { data, error } = await service
     .from("event_occurrences")
-    .select("id, event_id, starts_at, timezone, events(id, title, slug, venue_name, booking_method)")
+    .select("id, event_id, starts_at, timezone, events(id, title, slug, venue_name, booking_method, external_provider_name)")
     .eq("status", "scheduled")
     .gt("starts_at", now.toISOString())
     .lte("starts_at", horizon.toISOString())
@@ -141,7 +142,7 @@ export async function scheduleEventReminderJobs(now = new Date()) {
                 : event.booking_method === "free_rsvp"
                   ? "RSVP free — Interested does not reserve a place."
                   : event.booking_method === "external"
-                    ? "Book on the provider's website — Interested does not reserve a place."
+                    ? `Still keen? Book your spot through ${event.external_provider_name?.trim() || "the provider"}.`
                     : "Get tickets — Interested does not reserve a place.";
             const payload: JobPayload = {
               title: event.title.slice(0, 80),
