@@ -7,6 +7,7 @@ export type CatalogPersona = {
   subtitle: string;
   sort_order: number;
   is_active: boolean;
+  image_path: string | null;
 };
 
 export type CatalogKind = {
@@ -40,7 +41,10 @@ export async function loadCatalogAdmin(): Promise<CatalogAdmin> {
   }
 
   const [personas, interests, kinds] = await Promise.all([
-    service.from("personas").select("id, key, title, subtitle, sort_order, is_active").order("sort_order"),
+    service
+      .from("personas")
+      .select("id, key, title, subtitle, sort_order, is_active, image_path")
+      .order("sort_order"),
     service
       .from("interests")
       .select("id, key, title, activity_kind_id, sort_order, is_active, description, icon_path, activity_kinds ( title )")
@@ -61,8 +65,26 @@ export async function loadCatalogAdmin(): Promise<CatalogAdmin> {
     activity_kinds: { title: string } | { title: string }[] | null;
   };
 
+  type PersonaRow = {
+    id: string;
+    key: string;
+    title: string;
+    subtitle: string;
+    sort_order: number;
+    is_active: boolean;
+    image_path: string | null;
+  };
+
   return {
-    personas: (personas.data ?? []) as CatalogPersona[],
+    personas: ((personas.data ?? []) as PersonaRow[]).map((row) => ({
+      id: row.id,
+      key: row.key,
+      title: row.title,
+      subtitle: row.subtitle,
+      sort_order: row.sort_order,
+      is_active: row.is_active,
+      image_path: row.image_path ?? null,
+    })),
     kinds: (kinds.data ?? []) as CatalogKind[],
     interests: ((interests.data ?? []) as InterestRow[]).map((row) => {
       const kind = Array.isArray(row.activity_kinds) ? row.activity_kinds[0] : row.activity_kinds;

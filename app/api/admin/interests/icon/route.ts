@@ -50,5 +50,8 @@ export async function POST(request: Request) {
     const previous = interest.icon_path.split("/interest-icons/").pop();
     if (previous) await service.storage.from("interest-icons").remove([previous]);
   }
-  return NextResponse.json({ ok: true, url: publicUrl.publicUrl });
+  return NextResponse.json({
+    ok: true,
+    url: `${publicUrl.publicUrl}?v=${Date.now()}`,
+  });
 }

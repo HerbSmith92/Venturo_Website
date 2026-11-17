@@ -1,7 +1,5 @@
 import { AnalyticsKeysGuide } from "@/components/admin/AnalyticsKeysGuide";
-import { CatalogEditor } from "@/components/admin/CatalogEditor";
 import { getStaffSession } from "@/lib/auth";
-import { loadCatalogAdmin } from "@/lib/catalog-admin";
 import { getPlatformFees } from "@/lib/events";
 import { getPaystackStatus } from "@/lib/paystack";
 import {
@@ -20,10 +18,9 @@ import { getPublicSiteUrl } from "@/lib/site-url";
 export default async function AdminSettingsPage() {
   const session = await getStaffSession();
   const canManage = isAdmin(session?.role);
-  const [fees, paystack, catalog] = await Promise.all([
+  const [fees, paystack] = await Promise.all([
     getPlatformFees(),
     Promise.resolve(getPaystackStatus()),
-    loadCatalogAdmin(),
   ]);
   const siteUrl = getPublicSiteUrl();
   const stores = getAppStoreLinks();
@@ -150,12 +147,25 @@ export default async function AdminSettingsPage() {
       {canManage && (
         <article className="plan" style={{ marginTop: 20 }}>
           <p className="eyebrow">Sign-Up Lists</p>
-          <h2>How You Go Out & Activities</h2>
+          <h2>Onboarding catalogues</h2>
           <p className="muted">
-            Add, hide, or rewrite the chips people tap during onboarding. Hidden items stay on
-            existing profiles.
+            Interests &amp; How You Go Out now live under Onboarding. Hidden items stay on existing
+            profiles.
           </p>
-          <CatalogEditor catalog={catalog} />
+          <p style={{ marginTop: 12, display: "flex", gap: 12, flexWrap: "wrap" }}>
+            <a className="btn btn-secondary" href="/admin/onboarding/interests">
+              Interests
+            </a>
+            <a className="btn btn-secondary" href="/admin/onboarding/how-you-go-out">
+              How You Go Out
+            </a>
+            <a className="btn btn-secondary" href="/admin/onboarding/adventure-level">
+              Adventure Level
+            </a>
+            <a className="btn btn-secondary" href="/admin/onboarding/bucket-list">
+              Bucket List
+            </a>
+          </p>
         </article>
       )}
     </section>

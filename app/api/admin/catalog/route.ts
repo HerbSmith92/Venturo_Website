@@ -60,6 +60,7 @@ export async function POST(request: Request) {
       title,
       subtitle,
       is_active: body.isActive !== false,
+      ...(Number.isInteger(body.sortOrder) ? { sort_order: Math.max(1, Number(body.sortOrder)) } : {}),
     };
     if (body.id) {
       const { error } = await service.from("personas").update(payload).eq("id", body.id);
