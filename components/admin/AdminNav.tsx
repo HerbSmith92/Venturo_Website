@@ -2,6 +2,7 @@
 
 import { createListing } from "@/app/admin/actions";
 import { createCommunity } from "@/app/admin/content-actions";
+import { createVenturoEvent } from "@/app/admin/event-actions";
 import { MenuChevron, MenuIcon, clearMenuFlyout, iconFor, pinMenuFlyout } from "@/components/menu/MenuIcon";
 import type { StaffSession } from "@/lib/auth";
 import { isAdmin, isStaff } from "@/lib/roles";
@@ -16,7 +17,7 @@ type Leaf = {
   id: string;
   label: string;
   href?: string;
-  action?: "create-listing" | "create-community" | "sign-out";
+  action?: "create-listing" | "create-community" | "create-venturo-event" | "sign-out";
 };
 
 type Heading = {
@@ -130,6 +131,8 @@ function menu(admin: boolean, name: string): Group[] {
           label: "Events",
           href: "/admin/events?status=review",
           leaves: [
+            { id: "add-venturo-event", label: "+ Add Venturo event", action: "create-venturo-event" },
+            { id: "add-external-event", label: "+ Add external event", href: "/admin/events/new?kind=external" },
             { id: "review", label: "In Review", href: "/admin/events?status=review" },
             { id: "approved", label: "Live", href: "/admin/events?status=approved" },
             { id: "changes", label: "Changes Requested", href: "/admin/events?status=changes" },
@@ -461,6 +464,13 @@ function HeadingRow({
               </form>
             ) : leaf.action === "create-community" ? (
               <form key={leaf.id} action={createCommunity}>
+                <button type="submit" title={leaf.label}>
+                  <MenuIcon name={iconFor(leaf.id, leaf.label)} />
+                  <span className="v-label">{leaf.label}</span>
+                </button>
+              </form>
+            ) : leaf.action === "create-venturo-event" ? (
+              <form key={leaf.id} action={createVenturoEvent}>
                 <button type="submit" title={leaf.label}>
                   <MenuIcon name={iconFor(leaf.id, leaf.label)} />
                   <span className="v-label">{leaf.label}</span>

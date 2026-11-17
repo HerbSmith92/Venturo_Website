@@ -42,18 +42,27 @@ export async function POST(
   }
 
   try {
-    if (body.bookingMethod !== "external") {
+    const staff = isStaff(user.role);
+    // Staff Control Room drafts may be reassigned to a host before payout is needed.
+    if (body.bookingMethod !== "external" && !staff) {
       await requirePaidPayout(user.id, body.ticketTypes ?? []);
     }
-    const staff = isStaff(user.role);
     await saveEventDraft(user.id, id, body, staff);
     await recordHostTermsConsent(user.id, "event-submit");
     const live = await goLiveEvent(user.id, id, staff);
-    const stayInPortal = body.stay === "portal";
+    if (body.stay === "portal" || body.stay === "admin") {
+      return NextResponse.json({
+        slug: live.slug,
+        status: live.status,
+        ...(body.stay === "admin"
+          ? { redirect: `/admin/events/${id}`, notice: "Submitted for review." }
+          : {}),
+      });
+    }
     return NextResponse.json({
       slug: live.slug,
       status: live.status,
-      ...(stayInPortal ? {} : { redirect: "/account/events" }),
+      redirect: "/account/events",
     });
   } catch (error) {
     return NextResponse.json(

@@ -116,7 +116,7 @@ export function EventStudio({
   isStaff: boolean;
   hasPayout: boolean;
   fees: PlatformFees;
-  stay?: "portal";
+  stay?: "portal" | "admin";
   focus?: "manage" | "checkout" | "settings" | "full";
 }) {
   const [title, setTitle] = useState(event.title);
