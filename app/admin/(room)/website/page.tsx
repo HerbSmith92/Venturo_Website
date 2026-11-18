@@ -31,13 +31,96 @@ export default async function WebsiteControlsPage({
       <p className="eyebrow">Content</p>
       <h1>Website</h1>
       <p className="lede muted">
-        What you publish here is the home page. Ticked items fill the Featured banner,
-        then the rails below. An empty list falls back to the newest live items.
+        Home page hero &amp; featured picks, plus the public banners on Activities, Events
+        &amp; Communities. An empty featured list falls back to the newest live items.
       </p>
       {done ? <p className="notice">Website controls saved.</p> : null}
       {error ? <p className="error">{error}</p> : null}
       <form action={saveWebsite} className="cr-panel">
-        <h2>Hero</h2>
+        <h2 id="page-banners">Public page banners</h2>
+        <p className="muted">
+          These drive the top of <a href="/directory">/directory</a>, <a href="/events">/events</a>{" "}
+          &amp; <a href="/communities">/communities</a>. Image URLs can be brand paths or HTTPS
+          uploads.
+        </p>
+
+        <h3>Activities</h3>
+        <label className="field">
+          <span>Eyebrow</span>
+          <input name="activities_banner_eyebrow" defaultValue={copy.activitiesBanner.eyebrow} />
+        </label>
+        <label className="field">
+          <span>Title</span>
+          <input name="activities_banner_title" defaultValue={copy.activitiesBanner.title} />
+        </label>
+        <label className="field">
+          <span>Copy</span>
+          <textarea name="activities_banner_copy" rows={3} defaultValue={copy.activitiesBanner.copy} />
+        </label>
+        <label className="field">
+          <span>Image URL</span>
+          <input name="activities_banner_image_url" defaultValue={copy.activitiesBanner.imageUrl} />
+        </label>
+        <label className="field">
+          <span>Image alt</span>
+          <input name="activities_banner_image_alt" defaultValue={copy.activitiesBanner.imageAlt} />
+        </label>
+
+        <h3>Events</h3>
+        <label className="field">
+          <span>Eyebrow</span>
+          <input name="events_banner_eyebrow" defaultValue={copy.eventsBanner.eyebrow} />
+        </label>
+        <label className="field">
+          <span>Title</span>
+          <input name="events_banner_title" defaultValue={copy.eventsBanner.title} />
+        </label>
+        <label className="field">
+          <span>Copy</span>
+          <textarea name="events_banner_copy" rows={3} defaultValue={copy.eventsBanner.copy} />
+        </label>
+        <label className="field">
+          <span>Image URL (optional)</span>
+          <input name="events_banner_image_url" defaultValue={copy.eventsBanner.imageUrl} />
+        </label>
+        <label className="field">
+          <span>Image alt</span>
+          <input name="events_banner_image_alt" defaultValue={copy.eventsBanner.imageAlt} />
+        </label>
+
+        <h3>Communities</h3>
+        <label className="field">
+          <span>Eyebrow</span>
+          <input name="communities_banner_eyebrow" defaultValue={copy.communitiesBanner.eyebrow} />
+        </label>
+        <label className="field">
+          <span>Title</span>
+          <input name="communities_banner_title" defaultValue={copy.communitiesBanner.title} />
+        </label>
+        <label className="field">
+          <span>Copy</span>
+          <textarea
+            name="communities_banner_copy"
+            rows={3}
+            defaultValue={copy.communitiesBanner.copy}
+          />
+        </label>
+        <label className="field">
+          <span>Image URL</span>
+          <input
+            name="communities_banner_image_url"
+            defaultValue={copy.communitiesBanner.imageUrl}
+          />
+        </label>
+        <label className="field">
+          <span>Image alt</span>
+          <input
+            name="communities_banner_image_alt"
+            defaultValue={copy.communitiesBanner.imageAlt}
+          />
+        </label>
+
+        <h2>Home hero</h2>
         <label className="field">
           <span>Eyebrow</span>
           <input name="hero_eyebrow" defaultValue={copy.heroEyebrow} />

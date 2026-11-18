@@ -168,6 +168,15 @@ function menu(admin: boolean, name: string): Group[] {
             { id: "authors", label: "Authors", href: "/admin/authors" },
           ],
         },
+        {
+          id: "website",
+          label: "Website",
+          href: "/admin/website",
+          leaves: [
+            { id: "page-banners", label: "Page banners", href: "/admin/website#page-banners" },
+            { id: "home", label: "Home & featured", href: "/admin/website" },
+          ],
+        },
       ],
     },
     {
@@ -271,6 +280,7 @@ function headingMatches(heading: Heading, path: string, here: string) {
   if (heading.id === "guides") {
     return path.startsWith("/admin/guides") || path.startsWith("/admin/event-guides") || path.startsWith("/admin/authors");
   }
+  if (heading.id === "website") return path.startsWith("/admin/website");
   if (heading.id === "analytics") return path.startsWith("/admin/analytics");
   if (heading.id === "fees") return path.startsWith("/admin/fees");
   if (heading.id === "payouts") return path.startsWith("/admin/payouts");

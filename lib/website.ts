@@ -10,6 +10,14 @@ import { categoryColour, listingsByCategory, type Listing } from "@/lib/listings
 import { PUBLIC_CATALOG_TAG } from "@/lib/public-cache";
 import { createAnonClient } from "@/lib/supabase/anon";
 
+export type PageBannerCopy = {
+  eyebrow: string;
+  title: string;
+  copy: string;
+  imageUrl: string;
+  imageAlt: string;
+};
+
 export type WebsiteCopy = {
   heroEyebrow: string;
   heroTitle: string;
@@ -22,6 +30,33 @@ export type WebsiteCopy = {
   helpEmail: string;
   appStoreUrl: string;
   playStoreUrl: string;
+  activitiesBanner: PageBannerCopy;
+  eventsBanner: PageBannerCopy;
+  communitiesBanner: PageBannerCopy;
+};
+
+const DEFAULT_ACTIVITIES_BANNER: PageBannerCopy = {
+  eyebrow: "Activities",
+  title: "Find your kind of fun.",
+  copy: "Discover activities near you, from everyday escapes to bucket-list adventures.",
+  imageUrl: "/brand/landing/next-adventure.jpg",
+  imageAlt: "People heading out on their next Venturo adventure",
+};
+
+const DEFAULT_EVENTS_BANNER: PageBannerCopy = {
+  eyebrow: "Find Your Next Thrill",
+  title: "What's On Near You",
+  copy: "Real plans with real people—markets, nights out, workshops, & the kind of quality time worth keeping.",
+  imageUrl: "",
+  imageAlt: "",
+};
+
+const DEFAULT_COMMUNITIES_BANNER: PageBannerCopy = {
+  eyebrow: "Communities",
+  title: "Find your kind of people.",
+  copy: "Discover communities built around the things you love. Meet up, try something new & make time for good company.",
+  imageUrl: "/brand/landing/find-your-kind-of-fun.png",
+  imageAlt: "Venturo community characters gathering together",
 };
 
 const DEFAULTS: WebsiteCopy = {
@@ -38,6 +73,9 @@ const DEFAULTS: WebsiteCopy = {
   helpEmail: "hello@venturo.co.za",
   appStoreUrl: "",
   playStoreUrl: "",
+  activitiesBanner: DEFAULT_ACTIVITIES_BANNER,
+  eventsBanner: DEFAULT_EVENTS_BANNER,
+  communitiesBanner: DEFAULT_COMMUNITIES_BANNER,
 };
 
 type SettingsRow = {
@@ -52,7 +90,41 @@ type SettingsRow = {
   help_email: string | null;
   app_store_url: string | null;
   play_store_url: string | null;
+  activities_banner_eyebrow: string | null;
+  activities_banner_title: string | null;
+  activities_banner_copy: string | null;
+  activities_banner_image_url: string | null;
+  activities_banner_image_alt: string | null;
+  events_banner_eyebrow: string | null;
+  events_banner_title: string | null;
+  events_banner_copy: string | null;
+  events_banner_image_url: string | null;
+  events_banner_image_alt: string | null;
+  communities_banner_eyebrow: string | null;
+  communities_banner_title: string | null;
+  communities_banner_copy: string | null;
+  communities_banner_image_url: string | null;
+  communities_banner_image_alt: string | null;
 };
+
+function pageBanner(
+  row: SettingsRow,
+  prefix: "activities" | "events" | "communities",
+  fallback: PageBannerCopy,
+): PageBannerCopy {
+  const eyebrow = row[`${prefix}_banner_eyebrow` as keyof SettingsRow];
+  const title = row[`${prefix}_banner_title` as keyof SettingsRow];
+  const copy = row[`${prefix}_banner_copy` as keyof SettingsRow];
+  const imageUrl = row[`${prefix}_banner_image_url` as keyof SettingsRow];
+  const imageAlt = row[`${prefix}_banner_image_alt` as keyof SettingsRow];
+  return {
+    eyebrow: (typeof eyebrow === "string" && eyebrow.trim()) || fallback.eyebrow,
+    title: (typeof title === "string" && title.trim()) || fallback.title,
+    copy: (typeof copy === "string" && copy.trim()) || fallback.copy,
+    imageUrl: (typeof imageUrl === "string" && imageUrl.trim()) || fallback.imageUrl,
+    imageAlt: (typeof imageAlt === "string" && imageAlt.trim()) || fallback.imageAlt,
+  };
+}
 
 export const loadWebsiteCopy = cache(() =>
   unstable_cache(
@@ -68,7 +140,7 @@ export const loadWebsiteCopy = cache(() =>
       const { data, error } = await supabase
         .from("website_settings")
         .select(
-          "hero_eyebrow, hero_title, hero_lede, hero_image_url, about_title, about_body, help_title, help_body, help_email, app_store_url, play_store_url",
+          "hero_eyebrow, hero_title, hero_lede, hero_image_url, about_title, about_body, help_title, help_body, help_email, app_store_url, play_store_url, activities_banner_eyebrow, activities_banner_title, activities_banner_copy, activities_banner_image_url, activities_banner_image_alt, events_banner_eyebrow, events_banner_title, events_banner_copy, events_banner_image_url, events_banner_image_alt, communities_banner_eyebrow, communities_banner_title, communities_banner_copy, communities_banner_image_url, communities_banner_image_alt",
         )
         .eq("id", 1)
         .maybeSingle();
@@ -86,6 +158,9 @@ export const loadWebsiteCopy = cache(() =>
         helpEmail: row.help_email?.trim() || base.helpEmail,
         appStoreUrl: row.app_store_url?.trim() || base.appStoreUrl,
         playStoreUrl: row.play_store_url?.trim() || base.playStoreUrl,
+        activitiesBanner: pageBanner(row, "activities", base.activitiesBanner),
+        eventsBanner: pageBanner(row, "events", base.eventsBanner),
+        communitiesBanner: pageBanner(row, "communities", base.communitiesBanner),
       };
     },
     ["website-copy"],

@@ -6,6 +6,7 @@ import { EVENT_CATEGORIES, listPublicEvents } from "@/lib/events";
 import { eventCategoryChipInk, eventCategoryColour } from "@/lib/event-style";
 import { COLORS } from "@/lib/brand";
 import { EVENT_HOST, PORTAL_EVENTS_NEW } from "@/lib/portal";
+import { loadWebsiteCopy } from "@/lib/website";
 
 export const metadata: Metadata = {
   title: "What's On · Venturo",
@@ -35,12 +36,16 @@ export default async function EventsPage({
   const price = params.price === "free" || params.price === "paid" ? params.price : "";
   const needle = (params.q ?? "").trim().toLowerCase();
   const user = await getCurrentUser();
-  const listed = await listPublicEvents({
-    category: category === "all" ? undefined : category,
-    when: when === "calendar" ? "upcoming" : when,
-    price: price || undefined,
-    expandRepeats: true,
-  });
+  const [listed, website] = await Promise.all([
+    listPublicEvents({
+      category: category === "all" ? undefined : category,
+      when: when === "calendar" ? "upcoming" : when,
+      price: price || undefined,
+      expandRepeats: true,
+    }),
+    loadWebsiteCopy(),
+  ]);
+  const banner = website.eventsBanner;
   const events = listed.filter((event) => {
     if (!needle) return true;
     return `${event.title} ${event.city ?? ""} ${event.category ?? ""}`.toLowerCase().includes(needle);
@@ -74,15 +79,15 @@ export default async function EventsPage({
   return (
     <main>
       <section className="shell">
-        <div className="events-hero">
+        <div className={banner.imageUrl ? "events-hero events-hero-has-image" : "events-hero"}>
+          {banner.imageUrl ? (
+            <img className="events-hero-photo" src={banner.imageUrl} alt={banner.imageAlt || ""} />
+          ) : null}
           <div className="colour-bar" aria-hidden="true" />
           <div className="events-hero-copy">
-            <p className="eyebrow">Find Your Next Thrill</p>
-            <h1>What&apos;s On Near You</h1>
-            <p className="lede">
-              Real plans with real people—markets, nights out, workshops, &amp;
-              the kind of quality time worth keeping.
-            </p>
+            <p className="eyebrow">{banner.eyebrow}</p>
+            <h1>{banner.title}</h1>
+            <p className="lede">{banner.copy}</p>
             <div className="hero-actions">
               <a
                 className="btn btn-secondary"
