@@ -250,6 +250,21 @@ export async function saveWebsite(formData: FormData) {
     help_email: String(formData.get("help_email") ?? "").trim() || null,
     app_store_url: String(formData.get("app_store_url") ?? "").trim() || null,
     play_store_url: String(formData.get("play_store_url") ?? "").trim() || null,
+    activities_banner_eyebrow: String(formData.get("activities_banner_eyebrow") ?? "").trim() || null,
+    activities_banner_title: String(formData.get("activities_banner_title") ?? "").trim() || null,
+    activities_banner_copy: String(formData.get("activities_banner_copy") ?? "").trim() || null,
+    activities_banner_image_url: String(formData.get("activities_banner_image_url") ?? "").trim() || null,
+    activities_banner_image_alt: String(formData.get("activities_banner_image_alt") ?? "").trim() || null,
+    events_banner_eyebrow: String(formData.get("events_banner_eyebrow") ?? "").trim() || null,
+    events_banner_title: String(formData.get("events_banner_title") ?? "").trim() || null,
+    events_banner_copy: String(formData.get("events_banner_copy") ?? "").trim() || null,
+    events_banner_image_url: String(formData.get("events_banner_image_url") ?? "").trim() || null,
+    events_banner_image_alt: String(formData.get("events_banner_image_alt") ?? "").trim() || null,
+    communities_banner_eyebrow: String(formData.get("communities_banner_eyebrow") ?? "").trim() || null,
+    communities_banner_title: String(formData.get("communities_banner_title") ?? "").trim() || null,
+    communities_banner_copy: String(formData.get("communities_banner_copy") ?? "").trim() || null,
+    communities_banner_image_url: String(formData.get("communities_banner_image_url") ?? "").trim() || null,
+    communities_banner_image_alt: String(formData.get("communities_banner_image_alt") ?? "").trim() || null,
     updated_at: new Date().toISOString(),
     updated_by: staff.id,
   });
@@ -275,6 +290,9 @@ export async function saveWebsite(formData: FormData) {
   }
 
   revalidatePath("/");
+  revalidatePath("/directory");
+  revalidatePath("/events");
+  revalidatePath("/communities");
   revalidatePath("/about");
   revalidatePath("/help");
   bustPublicCatalog();

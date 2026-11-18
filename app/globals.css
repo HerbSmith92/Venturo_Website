@@ -6136,10 +6136,47 @@ code {
   pointer-events: none;
 }
 
+.events-hero-has-image {
+  min-height: min(42vh, 360px);
+  display: grid;
+  align-items: end;
+  background: var(--night);
+}
+
+.events-hero-has-image::before {
+  background:
+    linear-gradient(
+      180deg,
+      color-mix(in srgb, var(--night) 15%, transparent) 0%,
+      color-mix(in srgb, var(--night) 78%, transparent) 55%,
+      var(--night) 100%
+    );
+  opacity: 1;
+  z-index: 1;
+}
+
+.events-hero-photo {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  z-index: 0;
+}
+
 .events-hero-copy {
   position: relative;
   z-index: 1;
   max-width: 54ch;
+}
+
+.events-hero-has-image .events-hero-copy,
+.events-hero-has-image .colour-bar {
+  color: var(--snow);
+}
+
+.events-hero-has-image .lede {
+  color: color-mix(in srgb, var(--snow) 88%, transparent);
 }
 
 .events-hero .colour-bar {

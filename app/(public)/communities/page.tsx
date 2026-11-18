@@ -1,6 +1,7 @@
 import { getCurrentUser } from "@/lib/auth";
 import { listPublishedCommunities } from "@/lib/communities";
 import { DiscoverBanner } from "@/components/DiscoverBanner";
+import { loadWebsiteCopy } from "@/lib/website";
 
 export default async function CommunitiesPage({
   searchParams,
@@ -10,7 +11,8 @@ export default async function CommunitiesPage({
   const { q = "" } = await searchParams;
   const user = await getCurrentUser();
   const query = q.trim().toLowerCase();
-  const communities = (await listPublishedCommunities()).filter((item) => {
+  const [published, website] = await Promise.all([listPublishedCommunities(), loadWebsiteCopy()]);
+  const communities = published.filter((item) => {
     if (!query) return true;
     return [item.title, item.placeLabel, item.interest, item.about]
       .filter(Boolean)
@@ -18,15 +20,16 @@ export default async function CommunitiesPage({
       .toLowerCase()
       .includes(query);
   });
+  const banner = website.communitiesBanner;
 
   return (
     <main className="shell">
       <DiscoverBanner
-        eyebrow="Communities"
-        title="Find your kind of people."
-        copy="Discover communities built around the things you love. Meet up, try something new & make time for good company."
-        image="/brand/landing/find-your-kind-of-fun.png"
-        imageAlt="Venturo community characters gathering together"
+        eyebrow={banner.eyebrow}
+        title={banner.title}
+        copy={banner.copy}
+        image={banner.imageUrl}
+        imageAlt={banner.imageAlt}
         actions={[
           { label: "Explore communities", href: "#community-results", primary: true },
           { label: "List your community", href: user ? "/account/community" : "/login?next=/account/community" },

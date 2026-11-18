@@ -12,6 +12,7 @@ import {
   visitorKeyFromCookie,
 } from "@/lib/search-misses";
 import { loadTrendingDirectory } from "@/lib/trending";
+import { loadWebsiteCopy } from "@/lib/website";
 import { cookies, headers } from "next/headers";
 
 export default async function DirectoryPage({
@@ -30,11 +31,15 @@ export default async function DirectoryPage({
   const query = await searchParams;
   const category = query.category ?? "all";
   const user = await getCurrentUser();
-  const listings = await searchDirectory({ ...query, category });
+  const [listings, website] = await Promise.all([
+    searchDirectory({ ...query, category }),
+    loadWebsiteCopy(),
+  ]);
   const revealMember = user?.plan === "paid" || isStaff(user?.role);
   const browsing = category === "all" && !query.q && !query.place && !query.price && !query.lat;
   const trending = browsing ? await loadTrendingDirectory(10) : { listings: [], seeAllHref: null };
   const featured = listings.filter((listing) => listing.featured).slice(0, 6);
+  const banner = website.activitiesBanner;
   const hot = [...listings]
     .filter((listing) => !listing.featured && (listing.rating ?? 0) > 0)
     .sort((a, b) => (b.rating ?? 0) - (a.rating ?? 0))
@@ -63,11 +68,11 @@ export default async function DirectoryPage({
   return (
     <main className="shell">
       <DiscoverBanner
-        eyebrow="Activities"
-        title="Find your kind of fun."
-        copy="Discover activities near you, from everyday escapes to bucket-list adventures."
-        image="/brand/landing/next-adventure.jpg"
-        imageAlt="People heading out on their next Venturo adventure"
+        eyebrow={banner.eyebrow}
+        title={banner.title}
+        copy={banner.copy}
+        image={banner.imageUrl}
+        imageAlt={banner.imageAlt}
         actions={[
           { label: "Explore activities", href: "#activity-results", primary: true },
           { label: "List your business", href: "/list-your-business" },
