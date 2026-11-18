@@ -31,95 +31,67 @@ export default async function WebsiteControlsPage({
       <p className="eyebrow">Content</p>
       <h1>Website</h1>
       <p className="lede muted">
-        Home page hero &amp; featured picks, plus the public banners on Activities, Events
-        &amp; Communities. An empty featured list falls back to the newest live items.
+        Home page hero &amp; featured picks. Page banners are edited separately — pick a new
+        image for each public page.
       </p>
       {done ? <p className="notice">Website controls saved.</p> : null}
       {error ? <p className="error">{error}</p> : null}
+
+      <div className="portal-stat-grid" id="page-banners" style={{ margin: "28px 0" }}>
+        {(
+          [
+            {
+              page: "activities",
+              label: "Activities",
+              href: "/admin/website/banners/activities",
+              preview: copy.activitiesBanner.imageUrl,
+              publicPath: "/directory",
+            },
+            {
+              page: "events",
+              label: "Events",
+              href: "/admin/website/banners/events",
+              preview: copy.eventsBanner.imageUrl,
+              publicPath: "/events",
+            },
+            {
+              page: "communities",
+              label: "Communities",
+              href: "/admin/website/banners/communities",
+              preview: copy.communitiesBanner.imageUrl,
+              publicPath: "/communities",
+            },
+          ] as const
+        ).map((item) => (
+          <article className="studio-card" key={item.page}>
+            <p className="eyebrow">{item.label}</p>
+            <h2>Banner image</h2>
+            {item.preview ? (
+              <img
+                src={item.preview}
+                alt=""
+                style={{
+                  width: "100%",
+                  aspectRatio: "16 / 10",
+                  objectFit: "cover",
+                  borderRadius: 12,
+                  margin: "12px 0 16px",
+                }}
+              />
+            ) : (
+              <p className="muted">No image yet.</p>
+            )}
+            <p className="muted">{item.publicPath}</p>
+            <p style={{ marginTop: 16 }}>
+              <a className="btn btn-primary" href={item.href}>
+                Change image
+              </a>
+            </p>
+          </article>
+        ))}
+      </div>
+
       <form action={saveWebsite} className="cr-panel">
-        <h2 id="page-banners">Public page banners</h2>
-        <p className="muted">
-          These drive the top of <a href="/directory">/directory</a>, <a href="/events">/events</a>{" "}
-          &amp; <a href="/communities">/communities</a>. Image URLs can be brand paths or HTTPS
-          uploads.
-        </p>
-
-        <h3>Activities</h3>
-        <label className="field">
-          <span>Eyebrow</span>
-          <input name="activities_banner_eyebrow" defaultValue={copy.activitiesBanner.eyebrow} />
-        </label>
-        <label className="field">
-          <span>Title</span>
-          <input name="activities_banner_title" defaultValue={copy.activitiesBanner.title} />
-        </label>
-        <label className="field">
-          <span>Copy</span>
-          <textarea name="activities_banner_copy" rows={3} defaultValue={copy.activitiesBanner.copy} />
-        </label>
-        <label className="field">
-          <span>Image URL</span>
-          <input name="activities_banner_image_url" defaultValue={copy.activitiesBanner.imageUrl} />
-        </label>
-        <label className="field">
-          <span>Image alt</span>
-          <input name="activities_banner_image_alt" defaultValue={copy.activitiesBanner.imageAlt} />
-        </label>
-
-        <h3>Events</h3>
-        <label className="field">
-          <span>Eyebrow</span>
-          <input name="events_banner_eyebrow" defaultValue={copy.eventsBanner.eyebrow} />
-        </label>
-        <label className="field">
-          <span>Title</span>
-          <input name="events_banner_title" defaultValue={copy.eventsBanner.title} />
-        </label>
-        <label className="field">
-          <span>Copy</span>
-          <textarea name="events_banner_copy" rows={3} defaultValue={copy.eventsBanner.copy} />
-        </label>
-        <label className="field">
-          <span>Image URL (optional)</span>
-          <input name="events_banner_image_url" defaultValue={copy.eventsBanner.imageUrl} />
-        </label>
-        <label className="field">
-          <span>Image alt</span>
-          <input name="events_banner_image_alt" defaultValue={copy.eventsBanner.imageAlt} />
-        </label>
-
-        <h3>Communities</h3>
-        <label className="field">
-          <span>Eyebrow</span>
-          <input name="communities_banner_eyebrow" defaultValue={copy.communitiesBanner.eyebrow} />
-        </label>
-        <label className="field">
-          <span>Title</span>
-          <input name="communities_banner_title" defaultValue={copy.communitiesBanner.title} />
-        </label>
-        <label className="field">
-          <span>Copy</span>
-          <textarea
-            name="communities_banner_copy"
-            rows={3}
-            defaultValue={copy.communitiesBanner.copy}
-          />
-        </label>
-        <label className="field">
-          <span>Image URL</span>
-          <input
-            name="communities_banner_image_url"
-            defaultValue={copy.communitiesBanner.imageUrl}
-          />
-        </label>
-        <label className="field">
-          <span>Image alt</span>
-          <input
-            name="communities_banner_image_alt"
-            defaultValue={copy.communitiesBanner.imageAlt}
-          />
-        </label>
-
         <h2>Home hero</h2>
         <label className="field">
           <span>Eyebrow</span>

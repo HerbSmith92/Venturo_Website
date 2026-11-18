@@ -173,7 +173,9 @@ function menu(admin: boolean, name: string): Group[] {
           label: "Website",
           href: "/admin/website",
           leaves: [
-            { id: "page-banners", label: "Page banners", href: "/admin/website#page-banners" },
+            { id: "activities-banner", label: "Activities banner", href: "/admin/website/banners/activities" },
+            { id: "events-banner", label: "Events banner", href: "/admin/website/banners/events" },
+            { id: "communities-banner", label: "Communities banner", href: "/admin/website/banners/communities" },
             { id: "home", label: "Home & featured", href: "/admin/website" },
           ],
         },
