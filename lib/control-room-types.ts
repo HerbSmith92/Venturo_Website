@@ -18,6 +18,7 @@ export type QueueListing = {
   interest?: string | null;
   interest_key?: string | null;
   author?: string | null;
+  indoor_outdoor?: string | null;
 };
 
 export type PriceAppliesTo =
@@ -102,6 +103,7 @@ export type ListingDetail = QueueListing & {
   maps_url: string | null;
   booking_required: boolean;
   indoor_outdoor: string | null;
+  audience?: string | null;
   interest_keywords: string | null;
   persona_keywords: string | null;
   google_rating: number | string | null;

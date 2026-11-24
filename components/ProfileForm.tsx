@@ -33,10 +33,12 @@ export function ProfileForm({
 }) {
   const router = useRouter();
   const fileRef = useRef<HTMLInputElement>(null);
+  const coverRef = useRef<HTMLInputElement>(null);
   const [firstName, setFirstName] = useState(profile.firstName);
   const [lastName, setLastName] = useState(profile.lastName);
   const [phone, setPhone] = useState(profile.phone);
   const [avatarUrl, setAvatarUrl] = useState(profile.avatarUrl);
+  const [coverUrl, setCoverUrl] = useState(profile.coverUrl);
   const [homePlaceId, setHomePlaceId] = useState(profile.homePlaceId ?? "");
   const [error, setError] = useState<string | null>(null);
   const [uploading, setUploading] = useState(false);
@@ -79,23 +81,36 @@ export function ProfileForm({
     return catalog.places.find((place) => place.id === homePlaceId)?.name ?? "Not set yet";
   }, [catalog.places, homePlaceId]);
 
-  async function onAvatarChange(event: React.ChangeEvent<HTMLInputElement>) {
-    const file = event.target.files?.[0];
-    event.target.value = "";
-    if (!file) return;
+  async function uploadPhoto(file: File, kind: "avatar" | "cover") {
     setError(null);
     setUploading(true);
     const form = new FormData();
     form.set("file", file);
+    form.set("kind", kind);
     const response = await fetch("/api/account/avatar", { method: "POST", body: form });
-    const payload = (await response.json()) as { error?: string; avatarUrl?: string };
+    const payload = (await response.json()) as { error?: string; avatarUrl?: string; coverUrl?: string };
     setUploading(false);
     if (!response.ok) {
       setError(payload.error ?? "Could not upload that photo.");
       return;
     }
-    setAvatarUrl(payload.avatarUrl ?? null);
+    if (kind === "cover") setCoverUrl(payload.coverUrl ?? null);
+    else setAvatarUrl(payload.avatarUrl ?? null);
     router.refresh();
+  }
+
+  async function onAvatarChange(event: React.ChangeEvent<HTMLInputElement>) {
+    const file = event.target.files?.[0];
+    event.target.value = "";
+    if (!file) return;
+    await uploadPhoto(file, "avatar");
+  }
+
+  async function onCoverChange(event: React.ChangeEvent<HTMLInputElement>) {
+    const file = event.target.files?.[0];
+    event.target.value = "";
+    if (!file) return;
+    await uploadPhoto(file, "cover");
   }
 
   async function removeAvatar() {
@@ -256,6 +271,34 @@ export function ProfileForm({
 
       <div className="profile-main">
         <div className="profile-identity">
+          <section className="profile-section profile-section-photo">
+            <p className="eyebrow">Cover</p>
+            <h3>Cover Photo</h3>
+            <p className="muted" style={{ marginTop: 0 }}>
+              A wide photo sits behind your portrait on the app.
+            </p>
+            {coverUrl ? (
+              // eslint-disable-next-line @next/next/no-img-element
+              <img src={coverUrl} alt="" style={{ width: "100%", height: 160, objectFit: "cover", borderRadius: 16 }} />
+            ) : (
+              <p className="muted">The stock cover shows until you choose one.</p>
+            )}
+            <input
+              ref={coverRef}
+              type="file"
+              accept="image/jpeg,image/png,image/webp"
+              hidden
+              onChange={onCoverChange}
+            />
+            <button
+              type="button"
+              className="btn btn-secondary"
+              disabled={uploading}
+              onClick={() => coverRef.current?.click()}
+            >
+              {uploading ? "Please Wait" : coverUrl ? "Change Cover" : "Add Cover"}
+            </button>
+          </section>
           <section className="profile-section profile-section-photo">
             <p className="eyebrow">Photo</p>
             <h3>Profile Photo</h3>

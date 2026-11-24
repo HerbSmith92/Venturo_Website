@@ -100,6 +100,8 @@ export type ListingDraft = {
   maps_url: string;
   booking_required: boolean;
   indoor_outdoor: "" | "indoor" | "outdoor" | "both";
+  /** Women/Men/All discovery restriction. */
+  audience: "all" | "women" | "men";
   business_name: string;
   business_description: string;
   business_website: string;
@@ -549,6 +551,8 @@ export function listingToDraft(listing: ListingDetail): ListingDraft {
     maps_url: asText(listing.maps_url),
     booking_required: Boolean(listing.booking_required),
     indoor_outdoor: (listing.indoor_outdoor as ListingDraft["indoor_outdoor"]) || "",
+    audience:
+      listing.audience === "women" || listing.audience === "men" ? listing.audience : "all",
     business_name: asText(biz?.name),
     business_description: asText(biz?.description),
     business_website: asText(biz?.website_url),
@@ -585,7 +589,9 @@ export function stepComplete(draft: ListingDraft, key: StepKey) {
     case "business":
       return Boolean(draft.name.trim() && draft.description.trim());
     case "location":
-      return Boolean(draft.street_address_1.trim() || draft.city.trim());
+      return (
+        Boolean(draft.street_address_1.trim() || draft.city.trim()) && Boolean(draft.indoor_outdoor)
+      );
     case "hours":
       return draft.hours.some((row) => !row.is_closed && row.opens_at && row.closes_at);
     case "prices": {
@@ -662,6 +668,7 @@ export function draftToPayload(draft: ListingDraft) {
       maps_url: draft.maps_url,
       booking_required: draft.booking_required,
       indoor_outdoor: draft.indoor_outdoor || null,
+      audience: draft.audience || "all",
     },
     business: {
       name: draft.business_name.trim() || draft.name.trim(),
@@ -785,6 +792,9 @@ export function applyPendingPayload(draft: ListingDraft, raw: unknown): ListingD
     next.maps_url = pendingText(listing.maps_url);
     next.booking_required = pendingBool(listing.booking_required, draft.booking_required);
     next.indoor_outdoor = pendingIndoor(listing.indoor_outdoor);
+    if (listing.audience === "women" || listing.audience === "men" || listing.audience === "all") {
+      next.audience = listing.audience;
+    }
   }
 
   if (payload.business) {

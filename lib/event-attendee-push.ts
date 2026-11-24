@@ -110,9 +110,7 @@ export async function sendEventAttendeePush(input: {
     ...new Set(((ids.data as { user_id: string }[] | null) ?? []).map((row) => row.user_id).filter(Boolean)),
   ];
 
-  const event = await service.from("events").select("id, slug, title").eq("id", input.eventId).maybeSingle();
-  const slug = (event.data?.slug as string | undefined)?.trim() || input.eventId;
-  const linkPath = `/events/${slug}`;
+  const linkPath = `/events/${input.eventId}`;
 
   const delivered = await notifyMemberUsers({
     userIds,
@@ -121,8 +119,9 @@ export async function sendEventAttendeePush(input: {
     linkPath,
     kind: "event",
     id: input.eventId,
-    slug,
-    notice: "custom",
+    slug: input.eventId,
+    notice: "event_update",
+    present: "event_update",
     createdBy: identity.id,
   });
 

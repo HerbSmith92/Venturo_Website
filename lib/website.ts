@@ -1,7 +1,7 @@
 import { cache } from "react";
 import { unstable_cache } from "next/cache";
 import { getAppStoreLinks } from "@/lib/brand";
-import { listPublishedCommunities, type CommunityRecord } from "@/lib/communities";
+import { listVisiblePublishedCommunities, type CommunityRecord } from "@/lib/communities";
 import { listPublicEvents, type VenturoEvent } from "@/lib/events";
 import { eventCategoryColour } from "@/lib/event-style";
 import { eventFeedImage, formatEventWhen } from "@/lib/event-types";
@@ -203,7 +203,7 @@ export async function loadHomeFeatures(): Promise<HomeFeatures> {
     loadFeatureIds(),
     listPublicEvents({ limit: 24 }),
     listingsByCategory("all"),
-    listPublishedCommunities(),
+    listVisiblePublishedCommunities(),
     liveGuides(12),
   ]);
 

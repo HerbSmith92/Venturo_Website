@@ -1,6 +1,11 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
+import {
+  cascadeCommunityEventAudiences,
+  listCommunityAudienceMismatches,
+} from "@/lib/communities";
+import { parseContentAudience, type ContentAudience } from "@/lib/content-audience";
 import { bustPublicCatalog } from "@/lib/public-cache";
 import { redirect } from "next/navigation";
 import { requireStaff } from "@/lib/auth";
@@ -53,6 +58,8 @@ export type CommunityDraftInput = {
   interestKeywords: string;
   personaIds: string[];
   scaleId: string;
+  audience?: ContentAudience;
+  cascadeAudience?: boolean;
   status: string;
   isFeatured: boolean;
 };
@@ -63,6 +70,18 @@ export async function saveCommunityDraft(id: string, draft: CommunityDraftInput)
   const title = draft.title.trim();
   if (!supabase || !id) return { ok: false as const, error: "Could not save that community." };
   if (!title) return { ok: false as const, error: "A name is required." };
+
+  const audience = parseContentAudience(draft.audience);
+  if ((audience === "women" || audience === "men") && !draft.cascadeAudience) {
+    const mismatches = await listCommunityAudienceMismatches(id, audience);
+    if (mismatches.length) {
+      return {
+        ok: false as const,
+        error: "Linked events need their audience updated to match.",
+        mismatches,
+      };
+    }
+  }
 
   const { data: existing, error: loadError } = await supabase
     .from("communities")
@@ -105,6 +124,7 @@ export async function saveCommunityDraft(id: string, draft: CommunityDraftInput)
     founder_email: draft.founderEmail.trim() || null,
     interest_keywords: draft.interestKeywords.trim() || null,
     scale_id: draft.scaleId || null,
+    audience,
     status: communityStatus(draft.status),
     is_featured: draft.isFeatured,
     social_url: (existing.social_url as string | null) ?? null,
@@ -133,6 +153,11 @@ export async function saveCommunityDraft(id: string, draft: CommunityDraftInput)
       .from("community_personas")
       .insert(personaIds.map((personaId) => ({ community_id: id, persona_id: personaId })));
     if (error) return { ok: false as const, error: error.message };
+  }
+
+  if (draft.cascadeAudience && (audience === "women" || audience === "men")) {
+    const cascaded = await cascadeCommunityEventAudiences(id, audience);
+    if (!cascaded.ok) return { ok: false as const, error: cascaded.error };
   }
 
   revalidatePath("/communities");

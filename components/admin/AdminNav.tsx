@@ -124,6 +124,11 @@ function menu(admin: boolean, name: string): Group[] {
             { id: "scheduled", label: "Scheduled", href: "/admin/listings?status=scheduled" },
             { id: "archived", label: "Archived", href: "/admin/listings?status=archived" },
             { id: "suspended", label: "Suspended", href: "/admin/listings?status=suspended" },
+            {
+              id: "unassigned-setting",
+              label: "Unassigned setting",
+              href: "/admin/listings?status=approved&flag=unassigned-setting",
+            },
           ],
         },
         {
@@ -141,6 +146,16 @@ function menu(admin: boolean, name: string): Group[] {
             { id: "cancelled", label: "Cancelled", href: "/admin/events?status=cancelled" },
             { id: "archived", label: "Archived", href: "/admin/events?status=archived" },
             { id: "all", label: "All", href: "/admin/events?status=all" },
+            {
+              id: "unassigned-setting",
+              label: "Unassigned setting",
+              href: "/admin/events?status=all&flag=unassigned-setting",
+            },
+            {
+              id: "missing-energy",
+              label: "Missing energy",
+              href: "/admin/events?status=all&flag=missing-energy",
+            },
           ],
         },
         {

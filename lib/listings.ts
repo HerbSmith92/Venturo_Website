@@ -1,8 +1,17 @@
 import { cache } from "react";
 import { unstable_cache } from "next/cache";
 import { primaryActivityKindKey } from "@/lib/activity-kind";
+import {
+  canViewAudiencePublic,
+  filterByAudience,
+  loadAudienceViewer,
+  parseContentAudience,
+  type AudienceViewer,
+  type ContentAudience,
+} from "@/lib/audience";
 import { PUBLIC_CATEGORIES, isCategoryId, type CategoryId } from "@/lib/listing-categories";
 import { PUBLIC_CATALOG_TAG } from "@/lib/public-cache";
+import { parseSetting, settingMatches, type IndoorOutdoorSetting } from "@/lib/setting";
 import { createAnonClient } from "@/lib/supabase/anon";
 import { createClient } from "@/lib/supabase/server";
 
@@ -33,6 +42,9 @@ export type Listing = {
   latitude: number | null;
   longitude: number | null;
   rating: number | null;
+  audience: ContentAudience;
+  indoorOutdoor: IndoorOutdoorSetting | null;
+  adventureRanks: number[];
 };
 
 const FALLBACK_IMAGE = "/brand/images/climbing.jpg";
@@ -51,6 +63,8 @@ type LiveRow = {
   publish_at?: string | null;
   is_featured: boolean | null;
   google_rating: number | string | null;
+  audience?: string | null;
+  indoor_outdoor?: string | null;
   listing_media?: {
     public_url: string | null;
     is_cover: boolean | null;
@@ -64,6 +78,10 @@ type LiveRow = {
       | { id?: string | null; key: string | null }
       | { id?: string | null; key: string | null }[]
       | null;
+  }[];
+  listing_activity_scales?: {
+    is_primary?: boolean | null;
+    activity_scales?: { rank: number | null } | { rank: number | null }[] | null;
   }[];
   price_options?: {
     standard_price: number | string | null;
@@ -98,6 +116,19 @@ function mapLiveRow(row: LiveRow): Listing {
   const vibe = (row.short_description ?? "").trim().replace(/\s+/g, " ");
   const area = (row.suburb ?? row.city ?? "Gauteng").replace(/,$/, "").trim();
   const city = (row.city ?? area).replace(/,$/, "").trim();
+  const adventureRanks = [
+    ...new Set(
+      (row.listing_activity_scales ?? [])
+        .map((entry) => {
+          const scale = Array.isArray(entry.activity_scales)
+            ? entry.activity_scales[0]
+            : entry.activity_scales;
+          const rank = scale?.rank;
+          return typeof rank === "number" && Number.isFinite(rank) ? rank : null;
+        })
+        .filter((rank): rank is number => rank !== null),
+    ),
+  ].sort((a, b) => a - b);
 
   return {
     id: row.id,
@@ -118,6 +149,9 @@ function mapLiveRow(row: LiveRow): Listing {
     latitude: asNumber(row.latitude),
     longitude: asNumber(row.longitude),
     rating: asNumber(row.google_rating),
+    audience: parseContentAudience(row.audience),
+    indoorOutdoor: parseSetting(row.indoor_outdoor),
+    adventureRanks,
   };
 }
 
@@ -135,8 +169,11 @@ const LIVE_SELECT = `
       longitude,
       is_suspended,
       publish_at,
+      audience,
+      indoor_outdoor,
       listing_media ( public_url, is_cover, sort_order, is_pending ),
       listing_activity_kinds ( is_primary, activity_kind_id, activity_kinds ( id, key ) ),
+      listing_activity_scales ( is_primary, activity_scales ( rank ) ),
       price_options ( standard_price, member_price, is_active )
     `;
 
@@ -162,9 +199,10 @@ async function fetchLiveListings(): Promise<Listing[] | null> {
           .from("directory_listings")
           .select(
             `
-      id, name, slug, suburb, city, short_description, price_from, is_featured, google_rating,
+      id, name, slug, suburb, city, short_description, price_from, is_featured, google_rating, audience, indoor_outdoor,
       listing_media ( public_url, is_cover, sort_order, is_pending ),
       listing_activity_kinds ( is_primary, activity_kind_id, activity_kinds ( id, key ) ),
+      listing_activity_scales ( is_primary, activity_scales ( rank ) ),
       price_options ( standard_price, member_price, is_active )
     `,
           )
@@ -193,6 +231,26 @@ function shuffle<T>(items: T[]) {
     copy[j] = current;
   }
   return copy;
+}
+
+export function filterListingsForViewer(listings: Listing[], viewer: AudienceViewer) {
+  return filterByAudience(listings, viewer);
+}
+
+/** Full public catalog (no audience filter) — for search / admin pipelines that filter themselves. */
+export async function listCatalogListings(): Promise<Listing[]> {
+  return (await loadLiveListings()) ?? [];
+}
+
+async function loadVisibleListings(viewer?: AudienceViewer) {
+  const listings = await listCatalogListings();
+  const resolved = viewer ?? (await loadAudienceViewer());
+  return filterListingsForViewer(listings, resolved);
+}
+
+/** Unfiltered approved catalog (caller must apply audience). */
+export async function loadPublicCatalogListings(): Promise<Listing[]> {
+  return (await loadLiveListings()) ?? [];
 }
 
 /** One pass across interests, so a rail is not eight of the same category. */
@@ -224,8 +282,8 @@ export function mixListingsByInterest(listings: Listing[], limit = 8) {
   return shuffle(picked);
 }
 
-export async function featuredListings() {
-  const listings = (await loadLiveListings()) ?? [];
+export async function featuredListings(viewer?: AudienceViewer) {
+  const listings = await loadVisibleListings(viewer);
   const marked = listings.filter((listing) => listing.featured);
   if (marked.length) return marked.slice(0, 8);
   return listings.filter((listing) => listing.image !== FALLBACK_IMAGE).slice(0, 8);
@@ -242,8 +300,9 @@ export type HomeTasteRow = {
 export async function homeTasteRows(
   limitPerCategory = 10,
   maxRows = 3,
+  viewer?: AudienceViewer,
 ): Promise<HomeTasteRow[]> {
-  const listings = (await loadLiveListings()) ?? [];
+  const listings = await loadVisibleListings(viewer);
   const pool = [...listings].sort((a, b) => {
     if (a.featured !== b.featured) return a.featured ? -1 : 1;
     return a.name.localeCompare(b.name);
@@ -267,8 +326,8 @@ export async function homeTasteRows(
   return rows;
 }
 
-export async function listingsByCategory(category?: string) {
-  const listings = (await loadLiveListings()) ?? [];
+export async function listingsByCategory(category?: string, viewer?: AudienceViewer) {
+  const listings = await loadVisibleListings(viewer);
   if (!category || category === "all") return listings;
   return listings.filter((listing) => listing.category === category);
 }
@@ -281,6 +340,8 @@ export type DirectoryQuery = {
   sort?: string;
   lat?: string;
   lng?: string;
+  setting?: string;
+  level?: string;
 };
 
 function distanceKm(aLat: number, aLng: number, bLat: number, bLng: number) {
@@ -295,8 +356,8 @@ function distanceKm(aLat: number, aLng: number, bLat: number, bLng: number) {
   return 6371 * 2 * Math.asin(Math.min(1, Math.sqrt(h)));
 }
 
-export async function searchDirectory(query: DirectoryQuery) {
-  let listings = await listingsByCategory(query.category);
+export async function searchDirectory(query: DirectoryQuery, viewer?: AudienceViewer) {
+  let listings = await listingsByCategory(query.category, viewer);
   const words = (query.q ?? "").trim().toLowerCase();
   const place = (query.place ?? "").trim().toLowerCase();
   if (words) {
@@ -310,10 +371,25 @@ export async function searchDirectory(query: DirectoryQuery) {
     );
   }
   const maxPrice = Number(query.price);
-  if (Number.isFinite(maxPrice) && maxPrice > 0) {
-    listings = listings.filter(
-      (listing) => listing.fromPrice === 0 || (listing.fromPrice != null && listing.fromPrice <= maxPrice),
-    );
+  if (Number.isFinite(maxPrice) && maxPrice >= 0 && query.price !== undefined && query.price !== "") {
+    if (maxPrice === 0) {
+      listings = listings.filter((listing) => listing.fromPrice === 0);
+    } else {
+      listings = listings.filter(
+        (listing) => listing.fromPrice === 0 || (listing.fromPrice != null && listing.fromPrice <= maxPrice),
+      );
+    }
+  }
+  const setting = parseSetting(query.setting);
+  if (setting) {
+    listings = listings.filter((listing) => settingMatches(listing.indoorOutdoor, [setting]));
+  }
+  const level = Number(query.level);
+  if (Number.isFinite(level) && level >= 1 && level <= 5) {
+    listings = listings.filter((listing) => {
+      if (!listing.adventureRanks.length) return false;
+      return listing.adventureRanks.some((rank) => rank === level);
+    });
   }
   const lat = Number(query.lat);
   const lng = Number(query.lng);
@@ -353,7 +429,6 @@ export type PublicListingDetail = Listing & {
   province: string | null;
   postalCode: string | null;
   bookingRequired: boolean;
-  indoorOutdoor: string | null;
   googleRating: number | null;
   googleReviewCount: number | null;
   phone: string | null;
@@ -432,6 +507,7 @@ type DetailRow = LiveRow & {
 
 export async function getPublicListingBySlug(
   slug: string,
+  viewer?: AudienceViewer,
 ): Promise<PublicListingDetail | null> {
   const supabase = await createClient();
   if (!supabase) return null;
@@ -455,6 +531,7 @@ export async function getPublicListingBySlug(
       longitude,
       is_suspended,
       publish_at,
+      audience,
       website_url,
       booking_url,
       street_address_1,
@@ -488,7 +565,7 @@ export async function getPublicListingBySlug(
       .from("directory_listings")
       .select(
         `
-      id, name, slug, suburb, city, short_description, description, price_from, is_featured, google_rating,
+      id, name, slug, suburb, city, short_description, description, price_from, is_featured, google_rating, audience,
       website_url, booking_url, street_address_1, street_address_2, province, postal_code,
       booking_required, indoor_outdoor,
       listing_media ( public_url, is_cover, sort_order, alt_text, is_pending ),
@@ -529,6 +606,8 @@ export async function getPublicListingBySlug(
   };
   if (!isPublicNow(row)) return null;
   const base = mapLiveRow(row);
+  const resolved = viewer ?? (await loadAudienceViewer());
+  if (!canViewAudiencePublic(base.audience, resolved)) return null;
   const media = [...(row.listing_media ?? [])]
     .filter((item) => !item.is_pending)
     .sort((a, b) => {
@@ -594,7 +673,7 @@ export async function getPublicListingBySlug(
     province: row.province,
     postalCode: row.postal_code,
     bookingRequired: Boolean(row.booking_required),
-    indoorOutdoor: row.indoor_outdoor,
+    indoorOutdoor: parseSetting(row.indoor_outdoor) ?? base.indoorOutdoor,
     googleRating: asNumber(row.google_rating),
     googleReviewCount: asNumber(
       (row as { google_review_count?: number | string | null }).google_review_count,

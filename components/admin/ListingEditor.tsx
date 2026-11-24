@@ -35,6 +35,8 @@ import {
   type ListingDraft,
   type StepKey,
 } from "@/lib/listing-draft";
+import { AUDIENCE_OPTIONS, parseContentAudience } from "@/lib/content-audience";
+import { SETTING_OPTIONS, parseSetting } from "@/lib/setting";
 
 const PHOTO_LIMIT = 10 * 1024 * 1024;
 const PHOTO_CONCURRENCY = 4;
@@ -910,6 +912,30 @@ export function ListingEditor({
                 />
               </label>
             </div>
+            <div className="cr-audience-group" style={{ marginTop: 16 }}>
+              <p className="cr-about-label">Setting</p>
+              <div className="cr-chip-grid">
+                {SETTING_OPTIONS.map((option) => {
+                  const active = draft.indoor_outdoor === option.value;
+                  return (
+                    <button
+                      key={option.value}
+                      type="button"
+                      className={active ? "cr-tag active" : "cr-tag"}
+                      onClick={() =>
+                        patch({
+                          indoor_outdoor: active
+                            ? ""
+                            : (parseSetting(option.value) ?? option.value),
+                        })
+                      }
+                    >
+                      {option.label}
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
           </section>
 
           <section className={stepOpen("hours") ? "cr-step is-open" : "cr-step"} id="step-hours">
@@ -1495,6 +1521,25 @@ export function ListingEditor({
                         onClick={() => patch({ scale_id: active ? "" : scale.id })}
                       >
                         {scale.title}
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+
+              <div className="cr-audience-group">
+                <p className="cr-about-label">Audience</p>
+                <div className="cr-chip-grid">
+                  {AUDIENCE_OPTIONS.map((option) => {
+                    const active = draft.audience === option.value;
+                    return (
+                      <button
+                        key={option.value}
+                        type="button"
+                        className={active ? "cr-tag active" : "cr-tag"}
+                        onClick={() => patch({ audience: parseContentAudience(option.value) })}
+                      >
+                        {option.label}
                       </button>
                     );
                   })}

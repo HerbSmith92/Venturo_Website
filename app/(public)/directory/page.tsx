@@ -1,7 +1,8 @@
-import { CategoryChips } from "@/components/CategoryChips";
 import { DirectorySearch } from "@/components/DirectorySearch";
 import { DiscoverBanner } from "@/components/DiscoverBanner";
 import { ListingCard } from "@/components/ListingCard";
+import { GenderAudienceRow } from "@/components/search/GenderAudienceRow";
+import { loadAudienceViewer } from "@/lib/audience";
 import { getCurrentUser } from "@/lib/auth";
 import { searchDirectory } from "@/lib/listings";
 import { isStaff } from "@/lib/roles";
@@ -26,17 +27,33 @@ export default async function DirectoryPage({
     sort?: string;
     lat?: string;
     lng?: string;
+    setting?: string;
+    level?: string;
   }>;
 }) {
   const query = await searchParams;
   const category = query.category ?? "all";
   const user = await getCurrentUser();
-  const [listings, website] = await Promise.all([
+  const [listings, website, audienceViewer] = await Promise.all([
     searchDirectory({ ...query, category }),
     loadWebsiteCopy(),
+    loadAudienceViewer(),
   ]);
   const revealMember = user?.plan === "paid" || isStaff(user?.role);
-  const browsing = category === "all" && !query.q && !query.place && !query.price && !query.lat;
+  const browsing =
+    category === "all" &&
+    !query.q &&
+    !query.place &&
+    !query.price &&
+    !query.lat &&
+    !query.setting &&
+    !query.level;
+  const forWomen = browsing && audienceViewer.canViewWomen
+    ? listings.filter((listing) => listing.audience === "women").slice(0, 10)
+    : [];
+  const forMen = browsing && audienceViewer.canViewMen
+    ? listings.filter((listing) => listing.audience === "men").slice(0, 10)
+    : [];
   const trending = browsing ? await loadTrendingDirectory(10) : { listings: [], seeAllHref: null };
   const featured = listings.filter((listing) => listing.featured).slice(0, 6);
   const banner = website.activitiesBanner;
@@ -78,26 +95,17 @@ export default async function DirectoryPage({
           { label: "List your business", href: "/list-your-business" },
         ]}
       />
-      <section className="section" id="activity-results">
+      <section className="section section-discover" id="activity-results">
         <DirectorySearch
           q={query.q ?? ""}
           place={query.place ?? ""}
           price={query.price ?? ""}
           sort={query.sort ?? ""}
           category={category}
+          setting={query.setting ?? ""}
+          level={query.level ?? ""}
           lat={query.lat}
           lng={query.lng}
-        />
-        <CategoryChips
-          active={category}
-          params={{
-            q: query.q,
-            place: query.place,
-            price: query.price,
-            sort: query.sort,
-            lat: query.lat,
-            lng: query.lng,
-          }}
         />
         {listings.length === 0 ? (
           <p className="notice">Nothing matches that search. Try a wider place or clear the price.</p>
@@ -112,6 +120,24 @@ export default async function DirectoryPage({
                   ))}
                 </div>
               </div>
+            ) : null}
+            {forWomen.length > 0 ? (
+              <GenderAudienceRow title="For Women" viewAllHref="/search?tab=activities&audience=women">
+                {forWomen.map((listing) => (
+                  <div key={listing.id} className="taste-rail-item">
+                    <ListingCard listing={listing} href={`/directory/${listing.slug}`} showMemberPrice={revealMember} />
+                  </div>
+                ))}
+              </GenderAudienceRow>
+            ) : null}
+            {forMen.length > 0 ? (
+              <GenderAudienceRow title="For Men" viewAllHref="/search?tab=activities&audience=men">
+                {forMen.map((listing) => (
+                  <div key={listing.id} className="taste-rail-item">
+                    <ListingCard listing={listing} href={`/directory/${listing.slug}`} showMemberPrice={revealMember} />
+                  </div>
+                ))}
+              </GenderAudienceRow>
             ) : null}
             {hot.length > 0 ? (
               <div className="discover-row">

@@ -21,6 +21,8 @@ const EMPTY_PROFILE: MemberProfile = {
   phone: "",
   avatarPath: null,
   avatarUrl: null,
+  coverPath: null,
+  coverUrl: null,
   homePlaceId: null,
   energyLow: null,
   energyHigh: null,
@@ -45,7 +47,7 @@ export async function loadMemberProfile(userId: string): Promise<MemberProfile> 
     supabase
       .from("profiles")
       .select(
-        "display_name, last_name, phone, avatar_path, home_place_id, activity_scale_low, activity_scale_high, onboarding_step, onboarding_completed_at",
+        "display_name, last_name, phone, avatar_path, cover_path, home_place_id, activity_scale_low, activity_scale_high, onboarding_step, onboarding_completed_at",
       )
       .eq("id", userId)
       .maybeSingle(),
@@ -57,12 +59,20 @@ export async function loadMemberProfile(userId: string): Promise<MemberProfile> 
   if (!row) return EMPTY_PROFILE;
 
   const avatarPath = typeof row.avatar_path === "string" ? row.avatar_path : null;
+  const coverPath = typeof row.cover_path === "string" ? row.cover_path : null;
   let avatarUrl: string | null = null;
+  let coverUrl: string | null = null;
   if (avatarPath) {
     const { data: signed } = await supabase.storage
       .from("avatars")
       .createSignedUrl(avatarPath, 60 * 60);
     avatarUrl = signed?.signedUrl ?? null;
+  }
+  if (coverPath) {
+    const { data: signed } = await supabase.storage
+      .from("avatars")
+      .createSignedUrl(coverPath, 60 * 60);
+    coverUrl = signed?.signedUrl ?? null;
   }
 
   return {
@@ -71,6 +81,8 @@ export async function loadMemberProfile(userId: string): Promise<MemberProfile> 
     phone: row.phone ?? "",
     avatarPath,
     avatarUrl,
+    coverPath,
+    coverUrl,
     homePlaceId: row.home_place_id,
     energyLow: row.activity_scale_low,
     energyHigh: row.activity_scale_high,

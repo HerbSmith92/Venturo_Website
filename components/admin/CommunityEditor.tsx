@@ -10,6 +10,7 @@ import {
   type CommunityRecord,
   type CommunityStatus,
 } from "@/lib/community-shared";
+import { AUDIENCE_OPTIONS, parseContentAudience, type ContentAudience } from "@/lib/content-audience";
 import { INTEREST_CHIPS } from "@/lib/listing-draft";
 
 const STATUSES: CommunityStatus[] = ["requested", "draft", "published", "archived", "suspended"];
@@ -116,9 +117,14 @@ export function CommunityEditor({
     interestKeywords: community.interestKeywords,
     personaIds,
     scaleId: community.scaleId ?? "",
+    audience: parseContentAudience(community.audience) as ContentAudience,
     status: community.status,
     isFeatured: community.isFeatured,
   });
+  const [cascadeAudience, setCascadeAudience] = useState(false);
+  const [mismatchPrompt, setMismatchPrompt] = useState<
+    { id: string; title: string; slug: string; audience: ContentAudience }[] | null
+  >(null);
 
   function stepOpen(key: StepKey) {
     return openSteps[key] !== false;
@@ -134,11 +140,23 @@ export function CommunityEditor({
     setDraft((current) => ({ ...current, ...next }));
   }
 
-  function onSave() {
+  function onSave(options?: { cascadeAudience?: boolean }) {
     setSaveError(null);
     startTransition(async () => {
-      const result = await saveCommunityDraft(community.id, draft);
-      if (result && !result.ok) setSaveError(result.error);
+      const result = await saveCommunityDraft(community.id, {
+        ...draft,
+        cascadeAudience: options?.cascadeAudience ?? cascadeAudience,
+      });
+      if (result && !result.ok) {
+        if (result.mismatches?.length && !options?.cascadeAudience) {
+          setMismatchPrompt(result.mismatches);
+          return;
+        }
+        setSaveError(result.error);
+        return;
+      }
+      setMismatchPrompt(null);
+      setCascadeAudience(false);
     });
   }
 
@@ -289,7 +307,12 @@ export function CommunityEditor({
             ))}
           </nav>
           <div className="cr-edit-actions">
-            <button className="btn cr-save" type="button" onClick={onSave} disabled={pending}>
+            <button
+              className="btn cr-save"
+              type="button"
+              onClick={() => onSave()}
+              disabled={pending}
+            >
               {pending ? "Saving…" : "Save"}
             </button>
           </div>
@@ -628,7 +651,68 @@ export function CommunityEditor({
                     })}
                   </div>
                 </div>
+                <div className="cr-audience-group">
+                  <p className="cr-about-label">Audience</p>
+                  <div className="cr-chip-grid">
+                    {AUDIENCE_OPTIONS.map((option) => {
+                      const active = draft.audience === option.value;
+                      return (
+                        <button
+                          key={option.value}
+                          type="button"
+                          className={active ? "cr-tag active" : "cr-tag"}
+                          onClick={() => {
+                            setMismatchPrompt(null);
+                            setCascadeAudience(false);
+                            patch({ audience: parseContentAudience(option.value) });
+                          }}
+                        >
+                          {option.label}
+                        </button>
+                      );
+                    })}
+                  </div>
+                  <p className="muted">Women only / Men only limits who can discover this community.</p>
+                </div>
               </div>
+              {mismatchPrompt ? (
+                <div className="notice" style={{ marginTop: 16 }} role="status">
+                  <p>
+                    These linked events do not match the new audience. Confirm to update their audience
+                    to match.
+                  </p>
+                  <ul>
+                    {mismatchPrompt.map((item) => (
+                      <li key={item.id}>
+                        {item.title}{" "}
+                        <span className="muted">
+                          ({item.audience === "all" ? "All" : item.audience === "women" ? "Women only" : "Men only"})
+                        </span>
+                      </li>
+                    ))}
+                  </ul>
+                  <div className="hero-actions" style={{ marginTop: 12 }}>
+                    <button
+                      type="button"
+                      className="btn btn-primary"
+                      disabled={pending}
+                      onClick={() => {
+                        setCascadeAudience(true);
+                        onSave({ cascadeAudience: true });
+                      }}
+                    >
+                      Update events &amp; save
+                    </button>
+                    <button
+                      type="button"
+                      className="btn btn-secondary"
+                      onClick={() => setMismatchPrompt(null)}
+                    >
+                      Cancel
+                    </button>
+                  </div>
+                </div>
+              ) : null}
             </section>
 
             <section className={stepOpen("events") ? "cr-step is-open" : "cr-step"} id="step-events">

@@ -1,3 +1,5 @@
+import type { ContentAudience } from "@/lib/content-audience";
+
 export type CommunityStatus = "draft" | "requested" | "published" | "archived" | "suspended";
 
 export function communityStatusLabel(status: CommunityStatus) {
@@ -38,6 +40,7 @@ export type CommunityRecord = {
   status: CommunityStatus;
   isFeatured: boolean;
   claimedBy: string | null;
+  audience: ContentAudience;
 };
 
 export type CommunityPhoto = {

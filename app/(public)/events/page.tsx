@@ -1,5 +1,7 @@
 import type { Metadata } from "next";
 import { EventCard } from "@/components/EventCard";
+import { GenderAudienceRow } from "@/components/search/GenderAudienceRow";
+import { loadAudienceViewer } from "@/lib/audience";
 import { getCurrentUser } from "@/lib/auth";
 import { canHost, hostSubscribeHref } from "@/lib/host-access";
 import { EVENT_CATEGORIES, listPublicEvents } from "@/lib/events";
@@ -36,7 +38,7 @@ export default async function EventsPage({
   const price = params.price === "free" || params.price === "paid" ? params.price : "";
   const needle = (params.q ?? "").trim().toLowerCase();
   const user = await getCurrentUser();
-  const [listed, website] = await Promise.all([
+  const [listed, website, audienceViewer] = await Promise.all([
     listPublicEvents({
       category: category === "all" ? undefined : category,
       when: when === "calendar" ? "upcoming" : when,
@@ -44,6 +46,7 @@ export default async function EventsPage({
       expandRepeats: true,
     }),
     loadWebsiteCopy(),
+    loadAudienceViewer(),
   ]);
   const banner = website.eventsBanner;
   const events = listed.filter((event) => {
@@ -55,6 +58,14 @@ export default async function EventsPage({
       ? events
       : events.filter((event, index, rows) => rows.findIndex((item) => item.id === event.id) === index);
   const showRows = when === "upcoming" && category === "all" && !needle && !price;
+  const forWomen =
+    showRows && audienceViewer.canViewWomen
+      ? feed.filter((event) => event.audience === "women").slice(0, 10)
+      : [];
+  const forMen =
+    showRows && audienceViewer.canViewMen
+      ? feed.filter((event) => event.audience === "men").slice(0, 10)
+      : [];
   const eventQuery = (next: { category?: string; when?: string; price?: string }) => {
     const search = new URLSearchParams();
     const nextWhen = next.when ?? when;
@@ -250,6 +261,24 @@ export default async function EventsPage({
                 ))}
               </div>
             </div>
+            {forWomen.length > 0 ? (
+              <GenderAudienceRow title="For Women" viewAllHref="/search?tab=events&audience=women">
+                {forWomen.map((event) => (
+                  <div key={`women-${event.id}-${event.startsAt}`} className="taste-rail-item">
+                    <EventCard event={event} showMemberPrice={user?.plan === "paid"} />
+                  </div>
+                ))}
+              </GenderAudienceRow>
+            ) : null}
+            {forMen.length > 0 ? (
+              <GenderAudienceRow title="For Men" viewAllHref="/search?tab=events&audience=men">
+                {forMen.map((event) => (
+                  <div key={`men-${event.id}-${event.startsAt}`} className="taste-rail-item">
+                    <EventCard event={event} showMemberPrice={user?.plan === "paid"} />
+                  </div>
+                ))}
+              </GenderAudienceRow>
+            ) : null}
             {hot.length > 0 ? (
               <div className="discover-row">
                 <h2>Hot on Venturo</h2>

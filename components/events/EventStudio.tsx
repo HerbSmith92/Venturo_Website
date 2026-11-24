@@ -27,6 +27,7 @@ import {
   serializeEventPersonas,
   toggleEventPersona,
   withCurrentOption,
+  type ContentAudience,
   type EventImageKind,
   type EventBookingMethod,
   type MemberDiscountKind,
@@ -34,10 +35,21 @@ import {
   type TicketKind,
   type VenturoEvent,
 } from "@/lib/event-types";
+import { AUDIENCE_OPTIONS, parseContentAudience } from "@/lib/content-audience";
+import { SETTING_OPTIONS, parseSetting, type IndoorOutdoorSetting } from "@/lib/setting";
 import { platformTicketDefaults, ticketMemberCents } from "@/lib/event-fees";
 import { companionEventHref } from "@/lib/companion";
 import { PORTAL_SETTINGS_BANK } from "@/lib/portal";
 import { HostTermsConsent } from "@/components/PolicyConsent";
+
+export type StudioCommunityOption = {
+  id: string;
+  title: string;
+  slug: string;
+  coverUrl?: string | null;
+  audience?: ContentAudience;
+  status?: string;
+};
 
 type TicketDraft = {
   id?: string;
@@ -111,6 +123,8 @@ export function EventStudio({
   fees,
   stay,
   focus,
+  linkedCommunity = null,
+  communityOptions = [],
 }: {
   event: VenturoEvent;
   isStaff: boolean;
@@ -118,16 +132,25 @@ export function EventStudio({
   fees: PlatformFees;
   stay?: "portal" | "admin";
   focus?: "manage" | "checkout" | "settings" | "full";
+  linkedCommunity?: StudioCommunityOption | null;
+  communityOptions?: StudioCommunityOption[];
 }) {
   const [title, setTitle] = useState(event.title);
   const [description, setDescription] = useState(event.description);
   const [ageRestriction, setAgeRestriction] = useState(event.ageRestriction || EVENT_AGE_OPTIONS[0]);
+  const [audience, setAudience] = useState<ContentAudience>(() => parseContentAudience(event.audience));
+  const [indoorOutdoor, setIndoorOutdoor] = useState<IndoorOutdoorSetting | "">(
+    () => parseSetting(event.indoorOutdoor) ?? "",
+  );
+  const [communityId, setCommunityId] = useState(linkedCommunity?.id ?? "");
+  const [communityQuery, setCommunityQuery] = useState("");
+  const [cascadeAudience, setCascadeAudience] = useState(false);
+  const [cascadePrompt, setCascadePrompt] = useState<string | null>(null);
   const [personas, setPersonas] = useState(() => parseEventPersonas(event.audienceGender));
   const energyStart = parseEventEnergy(event.format);
   const [energyLow, setEnergyLow] = useState(String(energyStart.low));
   const [energyHigh, setEnergyHigh] = useState(String(energyStart.high));
-  const [category, setCategory] = useState(event.category || EVENT_INTERESTS[0]);
-  const [tags, setTags] = useState<string[]>(event.tags);
+  const [category, setCategory] = useState(event.category || EVENT_INTERESTS[0]);  const [tags, setTags] = useState<string[]>(event.tags);
   const [customTag, setCustomTag] = useState("");
   const [bannerUrl, setBannerUrl] = useState(event.bannerUrl ?? "");
   const [listingImageUrl, setListingImageUrl] = useState(event.listingImageUrl ?? "");
@@ -175,6 +198,20 @@ export function EventStudio({
   );
   const audienceGender = serializeEventPersonas(personas);
   const format = serializeEventEnergy(Number(energyLow) || 3, Number(energyHigh) || 3);
+  const filteredCommunities = useMemo(() => {
+    const q = communityQuery.trim().toLowerCase();
+    const base = communityOptions.length
+      ? communityOptions
+      : linkedCommunity
+        ? [linkedCommunity]
+        : [];
+    if (!q) return base.slice(0, 40);
+    return base.filter((item) => item.title.toLowerCase().includes(q) || item.slug.toLowerCase().includes(q)).slice(0, 40);
+  }, [communityOptions, communityQuery, linkedCommunity]);
+  const selectedCommunity =
+    filteredCommunities.find((item) => item.id === communityId) ??
+    communityOptions.find((item) => item.id === communityId) ??
+    (linkedCommunity?.id === communityId ? linkedCommunity : null);
 
   function pickEnergy(rank: number) {
     const next = pickEnergyRange(
@@ -224,6 +261,8 @@ export function EventStudio({
       title,
       description,
       ageRestriction,
+      audience,
+      indoorOutdoor: indoorOutdoor || null,
       audienceGender,
       format,
       category,
@@ -261,6 +300,8 @@ export function EventStudio({
     title,
     description,
     ageRestriction,
+    audience,
+    indoorOutdoor,
     audienceGender,
     format,
     category,
@@ -290,12 +331,16 @@ export function EventStudio({
     tickets,
   ]);
 
-  function body() {
+  function body(options?: { cascadeAudience?: boolean; audience?: ContentAudience }) {
     return {
       title,
       description,
       ageRestriction,
       audienceGender,
+      audience: options?.audience ?? audience,
+      indoorOutdoor: indoorOutdoor || null,
+      communityId: communityId || null,
+      cascadeAudience: options?.cascadeAudience ?? cascadeAudience,
       format,
       category,
       tags,
@@ -374,7 +419,10 @@ export function EventStudio({
     }
   }
 
-  async function save(kind: "save" | "live") {
+  async function save(
+    kind: "save" | "live",
+    overrides?: { cascadeAudience?: boolean; audience?: ContentAudience },
+  ) {
     setError(null);
     setNotice(null);
     if (kind === "live" && !acceptHostTerms) {
@@ -389,7 +437,7 @@ export function EventStudio({
           method: kind === "live" ? "POST" : "PATCH",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
-            ...body(),
+            ...body(overrides),
             stay,
             ...(kind === "live" ? { acceptHostTerms: true } : {}),
           }),
@@ -399,13 +447,27 @@ export function EventStudio({
         error?: string;
         redirect?: string;
         status?: string;
+        needsCascade?: boolean;
+        communityAudience?: ContentAudience;
       };
-      if (!response.ok) throw new Error(payload.error ?? "Could not save.");
+      if (!response.ok) {
+        if (payload.needsCascade && !cascadeAudience) {
+          setCascadePrompt(
+            payload.error ??
+              "That community restricts who can see it. Confirm to update this event’s audience to match.",
+          );
+          setPending(null);
+          return;
+        }
+        throw new Error(payload.error ?? "Could not save.");
+      }
       if (payload.redirect) {
         window.location.href = payload.redirect;
         return;
       }
       setPending(null);
+      setCascadePrompt(null);
+      setCascadeAudience(false);
       setNotice(kind === "live" ? "Submitted for Control Room." : "Draft saved.");
     } catch (caught) {
       setPending(null);
@@ -593,6 +655,125 @@ export function EventStudio({
                 })}
               </div>
             </div>
+            <div className="field-row">
+              <label className="field">
+                <span>Audience</span>
+                <select
+                  value={audience}
+                  onChange={(change) => setAudience(parseContentAudience(change.target.value))}
+                >
+                  {AUDIENCE_OPTIONS.map((option) => (
+                    <option key={option.value} value={option.value}>
+                      {option.label}
+                    </option>
+                  ))}
+                </select>
+              </label>
+              <label className="field">
+                <span>Setting</span>
+                <select
+                  value={indoorOutdoor}
+                  onChange={(change) =>
+                    setIndoorOutdoor(
+                      change.target.value === ""
+                        ? ""
+                        : (parseSetting(change.target.value) ?? ""),
+                    )
+                  }
+                >
+                  <option value="">Choose setting</option>
+                  {SETTING_OPTIONS.map((option) => (
+                    <option key={option.value} value={option.value}>
+                      {option.label}
+                    </option>
+                  ))}
+                </select>
+              </label>
+            </div>
+            <p className="muted">Audience is who may discover this event (Women only / Men only / All). Persona chips are separate.</p>
+            <div className="studio-community">
+              <p className="eyebrow">Community</p>
+              <p className="muted">Link one community. Search, change, or clear.</p>
+              <label className="field">
+                <span>Search communities</span>
+                <input
+                  value={communityQuery}
+                  onChange={(change) => setCommunityQuery(change.target.value)}
+                  placeholder="Type a community name"
+                />
+              </label>
+              {selectedCommunity ? (
+                <p className="notice" style={{ marginTop: 8 }}>
+                  Linked: <strong>{selectedCommunity.title}</strong>{" "}
+                  <button
+                    type="button"
+                    className="btn btn-ghost"
+                    onClick={() => {
+                      setCommunityId("");
+                      setCascadeAudience(false);
+                      setCascadePrompt(null);
+                    }}
+                  >
+                    Clear
+                  </button>
+                </p>
+              ) : (
+                <p className="muted" style={{ marginTop: 8 }}>
+                  No community linked.
+                </p>
+              )}
+              {filteredCommunities.length > 0 ? (
+                <div className="chips tag-list" style={{ marginTop: 8 }}>
+                  {filteredCommunities.map((item) => (
+                    <button
+                      key={item.id}
+                      type="button"
+                      className={`chip${communityId === item.id ? " on" : ""}`}
+                      aria-pressed={communityId === item.id}
+                      onClick={() => {
+                        setCommunityId(item.id);
+                        setCascadeAudience(false);
+                        setCascadePrompt(null);
+                      }}
+                    >
+                      {item.title}
+                    </button>
+                  ))}
+                </div>
+              ) : communityOptions.length === 0 ? (
+                <p className="muted">No communities available to link yet.</p>
+              ) : null}
+              {cascadePrompt ? (
+                <div className="notice" style={{ marginTop: 12 }} role="status">
+                  <p>{cascadePrompt}</p>
+                  <div className="hero-actions" style={{ marginTop: 8 }}>
+                    <button
+                      type="button"
+                      className="btn btn-primary"
+                      onClick={() => {
+                        const nextAudience =
+                          selectedCommunity?.audience === "women" || selectedCommunity?.audience === "men"
+                            ? selectedCommunity.audience
+                            : audience;
+                        setAudience(nextAudience);
+                        setCascadeAudience(true);
+                        setCascadePrompt(null);
+                        void save("save", { cascadeAudience: true, audience: nextAudience });
+                      }}
+                    >
+                      Update audience &amp; link
+                    </button>
+                    <button
+                      type="button"
+                      className="btn btn-secondary"
+                      onClick={() => setCascadePrompt(null)}
+                    >
+                      Cancel
+                    </button>
+                  </div>
+                </div>
+              ) : null}
+            </div>
             <div className="studio-energy">
               <p className="eyebrow">Vibe / Energy</p>
               <h3>How Wild Is This Day</h3>
@@ -607,6 +788,87 @@ export function EventStudio({
                 onPick={pickEnergy}
               />
             </div>
+            <div className="field-row">
+              <label className="field">
+                <span>Discovery audience</span>
+                <select
+                  value={audience}
+                  onChange={(event) => setAudience(parseContentAudience(event.target.value))}
+                >
+                  {AUDIENCE_OPTIONS.map((option) => (
+                    <option key={option.value} value={option.value}>
+                      {option.label}
+                    </option>
+                  ))}
+                </select>
+              </label>
+              <label className="field">
+                <span>Setting</span>
+                <select
+                  value={indoorOutdoor}
+                  onChange={(event) =>
+                    setIndoorOutdoor(
+                      event.target.value === ""
+                        ? ""
+                        : (parseSetting(event.target.value) ?? ""),
+                    )
+                  }
+                >
+                  <option value="">Choose…</option>
+                  {SETTING_OPTIONS.map((option) => (
+                    <option key={option.value} value={option.value}>
+                      {option.label}
+                    </option>
+                  ))}
+                </select>
+              </label>
+            </div>
+            <label className="field">
+              <span>Linked community</span>
+              <input
+                value={communityQuery}
+                onChange={(event) => setCommunityQuery(event.target.value)}
+                placeholder="Search communities"
+              />
+              <select
+                value={communityId}
+                onChange={(event) => {
+                  setCommunityId(event.target.value);
+                  setCascadeAudience(false);
+                  setCascadePrompt(null);
+                }}
+              >
+                <option value="">None</option>
+                {filteredCommunities.map((community) => (
+                  <option key={community.id} value={community.id}>
+                    {community.title}
+                    {community.audience && community.audience !== "all"
+                      ? ` · ${community.audience === "women" ? "Women only" : "Men only"}`
+                      : ""}
+                  </option>
+                ))}
+              </select>
+              {selectedCommunity ? (
+                <p className="muted">
+                  Linked to {selectedCommunity.title}. Clearing keeps the event audience as-is.
+                </p>
+              ) : (
+                <p className="muted">Optional. One approved community per event.</p>
+              )}
+            </label>
+            {cascadePrompt ? (
+              <div className="notice">
+                <p>{cascadePrompt}</p>
+                <label className="check">
+                  <input
+                    type="checkbox"
+                    checked={cascadeAudience}
+                    onChange={(event) => setCascadeAudience(event.target.checked)}
+                  />
+                  Update this event&apos;s audience to match the community
+                </label>
+              </div>
+            ) : null}
             {(!focus || focus === "full") ? (
             <label className="check">
               <input

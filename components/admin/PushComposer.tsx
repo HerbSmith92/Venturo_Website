@@ -13,7 +13,7 @@ const PRESETS: Record<Exclude<PushNotice, "custom">, { title: string; body: stri
 };
 
 const KIND_HELP: Record<PushNotice, string> = {
-  custom: "Pick a guide or event, or leave it on the notification list.",
+  custom: "Choosing a guide or event puts its name on the lock screen. Rewrite the title if you want different words.",
   remind: "A general reminder to open the Venturo Application. It reaches everyone in the place you choose.",
   community:
     "Reaches people who follow that community, and only when their home area is in the place you choose. It opens the community's next event.",
@@ -42,6 +42,7 @@ export function PushComposer({
   const [notice, setNotice] = useState<PushNotice>("custom");
   const [title, setTitle] = useState("");
   const [body, setBody] = useState("");
+  const [opens, setOpens] = useState("");
   const error = state && "error" in state ? state.error : null;
   const sent = state && "inbox" in state ? state : null;
   const regions = useMemo(() => {
@@ -54,9 +55,34 @@ export function PushComposer({
 
   function chooseNotice(next: PushNotice) {
     setNotice(next);
-    if (next === "custom") return;
+    if (next === "custom") {
+      const leftover = Object.values(PRESETS).some((item) => item.title === title && item.body === body);
+      if (leftover) {
+        setTitle("");
+        setBody("");
+      }
+      return;
+    }
+    setOpens("");
     setTitle(PRESETS[next].title);
     setBody(PRESETS[next].body);
+  }
+
+  function chooseOpens(value: string) {
+    setOpens(value);
+    if (!value) return;
+    const [kind, id] = value.split(":");
+    if (kind === "guide") {
+      const guide = guides.find((item) => item.id === id);
+      if (!guide) return;
+      setTitle(guide.title.slice(0, 80));
+      setBody("Open the guide.");
+      return;
+    }
+    const event = events.find((item) => item.id === id);
+    if (!event) return;
+    setTitle(event.title.slice(0, 80));
+    setBody(event.detail ? `${event.detail}. Open the event.` : "Open the event.");
   }
 
   return (
@@ -106,7 +132,7 @@ export function PushComposer({
         {notice === "custom" ? (
           <label className="field">
             <span>Opens in the app</span>
-            <select name="opens" defaultValue="" disabled={disabled || pending}>
+            <select name="opens" value={opens} disabled={disabled || pending} onChange={(event) => chooseOpens(event.target.value)}>
               <option value="">Notification list</option>
               {guides.length > 0 ? (
                 <optgroup label="Guides">

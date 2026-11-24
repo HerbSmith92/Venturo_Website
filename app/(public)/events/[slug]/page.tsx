@@ -8,7 +8,9 @@ import { InviteOthers } from "@/components/InviteOthers";
 import { SaveForm } from "@/components/SaveForm";
 import { loadAttendancePreview } from "@/lib/event-attendance";
 import { TicketCheckoutForm } from "@/components/TicketCheckoutForm";
+import { canViewAudiencePublic, loadAudienceViewer } from "@/lib/audience";
 import { getCurrentUser } from "@/lib/auth";
+import { getEventCommunity } from "@/lib/communities";
 import {
   eventAddressText,
   formatEventFromPrice,
@@ -17,7 +19,9 @@ import {
   getPlatformFees,
 } from "@/lib/events";
 import { listOccurrences, repeatPhrase } from "@/lib/event-repeat";
-import { formatEventWhen } from "@/lib/event-types";
+import { formatEventEnergy, formatEventWhen } from "@/lib/event-types";
+import { SettingIcon } from "@/components/SettingIcon";
+import { settingLabel } from "@/lib/setting";
 import { ticketsSoldForOccurrence } from "@/lib/orders";
 import { loadMemberProfile } from "@/lib/profile";
 import { isSaved } from "@/lib/saves";
@@ -25,6 +29,15 @@ import { hasMemberConsent } from "@/lib/policy-consent";
 import { listStoredEventOccurrences } from "@/lib/event-occurrences";
 import { joinEventWaitlist, rsvpFreeEvent } from "@/app/event-booking-actions";
 import { notFound } from "next/navigation";
+
+export async function generateMetadata({ params }: { params: Promise<{ slug: string }> }) {
+  const { slug } = await params;
+  const [event, viewer] = await Promise.all([getEventBySlug(slug), loadAudienceViewer()]);
+  if (!event || !canViewAudiencePublic(event.audience, viewer)) {
+    return { title: "Venturo" };
+  }
+  return { title: `${event.title} · Venturo` };
+}
 
 export default async function EventDetailPage({
   params,
@@ -45,11 +58,23 @@ export default async function EventDetailPage({
 }) {
   const { slug } = await params;
   const query = await searchParams;
-  const event = await getEventBySlug(slug);
+  const [event, viewer] = await Promise.all([getEventBySlug(slug), loadAudienceViewer()]);
   if (!event) notFound();
+  if (!canViewAudiencePublic(event.audience, viewer)) notFound();
 
   const user = await getCurrentUser();
-  const fees = await getPlatformFees();
+  const [fees, linkedCommunity] = await Promise.all([
+    getPlatformFees(),
+    getEventCommunity(event.id),
+  ]);
+  const communityVisible =
+    linkedCommunity &&
+    linkedCommunity.status === "published" &&
+    canViewAudiencePublic(linkedCommunity.audience, viewer)
+      ? linkedCommunity
+      : null;
+  const eventSetting = settingLabel(event.indoorOutdoor);
+  const eventAdventure = event.format?.trim() ? formatEventEnergy(event.format) : null;
   const occurrences = listOccurrences(event.startsAt, event.endsAt, event.repeatEvery, event.repeatUntil);
   const requested = query.on ? new Date(query.on).getTime() : NaN;
   const selected =
@@ -255,6 +280,23 @@ export default async function EventDetailPage({
                     <dd>{event.organiserDisplayName}</dd>
                   </div>
                 ) : null}
+                {eventSetting && event.indoorOutdoor ? (
+                  <div>
+                    <dt>Setting</dt>
+                    <dd>
+                      <span style={{ display: "inline-flex", alignItems: "center", gap: 6 }}>
+                        <SettingIcon setting={event.indoorOutdoor} />
+                        {eventSetting}
+                      </span>
+                    </dd>
+                  </div>
+                ) : null}
+                {eventAdventure ? (
+                  <div>
+                    <dt>Adventure</dt>
+                    <dd>{eventAdventure}</dd>
+                  </div>
+                ) : null}
                 <div>
                   <dt>Age Requirement</dt>
                   <dd>{event.ageRestriction || "All ages"}</dd>
@@ -265,6 +307,21 @@ export default async function EventDetailPage({
                 </div>
               </dl>
             </div>
+
+            {communityVisible ? (
+              <a className="event-community-link" href={`/communities/${communityVisible.slug}`}>
+                {communityVisible.coverUrl ? (
+                  <img src={communityVisible.coverUrl} alt="" />
+                ) : (
+                  <span className="event-community-fallback" aria-hidden="true" />
+                )}
+                <span>
+                  <span className="eyebrow">Community</span>
+                  <strong>{communityVisible.title}</strong>
+                  <span className="muted">See what else they host</span>
+                </span>
+              </a>
+            ) : null}
 
             {(event.addressLine1 || event.venueName) && (
               <div className="event-venue-card">

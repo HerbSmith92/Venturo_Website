@@ -36,6 +36,8 @@ export async function POST(
     externalProviderName: body.externalProviderName,
     externalBookingUrl: body.externalBookingUrl,
     externalBookingButtonLabel: body.externalBookingButtonLabel ?? undefined,
+    indoorOutdoor: body.indoorOutdoor,
+    format: body.format,
   });
   if (ready) {
     return NextResponse.json({ error: ready }, { status: 400 });
