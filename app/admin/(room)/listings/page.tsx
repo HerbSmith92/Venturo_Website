@@ -26,17 +26,32 @@ export default async function ListingsQueuePage({
     sort?: string;
     dir?: string;
     group?: string;
+    flag?: string;
     error?: string;
     done?: string;
   }>;
 }) {
-  const { status = "approved", q = "", interest = "", author = "", sort = "", dir = "", group = "", error, done } =
-    await searchParams;
+  const {
+    status = "approved",
+    q = "",
+    interest = "",
+    author = "",
+    sort = "",
+    dir = "",
+    group = "",
+    flag = "",
+    error,
+    done,
+  } = await searchParams;
   const session = await getStaffSession();
   const canBulk = isAdmin(session?.role);
   const board = await loadDirectoryQueue({ status, q, interest, author, sort, dir });
+  const rows =
+    flag === "unassigned-setting"
+      ? board.rows.filter((row) => !row.indoor_outdoor)
+      : board.rows;
   const queue = listingQueueFromSearch({ status, q, interest, author, sort, dir, group });
-  const grouped = group === "interest" ? directoryGroups(board.rows) : null;
+  const grouped = group === "interest" ? directoryGroups(rows) : null;
   const canDelete = status === "archived";
   const columns = canBulk ? 7 : 6;
   const query = new URLSearchParams({ status });
@@ -46,6 +61,7 @@ export default async function ListingsQueuePage({
   if (sort) query.set("sort", sort);
   if (dir) query.set("dir", dir);
   if (group) query.set("group", group);
+  if (flag) query.set("flag", flag);
   const returnTo = `/admin/listings?${query.toString()}`;
 
   const table = (
@@ -64,7 +80,7 @@ export default async function ListingsQueuePage({
           selectable={canBulk}
         />
         <tbody>
-          {board.rows.length === 0 ? (
+          {rows.length === 0 ? (
             <tr>
               <td colSpan={columns} className="muted">
                 Nothing in this queue.
@@ -75,7 +91,7 @@ export default async function ListingsQueuePage({
               <ListingGroup key={bucket.title} title={bucket.title} rows={bucket.rows} canDelete={canDelete} canApprove={canBulk} columns={columns} selectable={canBulk} queue={queue} />
             ))
           ) : (
-            board.rows.map((listing) => (
+            rows.map((listing) => (
               <ListingRow key={listing.id} listing={listing} canDelete={canDelete} canApprove={canBulk} selectable={canBulk} queue={queue} />
             ))
           )}

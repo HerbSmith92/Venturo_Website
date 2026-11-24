@@ -125,6 +125,9 @@ function mapToListing(row: ScoreableRow): Listing {
     latitude: null,
     longitude: null,
     rating: null,
+    audience: "all",
+    indoorOutdoor: null,
+    adventureRanks: scaleRanks(row),
   };
 }
 

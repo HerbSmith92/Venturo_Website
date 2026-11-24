@@ -6,6 +6,12 @@
  * bannerUrl       — 16:9 hero on the event page (web + app detail).
  */
 
+import type { ContentAudience } from "@/lib/content-audience";
+import type { IndoorOutdoorSetting } from "@/lib/setting";
+
+export type { ContentAudience } from "@/lib/content-audience";
+export type { IndoorOutdoorSetting } from "@/lib/setting";
+
 export type EventStatus = "draft" | "review" | "approved" | "rejected" | "cancelled" | "archived";
 export type RepeatOrdinal = "first" | "second" | "third" | "fourth" | "last";
 export type RepeatWeekday = "mon" | "tue" | "wed" | "thu" | "fri" | "sat" | "sun";
@@ -101,6 +107,9 @@ export type VenturoEvent = {
   reviewNote: string | null;
   parking: string | null;
   prohibitedItems: string | null;
+  /** Women/Men/All discovery restriction — not persona tags in audienceGender. */
+  audience: ContentAudience;
+  indoorOutdoor: IndoorOutdoorSetting | null;
   bookingMethod: EventBookingMethod;
   externalProviderName: string | null;
   externalBookingUrl: string | null;

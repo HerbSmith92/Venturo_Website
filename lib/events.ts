@@ -1,5 +1,17 @@
 import { cache } from "react";
 import { unstable_cache } from "next/cache";
+import {
+  filterByAudience,
+  loadAudienceViewer,
+  parseContentAudience,
+  type AudienceViewer,
+  type ContentAudience,
+} from "@/lib/audience";
+import {
+  getEventCommunity,
+  setEventCommunity,
+  type EventCommunitySummary,
+} from "@/lib/communities";
 import { PUBLIC_CATALOG_TAG } from "@/lib/public-cache";
 import { createServiceClient } from "@/lib/supabase/admin";
 import { createAnonClient } from "@/lib/supabase/anon";
@@ -96,6 +108,8 @@ type EventRow = {
   external_booking_url: string | null;
   external_booking_button_label: string | null;
   waitlist_enabled: boolean;
+  audience?: string | null;
+  indoor_outdoor?: string | null;
   event_ticket_types?: TicketTypeRow[] | null;
 };
 
@@ -204,6 +218,13 @@ function mapEvent(row: EventRow): VenturoEvent {
     reviewNote: row.review_note,
     parking: row.parking,
     prohibitedItems: row.prohibited_items,
+    audience: parseContentAudience(row.audience),
+    indoorOutdoor:
+      row.indoor_outdoor === "indoor" ||
+      row.indoor_outdoor === "outdoor" ||
+      row.indoor_outdoor === "both"
+        ? row.indoor_outdoor
+        : null,
     bookingMethod: row.booking_method ?? "venturo_ticketing",
     externalProviderName: row.external_provider_name ?? null,
     externalBookingUrl: row.external_booking_url ?? null,
@@ -226,7 +247,7 @@ const EVENT_SELECT = `
   banner_url, listing_image_url, story_image_url, starts_at, ends_at, repeat_every, repeat_until, timezone,
   venue_name, address_line1, address_line2, city, postal_code, country,
   latitude, longitude, show_map, visibility, status, organiser_id, organiser_display_name, review_note,
-  parking, prohibited_items,
+  parking, prohibited_items, audience, indoor_outdoor,
   booking_method, external_provider_name, external_booking_url, external_booking_button_label, waitlist_enabled,
   event_ticket_types (
     id, event_id, name, description, kind, price_cents, member_price_cents,
@@ -295,14 +316,16 @@ export async function listPublicEvents(options?: {
   when?: "upcoming" | "weekend" | "past";
   price?: "free" | "paid";
   expandRepeats?: boolean;
+  viewer?: AudienceViewer;
 }): Promise<VenturoEvent[]> {
+  const viewer = options?.viewer ?? (await loadAudienceViewer());
   const defaultUpcoming =
     (options?.when ?? "upcoming") === "upcoming" &&
     !options?.category &&
     !options?.price &&
     !options?.expandRepeats;
   if (defaultUpcoming) {
-    const events = await loadUpcomingPublicEvents();
+    const events = filterByAudience(await loadUpcomingPublicEvents(), viewer);
     return options?.limit ? events.slice(0, options.limit) : events;
   }
 
@@ -328,9 +351,6 @@ export async function listPublicEvents(options?: {
 
   if (options?.category && options.category !== "all") {
     query = query.eq("category", options.category);
-  }
-  if (options?.limit && when === "upcoming" && !options.price) {
-    query = query.limit(options.limit);
   }
 
   const { data, error } = await query;
@@ -368,6 +388,7 @@ export async function listPublicEvents(options?: {
   if (options?.price === "paid") {
     events = events.filter((event) => event.priceMix === "paid" || event.priceMix === "both");
   }
+  events = filterByAudience(events, viewer);
   if (options?.limit) events = events.slice(0, options.limit);
   return events;
 }
@@ -384,9 +405,12 @@ function nextWeekendStart() {
   return saturday.getTime();
 }
 
-export async function featuredEvents(limit = 6): Promise<VenturoEvent[]> {
-  return listPublicEvents({ limit });
+export async function featuredEvents(limit = 6, viewer?: AudienceViewer): Promise<VenturoEvent[]> {
+  return listPublicEvents({ limit, viewer });
 }
+
+export type EventCommunityLink = EventCommunitySummary;
+export { getEventCommunity, setEventCommunity };
 
 export async function getEventBySlug(slug: string): Promise<VenturoEvent | null> {
   const supabase = await createClient();
@@ -466,7 +490,14 @@ export async function listOrganiserEvents(userId: string): Promise<VenturoEvent[
   return (data as EventRow[]).map(mapEvent);
 }
 
-export async function listAdminEvents(status?: EventStatus | "all" | "changes"): Promise<VenturoEvent[]> {
+export type AdminEventQueue =
+  | EventStatus
+  | "all"
+  | "changes"
+  | "no-setting"
+  | "no-energy";
+
+export async function listAdminEvents(status?: AdminEventQueue): Promise<VenturoEvent[]> {
   const supabase = await createClient();
   if (!supabase) return [];
 
@@ -479,6 +510,10 @@ export async function listAdminEvents(status?: EventStatus | "all" | "changes"):
     query = query.eq("status", "draft").not("review_note", "is", null).neq("review_note", "");
   } else if (status === "draft") {
     query = query.eq("status", "draft").or("review_note.is.null,review_note.eq.");
+  } else if (status === "no-setting") {
+    query = query.is("indoor_outdoor", null);
+  } else if (status === "no-energy") {
+    query = query.or("format.is.null,format.eq.");
   } else if (status && status !== "all") {
     query = query.eq("status", status);
   }
@@ -510,6 +545,9 @@ export type CreateEventInput = {
   description: string;
   ageRestriction?: string;
   audienceGender?: string;
+  /** Women/Men/All discovery restriction — not persona tags. */
+  audience?: ContentAudience;
+  indoorOutdoor?: "indoor" | "outdoor" | "both" | null;
   format?: string;
   category?: string;
   tags?: string[];
@@ -539,6 +577,10 @@ export type CreateEventInput = {
   externalBookingUrl?: string;
   externalBookingButtonLabel?: string | null;
   waitlistEnabled?: boolean;
+  /** Optional single approved community link (null clears). */
+  communityId?: string | null;
+  /** Confirm cascading event.audience when linking a women/men community. */
+  cascadeAudience?: boolean;
   ticketTypes?: {
     id?: string;
     name: string;
@@ -590,6 +632,8 @@ export async function createEventDraft(userId: string, input: CreateEventInput) 
       description: input.description.trim(),
       age_restriction: input.ageRestriction || null,
       audience_gender: input.audienceGender || "Everyone",
+      audience: parseContentAudience(input.audience),
+      indoor_outdoor: input.indoorOutdoor ?? null,
       format: input.format || null,
       category: input.category || null,
       tags: input.tags ?? [],
@@ -634,18 +678,20 @@ export async function createEventDraft(userId: string, input: CreateEventInput) 
 
   if (error || !event) throw new Error(error?.message ?? "Could not create event.");
 
-  const { data: owned } = await supabase
-    .from("communities")
-    .select("id, claimed_by")
-    .or(`created_by.eq.${userId},claimed_by.eq.${userId}`);
-  if (owned?.length) {
-    await supabase.from("community_events").insert(
-      owned.map((community) => ({
-        community_id: community.id,
-        event_id: event.id,
-        link_status: community.claimed_by === userId ? "approved" : "pending",
-      })),
-    );
+  if (input.communityId !== undefined) {
+    const linked = await setEventCommunity(event.id as string, input.communityId, {
+      cascadeAudience: Boolean(input.cascadeAudience),
+      eventAudience: parseContentAudience(input.audience),
+    });
+    if (!linked.ok) {
+      const err = new Error(linked.error) as Error & {
+        needsCascade?: boolean;
+        communityAudience?: ContentAudience;
+      };
+      err.needsCascade = linked.needsCascade;
+      err.communityAudience = linked.communityAudience;
+      throw err;
+    }
   }
 
   if (input.ticketTypes?.length) {
@@ -737,6 +783,8 @@ export async function saveEventDraft(
         description: input.description.trim(),
         age_restriction: input.ageRestriction || null,
         audience_gender: input.audienceGender || "Everyone",
+        audience: parseContentAudience(input.audience),
+        indoor_outdoor: input.indoorOutdoor ?? null,
         format: input.format || null,
         category: input.category || null,
         tags: input.tags ?? [],
@@ -782,7 +830,43 @@ export async function saveEventDraft(
         .eq("id", eventId);
       if (organiserError) throw new Error(organiserError.message);
     }
+    // Ensure audience / setting land even if the live RPC payload omits them.
+    if (input.audience !== undefined || input.indoorOutdoor !== undefined) {
+      const { error: metaError } = await supabase
+        .from("events")
+        .update({
+          ...(input.audience !== undefined ? { audience: parseContentAudience(input.audience) } : {}),
+          ...(input.indoorOutdoor !== undefined
+            ? {
+                indoor_outdoor:
+                  input.indoorOutdoor === "indoor" ||
+                  input.indoorOutdoor === "outdoor" ||
+                  input.indoorOutdoor === "both"
+                    ? input.indoorOutdoor
+                    : null,
+              }
+            : {}),
+          updated_at: new Date().toISOString(),
+        })
+        .eq("id", eventId);
+      if (metaError) throw new Error(metaError.message);
+    }
     await syncStoredOccurrences(supabase, eventId, input);
+    if (input.communityId !== undefined) {
+      const linked = await setEventCommunity(eventId, input.communityId, {
+        cascadeAudience: Boolean(input.cascadeAudience),
+        eventAudience: parseContentAudience(input.audience),
+      });
+      if (!linked.ok) {
+        const err = new Error(linked.error) as Error & {
+          needsCascade?: boolean;
+          communityAudience?: ContentAudience;
+        };
+        err.needsCascade = linked.needsCascade;
+        err.communityAudience = linked.communityAudience;
+        throw err;
+      }
+    }
     return { id: existing.id as string, slug: existing.slug as string };
   }
 
@@ -793,6 +877,8 @@ export async function saveEventDraft(
       description: input.description.trim(),
       age_restriction: input.ageRestriction || null,
       audience_gender: input.audienceGender || "Everyone",
+      audience: parseContentAudience(input.audience),
+      indoor_outdoor: input.indoorOutdoor ?? null,
       format: input.format || null,
       category: input.category || null,
       tags: input.tags ?? [],
@@ -862,6 +948,22 @@ export async function saveEventDraft(
     }
   }
 
+  if (input.communityId !== undefined) {
+    const linked = await setEventCommunity(eventId, input.communityId, {
+      cascadeAudience: Boolean(input.cascadeAudience),
+      eventAudience: parseContentAudience(input.audience),
+    });
+    if (!linked.ok) {
+      const err = new Error(linked.error) as Error & {
+        needsCascade?: boolean;
+        communityAudience?: ContentAudience;
+      };
+      err.needsCascade = linked.needsCascade;
+      err.communityAudience = linked.communityAudience;
+      throw err;
+    }
+  }
+
   return { id: existing.id as string, slug: existing.slug as string };
 }
 
@@ -879,6 +981,8 @@ export function eventReadyToGoLive(input: {
   externalProviderName?: string;
   externalBookingUrl?: string;
   externalBookingButtonLabel?: string;
+  indoorOutdoor?: "indoor" | "outdoor" | "both" | null;
+  format?: string | null;
 }) {
   if (!input.title.trim()) return "Give the event a name.";
   if (!input.description.trim()) return "Add a short description.";
@@ -887,6 +991,8 @@ export function eventReadyToGoLive(input: {
   if (new Date(input.endsAt).getTime() < new Date(input.startsAt).getTime()) {
     return "End time must be after the start time.";
   }
+  if (!input.indoorOutdoor) return "Choose Indoor, Outdoor, or Indoor & Outdoor.";
+  if (!input.format?.trim()) return "Set the adventure / energy range.";
   if (input.bookingMethod === "external") {
     if (!input.organiserDisplayName?.trim()) {
       return "Add the event organiser (the business or community running it).";
@@ -938,6 +1044,8 @@ export async function goLiveEvent(
     externalProviderName: event.externalProviderName ?? undefined,
     externalBookingUrl: event.externalBookingUrl ?? undefined,
     externalBookingButtonLabel: event.externalBookingButtonLabel ?? undefined,
+    indoorOutdoor: event.indoorOutdoor,
+    format: event.format,
   });
   if (ready) throw new Error(ready);
 

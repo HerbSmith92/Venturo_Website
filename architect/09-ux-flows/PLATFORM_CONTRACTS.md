@@ -100,6 +100,26 @@ feature.
   fallbacks. Newer clients should treat empty rows as hidden and respect
   schedule windows in `Africa/Johannesburg`.
 
+### Content audience & setting (optional for native)
+
+Optional discovery fields for listings, events & communities. Older clients may
+ignore them. Do **not** change `audience_gender` / personas API shape.
+
+- `audience`: `all` | `women` | `men` — Women/Men/All discovery restriction.
+  Eligibility is derived from the signed-in profile gender (`woman` / `man`),
+  never from a forged URL or client-supplied audience flag.
+- `indoor_outdoor` on events (and listings): `indoor` | `outdoor` | `both` | null.
+- Adventure filtering: listings use assigned `activity_scales` ranks; events reuse
+  `format` energy range (`1-5`). Unassigned records are excluded when a level
+  range is applied; “Any level” includes unassigned.
+- Optional community link: at most one **approved** `community_events` row per
+  event. Native clients may surface the linked community on event detail when
+  present.
+- Website search: `GET /api/search` and `/search` with query params `q`, `place`,
+  `lat`, `lng`, `tab` (`all`|`activities`|`events`|`communities`), `setting`
+  (comma-separated), `levelMin`, `levelMax`, `page`, and optional `audience`
+  (`women`|`men`) as a **UI hint only**.
+
 ### Wallet
 
 - Token artwork: `GET /api/wallet/token` (`imageUrl` may be null)
@@ -134,6 +154,24 @@ feature.
 
 Do not send email, phone, precise location, raw IP or free-form profile data.
 Website and app audiences remain separate in reporting.
+
+### Content audience, setting & community link (website; optional for apps)
+
+Additive fields. Native clients may ignore them until they opt in. Website discovery
+always applies audience from the signed-in profile (`profiles.gender`); URL
+`audience=` is a UI hint only and never grants access.
+
+| Field | Where | Values | Notes |
+| --- | --- | --- | --- |
+| `audience` | `directory_listings`, `events`, `communities` | `all` \| `women` \| `men` | Default `all`. Not the same as `events.audience_gender` (persona tags / EVENT_PERSONAS). |
+| `indoor_outdoor` | listings (existing) & `events` | `indoor` \| `outdoor` \| `both` | Required before listing publish / event go-live on the website. |
+| Adventure | listings via `listing_activity_scales`; events via `format` energy range (`1-5`) | ranks 1–5 | Search range excludes unassigned; “Any level” includes them. |
+| Community link | `community_events` | at most one `link_status = approved` row per `event_id` | Optional. Linking does not change `organiser_id` or manager rights. |
+
+Website Search: `GET /api/search` and `/search` with `q`, `place`, `lat`/`lng`,
+`tab=all\|activities\|events\|communities`, `setting` (multi), `levelMin`/`levelMax`,
+`page`, optional `audience` hint. Tickets and host access are unchanged when audience
+or community links change.
 
 ## Native dependencies
 

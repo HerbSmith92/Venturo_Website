@@ -15,7 +15,17 @@ import { listPublicEvents } from "@/lib/events";
 import { formatDay, formatHours } from "@/lib/control-room-shared";
 import { buildListingCostGroups, presentListingCosts } from "@/lib/listing-costs";
 import { isSaved } from "@/lib/saves";
+import { SettingIcon } from "@/components/SettingIcon";
+import { parseSetting, settingLabel } from "@/lib/setting";
+import { formatEventEnergy } from "@/lib/event-types";
 import { notFound } from "next/navigation";
+
+export async function generateMetadata({ params }: { params: Promise<{ slug: string }> }) {
+  const { slug } = await params;
+  const listing = await getPublicListingBySlug(slug);
+  if (!listing) return { title: "Venturo" };
+  return { title: `${listing.name} · Venturo` };
+}
 
 function googleReviewsHref(listing: { name: string; area: string; mapsUrl: string | null }) {
   const maps = listing.mapsUrl ?? "";
@@ -61,6 +71,14 @@ export default async function ListingDetailPage({
     (event) => listing.city && event.city && event.city.toLowerCase() === listing.city.toLowerCase(),
   ).slice(0, 3);
   const colour = categoryColour(listing.category);
+  const listingSettingValue = parseSetting(listing.indoorOutdoor);
+  const listingSetting = settingLabel(listingSettingValue);
+  const listingAdventure =
+    listing.adventureRanks.length > 0
+      ? formatEventEnergy(
+          `${Math.min(...listing.adventureRanks)}-${Math.max(...listing.adventureRanks)}`,
+        )
+      : null;
   const address = [
     listing.streetAddress1,
     listing.streetAddress2,
@@ -82,9 +100,14 @@ export default async function ListingDetailPage({
         <div className="event-detail-hero listing-detail-hero">
           <img src={listing.media[0]?.url ?? listing.image} alt="" />
           <div className="event-detail-hero-copy">
-            <p className="eyebrow" style={{ color: colour }}>
-              {categoryLabel(listing.category)}
-              {listing.indoorOutdoor ? ` · ${listing.indoorOutdoor}` : ""}
+            <p className="eyebrow" style={{ color: colour, display: "inline-flex", alignItems: "center", gap: 6, flexWrap: "wrap" }}>
+              <span>{categoryLabel(listing.category)}</span>
+              {listingSetting && listingSettingValue ? (
+                <span style={{ display: "inline-flex", alignItems: "center", gap: 4 }}>
+                  · <SettingIcon setting={listingSettingValue} /> {listingSetting}
+                </span>
+              ) : null}
+              {listingAdventure ? <span>· {listingAdventure}</span> : null}
             </p>
             <h1>{listing.name}</h1>
             {listing.memberFromPrice !== null ? (

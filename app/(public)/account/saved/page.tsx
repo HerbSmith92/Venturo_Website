@@ -1,6 +1,7 @@
 import { EventCard } from "@/components/EventCard";
 import { GuideCard } from "@/components/GuideCard";
 import { ListingCard } from "@/components/ListingCard";
+import { canViewAudiencePublic, filterByAudience, loadAudienceViewer } from "@/lib/audience";
 import { getCurrentUser } from "@/lib/auth";
 import { getEventById } from "@/lib/events";
 import { liveGuides } from "@/lib/guides";
@@ -12,10 +13,11 @@ import { redirect } from "next/navigation";
 export default async function SavedPage() {
   const user = await getCurrentUser();
   if (!user) redirect("/login?next=/account/saved");
+  const viewer = await loadAudienceViewer();
   const saves = await listSaves(user.id);
-  const followed = await listFollowedCommunities(user.id);
+  const followed = filterByAudience(await listFollowedCommunities(user.id), viewer);
   const [listings, events, guides] = await Promise.all([
-    listingsByCategory("all"),
+    listingsByCategory("all", viewer),
     Promise.all(
       saves.filter((row) => row.kind === "event").map((row) => getEventById(row.target_id)),
     ),
@@ -25,7 +27,9 @@ export default async function SavedPage() {
   const guideIds = new Set(saves.filter((row) => row.kind === "guide").map((row) => row.target_id));
   const savedListings = listings.filter((listing) => listingIds.has(listing.id));
   const savedGuides = guides.filter((guide) => guideIds.has(guide.id));
-  const savedEvents = events.filter((event) => event && event.status === "approved");
+  const savedEvents = events.filter(
+    (event) => event && event.status === "approved" && canViewAudiencePublic(event.audience, viewer),
+  );
 
   return (
     <>

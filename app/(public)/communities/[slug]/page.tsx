@@ -2,6 +2,7 @@ import { EventCard } from "@/components/EventCard";
 import { FollowForm } from "@/components/FollowForm";
 import { ListingContact, listingContactLinks } from "@/components/ListingContact";
 import { UsageBeacon } from "@/components/UsageBeacon";
+import { canViewAudiencePublic, filterByAudience, loadAudienceViewer } from "@/lib/audience";
 import { getCurrentUser } from "@/lib/auth";
 import { getCommunityBySlug, isFollowingCommunity, listCommunityEventIds } from "@/lib/communities";
 import { listEventsByIds } from "@/lib/events";
@@ -27,16 +28,20 @@ export default async function CommunityDetailPage({
   params: Promise<{ slug: string }>;
 }) {
   const { slug } = await params;
-  const community = await getCommunityBySlug(slug);
+  const [community, viewer] = await Promise.all([getCommunityBySlug(slug), loadAudienceViewer()]);
   if (!community || community.status !== "published") notFound();
+  if (!canViewAudiencePublic(community.audience, viewer)) notFound();
 
   const user = await getCurrentUser();
   const [eventIds, following] = await Promise.all([
     listCommunityEventIds(community.id),
     user ? isFollowingCommunity(user.id, community.id) : Promise.resolve(false),
   ]);
-  const linked = (await listEventsByIds(eventIds)).filter(
-    (event) => event.status === "approved" && event.visibility === "public",
+  const linked = filterByAudience(
+    (await listEventsByIds(eventIds)).filter(
+      (event) => event.status === "approved" && event.visibility === "public",
+    ),
+    viewer,
   );
   const now = Date.now();
   const hosting = linked
@@ -167,6 +172,9 @@ export default async function CommunityDetailPage({
 
 export async function generateMetadata({ params }: { params: Promise<{ slug: string }> }) {
   const { slug } = await params;
-  const community = await getCommunityBySlug(slug);
-  return { title: community ? `${community.title} · Venturo` : "Community · Venturo" };
+  const [community, viewer] = await Promise.all([getCommunityBySlug(slug), loadAudienceViewer()]);
+  if (!community || !canViewAudiencePublic(community.audience, viewer)) {
+    return { title: "Venturo" };
+  }
+  return { title: `${community.title} · Venturo` };
 }

@@ -7,6 +7,7 @@ import { MenuIcon, type MenuIconName } from "@/components/menu/MenuIcon";
 import { isStaff } from "@/lib/roles";
 
 const PRIMARY_LINKS: { href: string; label: string }[] = [
+  { href: "/search", label: "Search" },
   { href: "/directory", label: "Activities" },
   { href: "/events", label: "Events" },
   { href: "/communities", label: "Communities" },
@@ -14,6 +15,7 @@ const PRIMARY_LINKS: { href: string; label: string }[] = [
 ];
 
 const SITE_LINKS: { href: string; label: string; icon: MenuIconName }[] = [
+  { href: "/search", label: "Search", icon: "compass" },
   { href: "/directory", label: "Activities", icon: "grid" },
   { href: "/events", label: "Events", icon: "calendar" },
   { href: "/communities", label: "Communities", icon: "flag" },

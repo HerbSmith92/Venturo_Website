@@ -18,18 +18,24 @@ const FILTERS: { id: EventStatus | "all" | "changes"; label: string }[] = [
 export default async function AdminEventsPage({
   searchParams,
 }: {
-  searchParams: Promise<{ status?: string; error?: string }>;
+  searchParams: Promise<{ status?: string; error?: string; flag?: string }>;
 }) {
   const params = await searchParams;
   const status = (FILTERS.some((f) => f.id === params.status)
     ? params.status
     : "review") as EventStatus | "all" | "changes";
-  const events = await listAdminEvents(status);
+  const flag = params.flag === "unassigned-setting" || params.flag === "missing-energy" ? params.flag : "";
+  let events = await listAdminEvents(status);
+  if (flag === "unassigned-setting") {
+    events = events.filter((event) => !event.indoorOutdoor);
+  } else if (flag === "missing-energy") {
+    events = events.filter((event) => !event.format?.trim());
+  }
   const hosts = await loadEventHosts(
     events.map((event) => event.organiserId),
     { withAuthEmail: false },
   );
-  const returnTo = `/admin/events?status=${status}`;
+  const returnTo = `/admin/events?status=${status}${flag ? `&flag=${flag}` : ""}`;
 
   const list = (
     <div className="stack-list">
@@ -82,6 +88,17 @@ export default async function AdminEventsPage({
         <a className="btn btn-secondary" href="/admin/events/new?kind=external">
           Add external event
         </a>
+        <a className="btn btn-ghost" href={`/admin/events?status=${status}&flag=unassigned-setting`}>
+          Unassigned setting
+        </a>
+        <a className="btn btn-ghost" href={`/admin/events?status=${status}&flag=missing-energy`}>
+          Missing energy
+        </a>
+        {flag ? (
+          <a className="btn btn-ghost" href={`/admin/events?status=${status}`}>
+            Clear flag
+          </a>
+        ) : null}
       </p>
       {params.error ? <p className="error">{params.error}</p> : null}
 

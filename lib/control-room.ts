@@ -131,7 +131,7 @@ export async function loadDirectoryQueue(filters: {
     .from("directory_listings")
     .select(
       `
-      id, name, branch_name, slug, suburb, city, status, is_featured, is_suspended, review_note, publish_at, price_from, updated_at,
+      id, name, branch_name, slug, suburb, city, status, is_featured, is_suspended, review_note, publish_at, price_from, updated_at, indoor_outdoor,
       listing_media ( public_url, is_cover, sort_order, is_pending ),
       listing_activity_kinds ( is_primary, activity_kind_id, activity_kinds ( id, key, title ) )
     `,
@@ -252,7 +252,7 @@ export async function loadListing(id: string): Promise<ListingDetail | null> {
       short_description, description, phone, email, website_url, booking_url,
       street_address_1, street_address_2, province, postal_code,
       latitude, longitude, maps_url,
-      booking_required, indoor_outdoor, interest_keywords, persona_keywords, google_rating, google_review_count,
+      booking_required, indoor_outdoor, audience, interest_keywords, persona_keywords, google_rating, google_review_count,
       authorised_to_submit, image_rights_granted, terms_accepted,
       published_at, last_verified_at,
       businesses ( id, name, slug, status, description, website_url ),

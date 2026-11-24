@@ -48,6 +48,8 @@ export type MemberProfile = {
   phone: string;
   avatarPath: string | null;
   avatarUrl: string | null;
+  coverPath: string | null;
+  coverUrl: string | null;
   homePlaceId: string | null;
   energyLow: number | null;
   energyHigh: number | null;

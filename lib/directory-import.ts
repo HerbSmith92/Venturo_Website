@@ -54,6 +54,7 @@ export function directoryRowToDraft(row: DirectoryCsvRow, kindId: string | null)
     maps_url: "",
     booking_required: false,
     indoor_outdoor: "",
+    audience: "all",
     business_name: row.business_name.trim(),
     business_description: "",
     business_website: row.website_url.trim(),

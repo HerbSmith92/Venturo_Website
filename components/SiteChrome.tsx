@@ -29,7 +29,7 @@ export function SiteFooter() {
           <h2>Go make a story.</h2>
           <p>Discover things to do, find your people &amp; turn “we should” into “remember when”.</p>
         </div>
-        <a className="btn btn-primary" href="/directory">
+        <a className="btn btn-primary" href="/search">
           Find your next adventure
         </a>
       </div>

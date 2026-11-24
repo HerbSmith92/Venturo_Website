@@ -38,7 +38,7 @@ export default async function PortalEventDoorPage({
     <main className="door-page">
       <EventChrome event={event} current="door">
         <aside className="companion-door-banner">
-          <p>On a phone at the venue? Open the Companion App — camera, offline list &amp; sync.</p>
+          <p>On a phone at the venue? Open Companion in the browser — camera, offline list &amp; sync.</p>
           <a className="btn btn-primary" href={companionEventHref(id)}>
             Open Companion
           </a>

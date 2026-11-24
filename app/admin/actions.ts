@@ -72,13 +72,25 @@ export async function saveListingDraft(listingId: string, draft: ListingDraft) {
     return { ok: false as const, error: "Listing name is required." };
   }
 
+  const payload = draftToPayload(draft);
   const { error } = await supabase.rpc("admin_save_listing_draft", {
     p_listing_id: listingId,
-    p_payload: draftToPayload(draft),
+    p_payload: payload,
   });
 
   if (error) {
     return { ok: false as const, error: error.message };
+  }
+
+  // Belt-and-braces: listing RPC now writes audience; keep a direct write for older DBs.
+  const audience =
+    draft.audience === "women" || draft.audience === "men" ? draft.audience : "all";
+  const { error: audienceError } = await supabase
+    .from("directory_listings")
+    .update({ audience })
+    .eq("id", listingId);
+  if (audienceError) {
+    return { ok: false as const, error: audienceError.message };
   }
 
   revalidatePath("/admin");

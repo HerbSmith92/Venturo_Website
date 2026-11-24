@@ -1,6 +1,7 @@
 import { EventStudio } from "@/components/events/EventStudio";
 import { EventChrome } from "@/components/portal/EventChrome";
 import { ManageEventTools } from "@/components/portal/ManageEventTools";
+import { getEventCommunity, listClaimedCommunities } from "@/lib/communities";
 import { requirePortalEvent } from "@/lib/event-access";
 import { getPlatformFees } from "@/lib/events";
 import { listEventCollaborators } from "@/lib/event-collaborators";
@@ -13,8 +14,12 @@ export default async function PortalManageEventPage({
 }) {
   const { id } = await params;
   const { event, user, canEdit, access } = await requirePortalEvent(id, "editor");
-  const fees = await getPlatformFees();
-  const collaborators = await listEventCollaborators(id);
+  const [fees, collaborators, linkedCommunity, claimed] = await Promise.all([
+    getPlatformFees(),
+    listEventCollaborators(id),
+    getEventCommunity(id),
+    listClaimedCommunities(user.id),
+  ]);
   const supabase = await createClient();
   let hasPayout = false;
   if (supabase) {
@@ -25,6 +30,30 @@ export default async function PortalManageEventPage({
       .maybeSingle();
     hasPayout = Boolean(data);
   }
+  const communityOptions = [
+    ...(linkedCommunity
+      ? [
+          {
+            id: linkedCommunity.id,
+            title: linkedCommunity.title,
+            slug: linkedCommunity.slug,
+            coverUrl: linkedCommunity.coverUrl,
+            audience: linkedCommunity.audience,
+            status: linkedCommunity.status,
+          },
+        ]
+      : []),
+    ...claimed
+      .filter((item) => item.id !== linkedCommunity?.id)
+      .map((item) => ({
+        id: item.id,
+        title: item.title || "Untitled community",
+        slug: item.slug,
+        coverUrl: item.coverUrl,
+        audience: item.audience,
+        status: item.status,
+      })),
+  ];
 
   return (
     <main className="portal-studio">
@@ -43,6 +72,8 @@ export default async function PortalManageEventPage({
           fees={fees}
           stay="portal"
           focus="manage"
+          linkedCommunity={linkedCommunity}
+          communityOptions={communityOptions}
         />
       </EventChrome>
     </main>

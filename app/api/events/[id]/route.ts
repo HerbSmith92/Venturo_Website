@@ -22,8 +22,19 @@ export async function PATCH(
     const event = await saveEventDraft(user.id, id, body, isStaff(user.role));
     return NextResponse.json({ id: event.id, slug: event.slug });
   } catch (error) {
+    const needsCascade =
+      error instanceof Error && "needsCascade" in error
+        ? Boolean((error as { needsCascade?: boolean }).needsCascade)
+        : false;
+    const communityAudience =
+      error instanceof Error && "communityAudience" in error
+        ? (error as { communityAudience?: string }).communityAudience
+        : undefined;
     return NextResponse.json(
-      { error: error instanceof Error ? error.message : "Could not save event." },
+      {
+        error: error instanceof Error ? error.message : "Could not save event.",
+        ...(needsCascade ? { needsCascade: true, communityAudience } : {}),
+      },
       { status: 400 },
     );
   }

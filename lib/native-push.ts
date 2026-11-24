@@ -76,8 +76,11 @@ async function deliverOne(device: NativePushDevice, message: NativePushMessage):
 
 async function sendApple(device: NativePushDevice, message: NativePushMessage): Promise<SendOutcome> {
   const jwt = appleProviderToken();
+  if (jwt === "missing") {
+    return { ok: false, drop: false, error: "The Apple push key is not set on the server." };
+  }
   if (!jwt) {
-    return { ok: false, drop: false, error: "The Apple push key is missing or could not be read." };
+    return { ok: false, drop: false, error: "The Apple push key is set, but it is not a readable .p8 file." };
   }
 
   const host = device.apns_environment === "production"
@@ -92,6 +95,8 @@ async function sendApple(device: NativePushDevice, message: NativePushMessage): 
     kind: message.kind,
     id: message.id,
     slug: message.slug,
+    title: message.title,
+    body: message.body,
     when: message.when,
     campaignId: message.campaignId,
   });
@@ -107,10 +112,10 @@ async function sendApple(device: NativePushDevice, message: NativePushMessage): 
 }
 
 function appleProviderToken() {
-  const keyId = process.env.APNS_KEY_ID?.trim();
+  const keyId = process.env.APNS_KEY_ID?.trim().replace(/^AuthKey_|\.p8$/g, "");
   const teamId = process.env.APNS_TEAM_ID?.trim();
   const raw = process.env.APNS_PRIVATE_KEY?.trim();
-  if (!keyId || !teamId || !raw) return null;
+  if (!keyId || !teamId || !raw) return "missing";
   const now = Math.floor(Date.now() / 1000);
   if (appleJwt && appleJwt.exp > now + 60) return appleJwt.token;
 
@@ -119,7 +124,7 @@ function appleProviderToken() {
     const claims = base64url(JSON.stringify({ iss: teamId, iat: now }));
     const unsigned = `${header}.${claims}`;
     const signature = createSign("SHA256").update(unsigned).sign({
-      key: raw.replace(/\\n/g, "\n"),
+      key: applePrivateKey(raw),
       dsaEncoding: "ieee-p1363",
     });
     const token = `${unsigned}.${base64url(signature)}`;
@@ -128,6 +133,27 @@ function appleProviderToken() {
   } catch {
     return null;
   }
+}
+
+function applePrivateKey(raw: string) {
+  let key = raw.trim();
+  if ((key.startsWith('"') && key.endsWith('"')) || (key.startsWith("'") && key.endsWith("'"))) {
+    key = key.slice(1, -1);
+  }
+  key = key.replace(/\\n/g, "\n").replace(/\r/g, "").trim();
+  const begin = key.indexOf("-----BEGIN");
+  const end = key.lastIndexOf("-----END");
+  if (begin >= 0 && end > begin) key = key.slice(begin);
+  if (!key.includes("\n") && key.includes("-----BEGIN") && key.includes("-----END")) {
+    key = key
+      .replace(/(-----BEGIN [^-]+-----)/, "$1\n")
+      .replace(/(-----END [^-]+-----)/, "\n$1");
+    const lines = key.split("\n");
+    const body = lines.slice(1, -1).join("");
+    const wrapped = body.match(/.{1,64}/g)?.join("\n") ?? body;
+    key = `${lines[0]}\n${wrapped}\n${lines[lines.length - 1]}`;
+  }
+  return key;
 }
 
 function postApple(host: string, token: string, jwt: string, body: string) {
@@ -200,6 +226,8 @@ async function sendFirebase(device: NativePushDevice, message: NativePushMessage
             kind: message.kind,
             id: message.id,
             slug: message.slug,
+            title: message.title,
+            body: message.body,
             when: message.when,
             campaignId: message.campaignId,
           },

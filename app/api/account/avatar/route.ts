@@ -24,6 +24,8 @@ export async function POST(request: Request) {
 
   const form = await request.formData();
   const file = form.get("file");
+  const kind = form.get("kind") === "cover" ? "cover" : "avatar";
+  const column = kind === "cover" ? "cover_path" : "avatar_path";
   if (!(file instanceof File) || file.size === 0) {
     return NextResponse.json({ error: "Choose a photo to upload." }, { status: 400 });
   }
@@ -38,16 +40,15 @@ export async function POST(request: Request) {
   }
 
   const ext = mediaExt(file);
-  const path = `${user.id}/avatar.${ext}`;
+  const path = `${user.id}/${kind}.${ext}`;
 
   const { data: existing } = await supabase
     .from("profiles")
-    .select("avatar_path")
+    .select("avatar_path, cover_path")
     .eq("id", user.id)
     .maybeSingle();
 
-  const previousPath =
-    typeof existing?.avatar_path === "string" ? existing.avatar_path : null;
+  const previousPath = kind === "cover" ? existing?.cover_path : existing?.avatar_path;
 
   const { error: uploadError } = await supabase.storage.from("avatars").upload(path, file, {
     cacheControl: "3600",
@@ -66,7 +67,7 @@ export async function POST(request: Request) {
   const { error: profileError } = await supabase.from("profiles").upsert(
     {
       id: user.id,
-      avatar_path: path,
+      [column]: path,
     },
     { onConflict: "id" },
   );
@@ -86,10 +87,17 @@ export async function POST(request: Request) {
     );
   }
 
-  return NextResponse.json({ ok: true, avatarPath: path, avatarUrl: signed.signedUrl });
+  return NextResponse.json({
+    ok: true,
+    kind,
+    avatarPath: kind === "avatar" ? path : null,
+    avatarUrl: kind === "avatar" ? signed.signedUrl : null,
+    coverPath: kind === "cover" ? path : null,
+    coverUrl: kind === "cover" ? signed.signedUrl : null,
+  });
 }
 
-export async function DELETE() {
+export async function DELETE(request: Request) {
   const user = await getCurrentUser();
   if (!user) {
     return NextResponse.json({ error: "Log in to update your photo." }, { status: 401 });
@@ -100,20 +108,22 @@ export async function DELETE() {
     return NextResponse.json({ error: "Supabase is not connected yet." }, { status: 503 });
   }
 
+  const kind = new URL(request.url).searchParams.get("kind") === "cover" ? "cover" : "avatar";
+  const column = kind === "cover" ? "cover_path" : "avatar_path";
   const { data: existing } = await supabase
     .from("profiles")
-    .select("avatar_path")
+    .select("avatar_path, cover_path")
     .eq("id", user.id)
     .maybeSingle();
 
-  const path = typeof existing?.avatar_path === "string" ? existing.avatar_path : null;
+  const path = kind === "cover" ? existing?.cover_path : existing?.avatar_path;
   if (path) {
     await supabase.storage.from("avatars").remove([path]);
   }
 
   const { error } = await supabase
     .from("profiles")
-    .update({ avatar_path: null })
+    .update({ [column]: null })
     .eq("id", user.id);
 
   if (error) {
